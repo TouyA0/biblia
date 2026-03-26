@@ -62,6 +62,7 @@ export default function ChapterPage() {
   const [activeWord, setActiveWord] = useState<WordToken | null>(null)
   const [activeTab, setActiveTab] = useState<'verse' | 'word' | 'comments'>('verse')
   const [loading, setLoading] = useState(true)
+  const [popoverPos, setPopoverPos] = useState<{ x: number; y: number } | null>(null)
 
   useEffect(() => {
     loadData()
@@ -104,7 +105,7 @@ export default function ChapterPage() {
   )
 
   return (
-    <div style={{
+    <div onClick={() => setPopoverPos(null)} style={{
       display: 'grid',
       gridTemplateColumns: '220px 1fr',
       gridTemplateRows: '52px 1fr',
@@ -334,8 +335,9 @@ export default function ChapterPage() {
                               key={token.id}
                               onClick={e => {
                                 e.stopPropagation()
+                                const rect = (e.target as HTMLElement).getBoundingClientRect()
+                                setPopoverPos({ x: rect.left + rect.width / 2, y: rect.bottom + window.scrollY })
                                 setActiveWord(token)
-                                setActiveTab('word')
                               }}
                               style={{
                                 cursor: 'pointer',
@@ -621,6 +623,130 @@ export default function ChapterPage() {
           </div>
         </div>
       </div>
+      {/* POPOVER MOT */}
+      {activeWord && popoverPos && (
+      <div
+          onClick={e => e.stopPropagation()}
+          style={{
+          position: 'fixed',
+          left: `${popoverPos.x - 130}px`,
+          top: `${popoverPos.y + 10}px`,
+          width: '260px',
+          background: 'var(--ink)',
+          borderRadius: '10px',
+          padding: '16px 18px',
+          boxShadow: '0 8px 40px rgba(26,22,18,0.3)',
+          zIndex: 100,
+          }}
+      >
+          {/* Flèche */}
+          <div style={{
+          position: 'absolute',
+          top: '-8px',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          width: 0,
+          height: 0,
+          borderLeft: '8px solid transparent',
+          borderRight: '8px solid transparent',
+          borderBottom: '8px solid var(--ink)',
+          }} />
+
+          {/* Mot */}
+          <div style={{
+          fontSize: '28px',
+          fontWeight: '300',
+          color: 'white',
+          textAlign: 'right',
+          direction: 'rtl',
+          marginBottom: '4px',
+          }}>
+          {activeWord.word}
+          </div>
+
+          {/* Translittération */}
+          {activeWord.translit && (
+          <div style={{
+              fontFamily: 'DM Mono, monospace',
+              fontSize: '11px',
+              color: 'var(--gold-light)',
+              marginBottom: '10px',
+          }}>
+              {activeWord.translit}
+          </div>
+          )}
+
+          {/* Tags */}
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginBottom: '12px' }}>
+          {activeWord.strongNumber && (
+              <span style={{
+              fontFamily: 'DM Mono, monospace',
+              fontSize: '9px',
+              padding: '2px 8px',
+              borderRadius: '20px',
+              background: 'rgba(255,255,255,0.1)',
+              color: 'rgba(255,255,255,0.65)',
+              border: '1px solid rgba(255,255,255,0.12)',
+              }}>
+              {activeWord.strongNumber}
+              </span>
+          )}
+          {activeWord.morphology && (
+              <span style={{
+              fontFamily: 'DM Mono, monospace',
+              fontSize: '9px',
+              padding: '2px 8px',
+              borderRadius: '20px',
+              background: 'rgba(255,255,255,0.1)',
+              color: 'rgba(255,255,255,0.65)',
+              border: '1px solid rgba(255,255,255,0.12)',
+              }}>
+              {activeWord.morphology}
+              </span>
+          )}
+          {activeWord.lemma && (
+              <span style={{
+              fontFamily: 'DM Mono, monospace',
+              fontSize: '9px',
+              padding: '2px 8px',
+              borderRadius: '20px',
+              background: 'rgba(255,255,255,0.1)',
+              color: 'rgba(255,255,255,0.65)',
+              border: '1px solid rgba(255,255,255,0.12)',
+              }}>
+              Racine: {activeWord.lemma}
+              </span>
+          )}
+          </div>
+
+          <hr style={{ border: 'none', borderTop: '1px solid rgba(255,255,255,0.1)', margin: '10px 0' }} />
+
+          <div style={{
+          fontFamily: 'DM Mono, monospace',
+          fontSize: '9px',
+          letterSpacing: '0.1em',
+          textTransform: 'uppercase',
+          color: 'rgba(255,255,255,0.35)',
+          marginBottom: '8px',
+          }}>
+          Mot sélectionné
+          </div>
+
+          <div
+          onClick={() => { setPopoverPos(null); setActiveTab('word') }}
+          style={{
+              fontFamily: 'DM Mono, monospace',
+              fontSize: '10px',
+              color: 'var(--gold-light)',
+              marginTop: '10px',
+              cursor: 'pointer',
+              opacity: 0.8,
+          }}
+          >
+          Voir tout → panneau droit
+          </div>
+      </div>
+      )}
     </div>
   )
 }
