@@ -1,0 +1,192 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  VISITOR
+  NOVICE
+  INTERMEDIATE
+  EXPERT
+  ADMIN
+}
+
+enum Testament {
+  AT
+  NT
+}
+
+enum Language {
+  HEB
+  GRK
+}
+
+enum ProposalStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+}
+
+model User {
+  id               String            @id @default(uuid())
+  email            String            @unique
+  passwordHash     String
+  username         String            @unique
+  role             Role              @default(NOVICE)
+  isVerified       Boolean           @default(false)
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  wordTranslations WordTranslation[]
+  proposals        Proposal[]
+  votes            Vote[]
+  comments         Comment[]
+  auditLogs        AuditLog[]
+  sessions         Session[]
+}
+
+model Book {
+  id           String    @id @default(uuid())
+  name         String
+  slug         String    @unique
+  testament    Testament
+  orderNum     Int
+  chapterCount Int
+  chapters     Chapter[]
+}
+
+model Chapter {
+  id     String  @id @default(uuid())
+  bookId String
+  number Int
+  book   Book    @relation(fields: [bookId], references: [id])
+  verses Verse[]
+}
+
+model Verse {
+  id           String        @id @default(uuid())
+  chapterId    String
+  number       Int
+  reference    String
+  chapter      Chapter       @relation(fields: [chapterId], references: [id])
+  texts        VerseText[]
+  translations Translation[]
+  comments     Comment[]
+}
+
+model VerseText {
+  id         String      @id @default(uuid())
+  verseId    String
+  language   Language
+  text       String
+  source     String
+  verse      Verse       @relation(fields: [verseId], references: [id])
+  wordTokens WordToken[]
+}
+
+model Translation {
+  id          String     @id @default(uuid())
+  verseId     String
+  textFr      String
+  isActive    Boolean    @default(false)
+  validatedBy String?
+  createdBy   String?
+  createdAt   DateTime   @default(now())
+  verse       Verse      @relation(fields: [verseId], references: [id])
+  proposals   Proposal[]
+}
+
+model WordToken {
+  id           String            @id @default(uuid())
+  verseTextId  String
+  position     Int
+  word         String
+  lemma        String
+  translit     String?
+  strongNumber String?
+  morphology   String?
+  verseText    VerseText         @relation(fields: [verseTextId], references: [id])
+  translations WordTranslation[]
+  comments     Comment[]
+}
+
+model WordTranslation {
+  id          String    @id @default(uuid())
+  wordTokenId String
+  translation String
+  voteCount   Int       @default(0)
+  isValidated Boolean   @default(false)
+  createdBy   String?
+  createdAt   DateTime  @default(now())
+  wordToken   WordToken @relation(fields: [wordTokenId], references: [id])
+  creator     User?     @relation(fields: [createdBy], references: [id])
+  votes       Vote[]
+}
+
+model Proposal {
+  id            String         @id @default(uuid())
+  translationId String
+  proposedText  String
+  status        ProposalStatus @default(PENDING)
+  reason        String?
+  createdBy     String?
+  reviewedBy    String?
+  createdAt     DateTime       @default(now())
+  translation   Translation    @relation(fields: [translationId], references: [id])
+  creator       User?          @relation(fields: [createdBy], references: [id])
+  votes         Vote[]
+}
+
+model Vote {
+  id                String           @id @default(uuid())
+  userId            String
+  value             Int
+  createdAt         DateTime         @default(now())
+  proposalId        String?
+  wordTranslationId String?
+  user              User             @relation(fields: [userId], references: [id])
+  proposal          Proposal?        @relation(fields: [proposalId], references: [id])
+  wordTranslation   WordTranslation? @relation(fields: [wordTranslationId], references: [id])
+
+  @@unique([userId, proposalId])
+  @@unique([userId, wordTranslationId])
+}
+
+model Comment {
+  id          String     @id @default(uuid())
+  text        String
+  createdBy   String?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  verseId     String?
+  wordTokenId String?
+  creator     User?      @relation(fields: [createdBy], references: [id])
+  verse       Verse?     @relation(fields: [verseId], references: [id])
+  wordToken   WordToken? @relation(fields: [wordTokenId], references: [id])
+}
+
+model AuditLog {
+  id         String   @id @default(uuid())
+  userId     String?
+  action     String
+  targetType String
+  targetId   String
+  metadata   Json?
+  ip         String?
+  createdAt  DateTime @default(now())
+  user       User?    @relation(fields: [userId], references: [id])
+}
+
+model Session {
+  id        String   @id @default(uuid())
+  userId    String
+  tokenHash String   @unique
+  expiresAt DateTime
+  ip        String?
+  userAgent String?
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id])
+}
