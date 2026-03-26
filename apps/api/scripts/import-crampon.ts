@@ -72,6 +72,13 @@ const BOOK_MAP: Record<string, string> = {
   'III John': '3jean',
   'Jude': 'jude',
   'Revelation of John': 'apocalypse',
+  'Tobit': 'tobie',
+  'Judith': 'judith',
+  'I Maccabees': '1maccabees',
+  'II Maccabees': '2maccabees',
+  'Wisdom': 'sagesse',
+  'Sirach': 'siracide',
+  'Baruch': 'baruch',
 }
 
 async function main() {
