@@ -1,0 +1,40 @@
+@import url('https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@0,300;0,400;0,600;1,300;1,400&family=DM+Mono:wght@300;400&family=Spectral:ital,wght@0,300;0,400;1,300&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --ink: #1a1612;
+  --ink-soft: #4a3f35;
+  --ink-muted: #8a7a6e;
+  --ink-faint: #c8b8a8;
+  --parchment: #f7f3ed;
+  --parchment-dark: #ede6db;
+  --parchment-deep: #e0d5c5;
+  --gold: #b8843a;
+  --gold-light: #d4a85a;
+  --gold-pale: #f0e4cc;
+  --blue-sacred: #2a4a7a;
+  --blue-light: #e8eef8;
+  --green-valid: #2d5a3a;
+  --green-light: #e8f4ec;
+  --red-soft: #7a2a2a;
+  --red-light: #f4e8e8;
+  --amber-pending: #7a5a1a;
+  --amber-light: #f8f0da;
+  --border: rgba(90, 70, 50, 0.15);
+  --border-strong: rgba(90, 70, 50, 0.3);
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background: var(--parchment);
+  color: var(--ink);
+  font-family: 'Spectral', Georgia, serif;
+}
