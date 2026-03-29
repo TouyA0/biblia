@@ -1,0 +1,169 @@
+'use client'
+
+import { useEffect, useState } from 'react'
+import { useParams } from 'next/navigation'
+import api from '@/lib/api'
+import TopBar from './TopBar'
+import Sidebar from './Sidebar'
+import VerseList from './VerseList'
+import RightPanel from './RightPanel'
+import WordPopover from './WordPopover'
+
+interface WordToken {
+  id: string
+  position: number
+  word: string
+  lemma: string
+  translit: string | null
+  strongNumber: string | null
+  morphology: string | null
+}
+
+interface VerseText {
+  id: string
+  language: string
+  text: string
+  wordTokens: WordToken[]
+}
+
+interface Translation {
+  id: string
+  textFr: string
+  isActive: boolean
+}
+
+interface Verse {
+  id: string
+  number: number
+  reference: string
+  texts: VerseText[]
+  translations: Translation[]
+}
+
+interface Chapter {
+  id: string
+  number: number
+  verses: Verse[]
+}
+
+interface Book {
+  id: string
+  name: string
+  slug: string
+  testament: string
+  chapterCount: number
+  chapters: { id: string; number: number }[]
+}
+
+interface BibleLayoutProps {
+  testament: 'AT' | 'NT'
+}
+
+export default function BibleLayout({ testament }: BibleLayoutProps) {
+  const params = useParams()
+  const book = params.book as string
+  const chapter = params.chapter as string
+
+  const [bookData, setBookData] = useState<Book | null>(null)
+  const [chapterData, setChapterData] = useState<Chapter | null>(null)
+  const [allBooks, setAllBooks] = useState<Book[]>([])
+  const [activeVerse, setActiveVerse] = useState<Verse | null>(null)
+  const [activeWord, setActiveWord] = useState<WordToken | null>(null)
+  const [activeTab, setActiveTab] = useState<'verse' | 'word' | 'comments'>('verse')
+  const [loading, setLoading] = useState(true)
+  const [popoverPos, setPopoverPos] = useState<{ x: number; y: number } | null>(null)
+
+  useEffect(() => {
+    loadData()
+  }, [book, chapter])
+
+  async function loadData() {
+    setLoading(true)
+    try {
+      const [booksRes, bookRes, chapterRes] = await Promise.all([
+        api.get('/api/books'),
+        api.get(`/api/books/${book}`),
+        api.get(`/api/books/${book}/chapters/${chapter}`),
+      ])
+      setAllBooks(booksRes.data)
+      setBookData(bookRes.data)
+      setChapterData(chapterRes.data)
+    } catch (error) {
+      console.error(error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  if (loading) return (
+    <div style={{
+      height: '100vh',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      background: 'var(--parchment)',
+      fontFamily: 'Spectral, serif',
+      fontStyle: 'italic',
+      color: 'var(--ink-muted)',
+      fontSize: '18px',
+    }}>
+      Chargement...
+    </div>
+  )
+
+  return (
+    <div
+      onClick={() => setPopoverPos(null)}
+      style={{
+        display: 'grid',
+        gridTemplateColumns: '220px 1fr',
+        gridTemplateRows: '52px 1fr',
+        height: '100vh',
+        overflow: 'hidden',
+      }}
+    >
+      <TopBar testament={testament} book={book} chapter={chapter} />
+
+      <Sidebar
+        testament={testament}
+        currentBook={book}
+        currentChapter={chapter}
+        bookData={bookData}
+        allBooks={allBooks}
+      />
+
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 360px', overflow: 'hidden' }}>
+        {chapterData && bookData && (
+          <VerseList
+            verses={chapterData.verses}
+            bookName={bookData.name}
+            chapter={chapter}
+            activeVerseId={activeVerse?.id || null}
+            activeWordId={activeWord?.id || null}
+            onVerseClick={(verse) => { setActiveVerse(verse); setActiveTab('verse') }}
+            onWordClick={(token, x, y) => {
+              setActiveWord(token)
+              setPopoverPos({ x, y })
+            }}
+          />
+        )}
+
+        <RightPanel
+          activeTab={activeTab}
+          setActiveTab={setActiveTab}
+          activeVerse={activeVerse}
+          activeWord={activeWord}
+        />
+      </div>
+
+      {activeWord && popoverPos && (
+        <WordPopover
+          word={activeWord}
+          position={popoverPos}
+          onClose={() => setPopoverPos(null)}
+          onOpenPanel={() => setActiveTab('word')}
+        />
+      )}
+    </div>
+  )
+}

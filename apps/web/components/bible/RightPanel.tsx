@@ -1,0 +1,288 @@
+'use client'
+
+interface WordToken {
+  id: string
+  word: string
+  lemma: string
+  translit: string | null
+  strongNumber: string | null
+  morphology: string | null
+}
+
+interface Translation {
+  id: string
+  textFr: string
+  isActive: boolean
+}
+
+interface VerseText {
+  id: string
+  language: string
+  text: string
+}
+
+interface Verse {
+  id: string
+  number: number
+  texts: VerseText[]
+  translations: Translation[]
+}
+
+interface RightPanelProps {
+  activeTab: 'verse' | 'word' | 'comments'
+  setActiveTab: (tab: 'verse' | 'word' | 'comments') => void
+  activeVerse: Verse | null
+  activeWord: WordToken | null
+}
+
+export default function RightPanel({ activeTab, setActiveTab, activeVerse, activeWord }: RightPanelProps) {
+  return (
+    <div style={{
+      borderLeft: '1px solid var(--border)',
+      background: 'var(--parchment)',
+      overflowY: 'auto',
+      display: 'flex',
+      flexDirection: 'column',
+    }}>
+      {/* Onglets */}
+      <div style={{
+        display: 'flex',
+        borderBottom: '1px solid var(--border)',
+        background: 'var(--parchment-dark)',
+        flexShrink: 0,
+      }}>
+        {(['verse', 'word', 'comments'] as const).map(tab => (
+          <div
+            key={tab}
+            onClick={() => setActiveTab(tab)}
+            style={{
+              flex: 1,
+              padding: '13px 8px',
+              textAlign: 'center',
+              fontFamily: 'DM Mono, monospace',
+              fontSize: '10px',
+              letterSpacing: '0.08em',
+              textTransform: 'uppercase' as const,
+              color: activeTab === tab ? 'var(--gold)' : 'var(--ink-muted)',
+              cursor: 'pointer',
+              borderBottom: activeTab === tab ? '2px solid var(--gold)' : '2px solid transparent',
+              background: activeTab === tab ? 'var(--parchment)' : 'transparent',
+            }}
+          >
+            {tab === 'verse' ? 'Verset' : tab === 'word' ? 'Mot' : 'Commentaires'}
+          </div>
+        ))}
+      </div>
+
+      <div style={{ padding: '24px', flex: 1 }}>
+
+        {/* ONGLET VERSET */}
+        {activeTab === 'verse' && (
+          activeVerse ? (
+            <div>
+              <div style={{
+                background: 'var(--ink)',
+                borderRadius: '10px',
+                padding: '18px 20px',
+                marginBottom: '20px',
+                direction: activeVerse.texts[0]?.language === 'HEB' ? 'rtl' : 'ltr',
+                textAlign: activeVerse.texts[0]?.language === 'HEB' ? 'right' : 'left',
+              }}>
+                <div style={{
+                  fontFamily: 'DM Mono, monospace',
+                  fontSize: '9px',
+                  letterSpacing: '0.12em',
+                  textTransform: 'uppercase' as const,
+                  color: 'rgba(255,255,255,0.35)',
+                  marginBottom: '10px',
+                  direction: 'ltr',
+                  textAlign: 'left',
+                }}>
+                  Texte original
+                </div>
+                <div style={{
+                  fontSize: '19px',
+                  fontWeight: '300',
+                  color: 'rgba(255,255,255,0.92)',
+                  lineHeight: '2',
+                }}>
+                  {activeVerse.texts[0]?.text}
+                </div>
+              </div>
+              {activeVerse.translations[0] && (
+                <div style={{
+                  border: '1px solid rgba(45,90,58,0.3)',
+                  borderRadius: '8px',
+                  padding: '14px 16px',
+                  background: 'var(--green-light)',
+                }}>
+                  <div style={{
+                    fontFamily: 'DM Mono, monospace',
+                    fontSize: '9px',
+                    letterSpacing: '0.1em',
+                    textTransform: 'uppercase' as const,
+                    color: 'var(--green-valid)',
+                    marginBottom: '8px',
+                    opacity: 0.7,
+                  }}>
+                    Traduction Crampon 1923
+                  </div>
+                  <div style={{
+                    fontFamily: 'Spectral, serif',
+                    fontSize: '15px',
+                    fontStyle: 'italic',
+                    color: 'var(--ink)',
+                    lineHeight: '1.7',
+                  }}>
+                    {activeVerse.translations[0].textFr}
+                  </div>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              height: '300px',
+              color: 'var(--ink-faint)',
+              fontFamily: 'Spectral, serif',
+              fontStyle: 'italic',
+              textAlign: 'center',
+              gap: '10px',
+            }}>
+              <div style={{ fontSize: '36px', opacity: 0.3, fontFamily: 'Crimson Pro, serif' }}>א</div>
+              <div>Cliquez sur un verset<br />pour l&apos;explorer</div>
+            </div>
+          )
+        )}
+
+        {/* ONGLET MOT */}
+        {activeTab === 'word' && (
+          activeWord ? (
+            <div>
+              <div style={{ textAlign: 'center', padding: '20px 0 24px', borderBottom: '1px solid var(--border)', marginBottom: '20px' }}>
+                <div style={{
+                  fontSize: '44px',
+                  fontWeight: '300',
+                  color: 'var(--ink)',
+                  lineHeight: '1.3',
+                  marginBottom: '6px',
+                }}>
+                  {activeWord.word}
+                </div>
+                {activeWord.translit && (
+                  <div style={{
+                    fontFamily: 'DM Mono, monospace',
+                    fontSize: '13px',
+                    color: 'var(--gold)',
+                    letterSpacing: '0.08em',
+                    marginBottom: '12px',
+                  }}>
+                    {activeWord.translit}
+                  </div>
+                )}
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', justifyContent: 'center' }}>
+                  {activeWord.strongNumber && (
+                    <span style={{
+                      fontFamily: 'DM Mono, monospace',
+                      fontSize: '10px',
+                      padding: '3px 10px',
+                      borderRadius: '20px',
+                      background: 'var(--blue-light)',
+                      color: 'var(--blue-sacred)',
+                      border: '1px solid rgba(42,74,122,0.15)',
+                    }}>
+                      {activeWord.strongNumber}
+                    </span>
+                  )}
+                  {activeWord.morphology && (
+                    <span style={{
+                      fontFamily: 'DM Mono, monospace',
+                      fontSize: '10px',
+                      padding: '3px 10px',
+                      borderRadius: '20px',
+                      background: 'var(--parchment-deep)',
+                      color: 'var(--ink-soft)',
+                      border: '1px solid var(--border)',
+                    }}>
+                      {activeWord.morphology}
+                    </span>
+                  )}
+                  {activeWord.lemma && (
+                    <span style={{
+                      fontFamily: 'DM Mono, monospace',
+                      fontSize: '10px',
+                      padding: '3px 10px',
+                      borderRadius: '20px',
+                      background: 'var(--parchment-deep)',
+                      color: 'var(--ink-soft)',
+                      border: '1px solid var(--border)',
+                    }}>
+                      Lemme: {activeWord.lemma}
+                    </span>
+                  )}
+                </div>
+              </div>
+              <div style={{
+                fontFamily: 'DM Mono, monospace',
+                fontSize: '10px',
+                letterSpacing: '0.1em',
+                textTransform: 'uppercase' as const,
+                color: 'var(--ink-muted)',
+                marginBottom: '12px',
+              }}>
+                Informations
+              </div>
+              <div style={{
+                fontFamily: 'Spectral, serif',
+                fontSize: '14px',
+                color: 'var(--ink-soft)',
+                lineHeight: '1.7',
+                fontStyle: 'italic',
+              }}>
+                Cliquez sur &ldquo;Voir tout&rdquo; pour voir les traductions alternatives et les occurrences dans la Bible.
+              </div>
+            </div>
+          ) : (
+            <div style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              height: '300px',
+              color: 'var(--ink-faint)',
+              fontFamily: 'Spectral, serif',
+              fontStyle: 'italic',
+              textAlign: 'center',
+              gap: '10px',
+            }}>
+              <div style={{ fontSize: '36px', opacity: 0.3, fontFamily: 'Crimson Pro, serif' }}>ב</div>
+              <div>Cliquez sur un mot<br />pour voir son analyse</div>
+            </div>
+          )
+        )}
+
+        {/* ONGLET COMMENTAIRES */}
+        {activeTab === 'comments' && (
+          <div style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            height: '300px',
+            color: 'var(--ink-faint)',
+            fontFamily: 'Spectral, serif',
+            fontStyle: 'italic',
+            textAlign: 'center',
+            gap: '10px',
+          }}>
+            <div style={{ fontSize: '36px', opacity: 0.3, fontFamily: 'Crimson Pro, serif' }}>ג</div>
+            <div>Cliquez sur un verset<br />pour voir les commentaires</div>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
