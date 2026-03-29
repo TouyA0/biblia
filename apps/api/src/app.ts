@@ -17,7 +17,6 @@ app.get('/health', (req, res) => {
 })
 
 app.use('/api/auth', authRouter)
-
 app.use('/api', bibleRouter)
 
 export default app

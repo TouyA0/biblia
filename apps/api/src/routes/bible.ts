@@ -1,5 +1,7 @@
+import { z } from 'zod'
 import { Router, Request, Response } from 'express'
 import { prisma } from '../lib/prisma'
+import { authenticateJWT, AuthRequest } from '../middlewares/auth'
 
 const router = Router()
 
@@ -37,21 +39,15 @@ router.get('/books/:slug/chapters/:number', async (req: Request, res: Response) 
   try {
     const slug = req.params.slug as string
     const number = parseInt(req.params.number as string)
-
     const book = await prisma.book.findUnique({ where: { slug } })
     if (!book) { res.status(404).json({ error: 'Livre non trouvé' }); return }
-
     const chapter = await prisma.chapter.findFirst({
       where: { bookId: book.id, number },
       include: {
         verses: {
           orderBy: { number: 'asc' },
           include: {
-            texts: {
-              include: {
-                wordTokens: { orderBy: { position: 'asc' } }
-              }
-            },
+            texts: { include: { wordTokens: { orderBy: { position: 'asc' } } } },
             translations: { where: { isActive: true }, take: 1 }
           }
         }
@@ -60,6 +56,48 @@ router.get('/books/:slug/chapters/:number', async (req: Request, res: Response) 
     if (!chapter) { res.status(404).json({ error: 'Chapitre non trouvé' }); return }
     res.json(chapter)
   } catch (error) {
+    console.error(error)
+    res.status(500).json({ error: 'Erreur serveur' })
+  }
+})
+
+router.get('/words/:id/translations', async (req: Request, res: Response) => {
+  try {
+    const id = req.params.id as string
+    const translations = await prisma.wordTranslation.findMany({
+      where: { wordTokenId: id },
+      orderBy: { voteCount: 'desc' },
+      include: { creator: { select: { username: true, role: true } } }
+    })
+    res.json(translations)
+  } catch (error) {
+    console.error(error)
+    res.status(500).json({ error: 'Erreur serveur' })
+  }
+})
+
+router.post('/words/:id/translations', authenticateJWT, async (req: AuthRequest, res: Response) => {
+  try {
+    const id = req.params.id as string
+    const { translation } = z.object({
+      translation: z.string().min(1).max(200)
+    }).parse(req.body)
+    const word = await prisma.wordToken.findUnique({ where: { id } })
+    if (!word) { res.status(404).json({ error: 'Mot non trouvé' }); return }
+    const existing = await prisma.wordTranslation.findFirst({
+      where: { wordTokenId: id, translation }
+    })
+    if (existing) { res.status(409).json({ error: 'Cette traduction existe déjà' }); return }
+    const newTranslation = await prisma.wordTranslation.create({
+      data: { wordTokenId: id, translation, createdBy: req.user!.id },
+      include: { creator: { select: { username: true, role: true } } }
+    })
+    res.status(201).json(newTranslation)
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      res.status(400).json({ error: 'Données invalides', details: error.issues })
+      return
+    }
     console.error(error)
     res.status(500).json({ error: 'Erreur serveur' })
   }
@@ -91,7 +129,6 @@ router.get('/words/:id/occurrences', async (req: Request, res: Response) => {
     const id = req.params.id as string
     const word = await prisma.wordToken.findUnique({ where: { id } })
     if (!word) { res.status(404).json({ error: 'Mot non trouvé' }); return }
-
     const occurrences = await prisma.wordToken.findMany({
       where: { lemma: word.lemma, id: { not: id } },
       take: 20,

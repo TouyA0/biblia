@@ -59,6 +59,15 @@ interface BibleLayoutProps {
   testament: 'AT' | 'NT'
 }
 
+interface WordTranslation {
+  id: string
+  translation: string
+  voteCount: number
+  isValidated: boolean
+  createdBy: string | null
+  creator: { username: string; role: string } | null
+}
+
 export default function BibleLayout({ testament }: BibleLayoutProps) {
   const params = useParams()
   const book = params.book as string
@@ -72,6 +81,7 @@ export default function BibleLayout({ testament }: BibleLayoutProps) {
   const [activeTab, setActiveTab] = useState<'verse' | 'word' | 'comments'>('verse')
   const [loading, setLoading] = useState(true)
   const [popoverPos, setPopoverPos] = useState<{ x: number; y: number } | null>(null)
+  const [wordTranslations, setWordTranslations] = useState<WordTranslation[]>([])
 
   useEffect(() => {
     loadData()
@@ -141,9 +151,16 @@ export default function BibleLayout({ testament }: BibleLayoutProps) {
             activeVerseId={activeVerse?.id || null}
             activeWordId={activeWord?.id || null}
             onVerseClick={(verse) => { setActiveVerse(verse); setActiveTab('verse') }}
-            onWordClick={(token, x, y) => {
+            onWordClick={async (token, x, y) => {
               setActiveWord(token)
               setPopoverPos({ x, y })
+              try {
+                const res = await api.get(`/api/words/${token.id}/translations`)
+                setWordTranslations(res.data)
+              } catch (error) {
+                console.error(error)
+                setWordTranslations([])
+              }
             }}
           />
         )}
@@ -153,6 +170,13 @@ export default function BibleLayout({ testament }: BibleLayoutProps) {
           setActiveTab={setActiveTab}
           activeVerse={activeVerse}
           activeWord={activeWord}
+          wordTranslations={wordTranslations}
+          onTranslationAdded={async () => {
+            if (activeWord) {
+              const res = await api.get(`/api/words/${activeWord.id}/translations`)
+              setWordTranslations(res.data)
+            }
+          }}
         />
       </div>
 

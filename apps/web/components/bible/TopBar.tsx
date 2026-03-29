@@ -6,7 +6,20 @@ interface TopBarProps {
   chapter: string
 }
 
+import { useAuthStore } from '@/store/auth'
+import { useEffect } from 'react'
+
 export default function TopBar({ testament, book, chapter }: TopBarProps) {
+  const { user, setUser, setToken } = useAuthStore()
+
+  useEffect(() => {
+    const token = localStorage.getItem('token')
+    const savedUser = localStorage.getItem('user')
+    if (token && savedUser) {
+      setToken(token)
+      setUser(JSON.parse(savedUser))
+    }
+  }, [])
   return (
     <div style={{
       gridColumn: '1 / -1',
@@ -59,28 +72,56 @@ export default function TopBar({ testament, book, chapter }: TopBarProps) {
         ))}
       </div>
       <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '16px' }}>
-        <span style={{
-          fontFamily: 'DM Mono, monospace',
-          fontSize: '10px',
-          letterSpacing: '0.1em',
-          textTransform: 'uppercase' as const,
-          padding: '4px 10px',
-          borderRadius: '20px',
-          background: 'rgba(42,74,122,0.4)',
-          color: '#9ab4d8',
-          border: '1px solid rgba(154,180,216,0.25)',
-        }}>
-          Visiteur
-        </span>
-        <a href="/login" style={{
-          fontFamily: 'DM Mono, monospace',
-          fontSize: '10px',
-          color: 'rgba(255,255,255,0.5)',
-          textDecoration: 'none',
-          letterSpacing: '0.08em',
-        }}>
-          Connexion
-        </a>
+        {user ? (
+          <>
+            <span style={{
+              fontFamily: 'DM Mono, monospace',
+              fontSize: '10px',
+              letterSpacing: '0.1em',
+              textTransform: 'uppercase' as const,
+              padding: '4px 10px',
+              borderRadius: '20px',
+              background: 'rgba(42,74,122,0.4)',
+              color: '#9ab4d8',
+              border: '1px solid rgba(154,180,216,0.25)',
+            }}>
+              {user.role}
+            </span>
+            <span style={{
+              fontFamily: 'DM Mono, monospace',
+              fontSize: '10px',
+              color: 'rgba(255,255,255,0.6)',
+              letterSpacing: '0.08em',
+            }}>
+              {user.username}
+            </span>
+          </>
+        ) : (
+          <>
+            <span style={{
+              fontFamily: 'DM Mono, monospace',
+              fontSize: '10px',
+              letterSpacing: '0.1em',
+              textTransform: 'uppercase' as const,
+              padding: '4px 10px',
+              borderRadius: '20px',
+              background: 'rgba(42,74,122,0.4)',
+              color: '#9ab4d8',
+              border: '1px solid rgba(154,180,216,0.25)',
+            }}>
+              Visiteur
+            </span>
+            <a href="/login" style={{
+              fontFamily: 'DM Mono, monospace',
+              fontSize: '10px',
+              color: 'rgba(255,255,255,0.5)',
+              textDecoration: 'none',
+              letterSpacing: '0.08em',
+            }}>
+              Connexion
+            </a>
+          </>
+        )}
       </div>
     </div>
   )

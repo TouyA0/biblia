@@ -1,5 +1,8 @@
 'use client'
 
+import { useState } from 'react'
+import api from '@/lib/api'
+
 interface WordToken {
   id: string
   word: string
@@ -7,6 +10,15 @@ interface WordToken {
   translit: string | null
   strongNumber: string | null
   morphology: string | null
+}
+
+interface WordTranslation {
+  id: string
+  translation: string
+  voteCount: number
+  isValidated: boolean
+  createdBy: string | null
+  creator: { username: string; role: string } | null
 }
 
 interface Translation {
@@ -33,9 +45,42 @@ interface RightPanelProps {
   setActiveTab: (tab: 'verse' | 'word' | 'comments') => void
   activeVerse: Verse | null
   activeWord: WordToken | null
+  wordTranslations: WordTranslation[]
+  onTranslationAdded: () => void
 }
 
-export default function RightPanel({ activeTab, setActiveTab, activeVerse, activeWord }: RightPanelProps) {
+export default function RightPanel({
+  activeTab,
+  setActiveTab,
+  activeVerse,
+  activeWord,
+  wordTranslations,
+  onTranslationAdded,
+}: RightPanelProps) {
+  const [newTranslation, setNewTranslation] = useState('')
+  const [submitting, setSubmitting] = useState(false)
+  const [showForm, setShowForm] = useState(false)
+  const [error, setError] = useState('')
+
+  async function handleSubmitTranslation() {
+    if (!activeWord || !newTranslation.trim()) return
+    setSubmitting(true)
+    setError('')
+    try {
+      await api.post(`/api/words/${activeWord.id}/translations`, {
+        translation: newTranslation.trim()
+      })
+      setNewTranslation('')
+      setShowForm(false)
+      onTranslationAdded()
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { error?: string } } }
+      setError(error.response?.data?.error || 'Erreur lors de la proposition')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
   return (
     <div style={{
       borderLeft: '1px solid var(--border)',
@@ -162,7 +207,13 @@ export default function RightPanel({ activeTab, setActiveTab, activeVerse, activ
         {activeTab === 'word' && (
           activeWord ? (
             <div>
-              <div style={{ textAlign: 'center', padding: '20px 0 24px', borderBottom: '1px solid var(--border)', marginBottom: '20px' }}>
+              {/* Infos du mot */}
+              <div style={{
+                textAlign: 'center',
+                padding: '20px 0 24px',
+                borderBottom: '1px solid var(--border)',
+                marginBottom: '20px',
+              }}>
                 <div style={{
                   fontSize: '44px',
                   fontWeight: '300',
@@ -225,6 +276,8 @@ export default function RightPanel({ activeTab, setActiveTab, activeVerse, activ
                   )}
                 </div>
               </div>
+
+              {/* Traductions alternatives */}
               <div style={{
                 fontFamily: 'DM Mono, monospace',
                 fontSize: '10px',
@@ -233,17 +286,183 @@ export default function RightPanel({ activeTab, setActiveTab, activeVerse, activ
                 color: 'var(--ink-muted)',
                 marginBottom: '12px',
               }}>
-                Informations
+                Traductions disponibles
               </div>
-              <div style={{
-                fontFamily: 'Spectral, serif',
-                fontSize: '14px',
-                color: 'var(--ink-soft)',
-                lineHeight: '1.7',
-                fontStyle: 'italic',
-              }}>
-                Cliquez sur &ldquo;Voir tout&rdquo; pour voir les traductions alternatives et les occurrences dans la Bible.
-              </div>
+
+              {wordTranslations.length === 0 ? (
+                <div style={{
+                  fontFamily: 'Spectral, serif',
+                  fontSize: '14px',
+                  color: 'var(--ink-faint)',
+                  fontStyle: 'italic',
+                  marginBottom: '16px',
+                }}>
+                  Aucune traduction proposée pour ce mot.
+                </div>
+              ) : (
+                wordTranslations.map(t => (
+                  <div key={t.id} style={{
+                    border: `1px solid ${t.isValidated ? 'rgba(45,90,58,0.3)' : 'var(--border)'}`,
+                    borderRadius: '8px',
+                    padding: '12px 14px',
+                    marginBottom: '8px',
+                    background: t.isValidated ? 'var(--green-light)' : 'white',
+                  }}>
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      marginBottom: '6px',
+                    }}>
+                      <div style={{
+                        fontFamily: 'Spectral, serif',
+                        fontSize: '15px',
+                        fontStyle: 'italic',
+                        color: 'var(--ink)',
+                      }}>
+                        {t.translation}
+                      </div>
+                      <span style={{
+                        fontFamily: 'DM Mono, monospace',
+                        fontSize: '9px',
+                        padding: '2px 8px',
+                        borderRadius: '20px',
+                        background: t.isValidated ? 'var(--green-light)' : 'var(--amber-light)',
+                        color: t.isValidated ? 'var(--green-valid)' : 'var(--amber-pending)',
+                        border: `1px solid ${t.isValidated ? 'rgba(45,90,58,0.2)' : 'rgba(122,90,26,0.2)'}`,
+                        flexShrink: 0,
+                        marginLeft: '8px',
+                      }}>
+                        {t.isValidated ? 'Validée' : 'Proposée'}
+                      </span>
+                    </div>
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '12px',
+                      fontFamily: 'DM Mono, monospace',
+                      fontSize: '10px',
+                      color: 'var(--ink-muted)',
+                    }}>
+                      <span>{t.voteCount} vote{t.voteCount !== 1 ? 's' : ''}</span>
+                      {t.creator && (
+                        <span>@{t.creator.username}</span>
+                      )}
+                    </div>
+                  </div>
+                ))
+              )}
+
+              {/* Formulaire de proposition */}
+              {!showForm ? (
+                <button
+                  onClick={() => setShowForm(true)}
+                  style={{
+                    width: '100%',
+                    padding: '10px',
+                    border: '1.5px dashed var(--border-strong)',
+                    borderRadius: '8px',
+                    background: 'transparent',
+                    fontFamily: 'Spectral, serif',
+                    fontSize: '13px',
+                    fontStyle: 'italic',
+                    color: 'var(--ink-muted)',
+                    cursor: 'pointer',
+                    marginTop: '4px',
+                    transition: 'all 0.2s',
+                  }}
+                  onMouseEnter={e => {
+                    (e.target as HTMLElement).style.borderColor = 'var(--gold)'
+                    ;(e.target as HTMLElement).style.color = 'var(--gold)'
+                  }}
+                  onMouseLeave={e => {
+                    (e.target as HTMLElement).style.borderColor = 'var(--border-strong)'
+                    ;(e.target as HTMLElement).style.color = 'var(--ink-muted)'
+                  }}
+                >
+                  + Proposer une traduction
+                </button>
+              ) : (
+                <div style={{
+                  border: '1px solid var(--border)',
+                  borderRadius: '8px',
+                  padding: '12px',
+                  background: 'white',
+                  marginTop: '4px',
+                }}>
+                  {error && (
+                    <div style={{
+                      padding: '8px 10px',
+                      background: 'var(--red-light)',
+                      border: '1px solid rgba(122,42,42,0.2)',
+                      borderRadius: '6px',
+                      color: 'var(--red-soft)',
+                      fontFamily: 'Spectral, serif',
+                      fontSize: '12px',
+                      marginBottom: '10px',
+                    }}>
+                      {error}
+                    </div>
+                  )}
+                  <input
+                    type="text"
+                    value={newTranslation}
+                    onChange={e => setNewTranslation(e.target.value)}
+                    placeholder="Votre traduction..."
+                    onKeyDown={e => e.key === 'Enter' && handleSubmitTranslation()}
+                    style={{
+                      width: '100%',
+                      padding: '8px 10px',
+                      border: '1px solid var(--border)',
+                      borderRadius: '6px',
+                      fontFamily: 'Spectral, serif',
+                      fontSize: '14px',
+                      fontStyle: 'italic',
+                      color: 'var(--ink)',
+                      background: 'var(--parchment)',
+                      outline: 'none',
+                      marginBottom: '10px',
+                    }}
+                  />
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <button
+                      onClick={handleSubmitTranslation}
+                      disabled={submitting || !newTranslation.trim()}
+                      style={{
+                        flex: 1,
+                        padding: '8px',
+                        background: 'var(--gold)',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '6px',
+                        fontFamily: 'DM Mono, monospace',
+                        fontSize: '10px',
+                        letterSpacing: '0.08em',
+                        textTransform: 'uppercase' as const,
+                        cursor: submitting ? 'not-allowed' : 'pointer',
+                        opacity: submitting || !newTranslation.trim() ? 0.6 : 1,
+                      }}
+                    >
+                      {submitting ? 'Envoi...' : 'Proposer'}
+                    </button>
+                    <button
+                      onClick={() => { setShowForm(false); setNewTranslation(''); setError('') }}
+                      style={{
+                        padding: '8px 14px',
+                        background: 'transparent',
+                        color: 'var(--ink-muted)',
+                        border: '1px solid var(--border)',
+                        borderRadius: '6px',
+                        fontFamily: 'DM Mono, monospace',
+                        fontSize: '10px',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      Annuler
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           ) : (
             <div style={{

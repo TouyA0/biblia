@@ -22,6 +22,7 @@ export default function LoginPage() {
       const res = await api.post('/api/auth/login', { email, password })
       localStorage.setItem('token', res.data.token)
       localStorage.setItem('refreshToken', res.data.refreshToken)
+      localStorage.setItem('user', JSON.stringify(res.data.user))
       setToken(res.data.token)
       setUser(res.data.user)
       router.push('/')
