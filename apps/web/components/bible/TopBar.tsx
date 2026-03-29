@@ -95,6 +95,25 @@ export default function TopBar({ testament, book, chapter }: TopBarProps) {
             }}>
               {user.username}
             </span>
+            <button
+              onClick={() => {
+                localStorage.removeItem('token')
+                localStorage.removeItem('refreshToken')
+                localStorage.removeItem('user')
+                window.location.href = '/login'
+              }}
+              style={{
+                fontFamily: 'DM Mono, monospace',
+                fontSize: '10px',
+                color: 'rgba(255,255,255,0.4)',
+                background: 'transparent',
+                border: 'none',
+                cursor: 'pointer',
+                letterSpacing: '0.08em',
+              }}
+            >
+              Déconnexion
+            </button>
           </>
         ) : (
           <>

@@ -152,6 +152,41 @@ router.get('/words/:id/occurrences', async (req: Request, res: Response) => {
   }
 })
 
+router.post('/word-translations/:id/vote', authenticateJWT, async (req: AuthRequest, res: Response) => {
+  try {
+    const id = req.params.id as string
+    const userId = req.user!.id
+
+    const wordTranslation = await prisma.wordTranslation.findUnique({ where: { id } })
+    if (!wordTranslation) { res.status(404).json({ error: 'Traduction non trouvée' }); return }
+
+    const existingVote = await prisma.vote.findFirst({
+      where: { wordTranslationId: id, userId }
+    })
+
+    if (existingVote) {
+      await prisma.vote.delete({ where: { id: existingVote.id } })
+      await prisma.wordTranslation.update({
+        where: { id },
+        data: { voteCount: { decrement: 1 } }
+      })
+      res.json({ voted: false, voteCount: wordTranslation.voteCount - 1 })
+    } else {
+      await prisma.vote.create({
+        data: { wordTranslationId: id, userId, value: 1 }
+      })
+      await prisma.wordTranslation.update({
+        where: { id },
+        data: { voteCount: { increment: 1 } }
+      })
+      res.json({ voted: true, voteCount: wordTranslation.voteCount + 1 })
+    }
+  } catch (error) {
+    console.error(error)
+    res.status(500).json({ error: 'Erreur serveur' })
+  }
+})
+
 router.get('/verses/:id', async (req: Request, res: Response) => {
   try {
     const id = req.params.id as string

@@ -1,7 +1,8 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import api from '@/lib/api'
+import { useAuthStore } from '@/store/auth'
 
 interface WordToken {
   id: string
@@ -61,6 +62,17 @@ export default function RightPanel({
   const [submitting, setSubmitting] = useState(false)
   const [showForm, setShowForm] = useState(false)
   const [error, setError] = useState('')
+  const { user } = useAuthStore()
+  const [votedIds, setVotedIds] = useState<Set<string>>(new Set())
+
+  useEffect(() => {
+    const token = localStorage.getItem('token')
+    const savedUser = localStorage.getItem('user')
+    if (token && savedUser) {
+      useAuthStore.getState().setToken(token)
+      useAuthStore.getState().setUser(JSON.parse(savedUser))
+    }
+  }, [])
 
   async function handleSubmitTranslation() {
     if (!activeWord || !newTranslation.trim()) return
@@ -345,8 +357,38 @@ export default function RightPanel({
                       color: 'var(--ink-muted)',
                     }}>
                       <span>{t.voteCount} vote{t.voteCount !== 1 ? 's' : ''}</span>
-                      {t.creator && (
-                        <span>@{t.creator.username}</span>
+                      {t.creator && <span>@{t.creator.username}</span>}
+                      {user && ['INTERMEDIATE', 'EXPERT', 'ADMIN'].includes(user.role) && (
+                        <button
+                          onClick={async () => {
+                            try {
+                              const res = await api.post(`/api/word-translations/${t.id}/vote`)
+                              if (res.data.voted) {
+                                setVotedIds(prev => new Set([...prev, t.id]))
+                              } else {
+                                setVotedIds(prev => { const s = new Set(prev); s.delete(t.id); return s })
+                              }
+                              onTranslationAdded()
+                            } catch (error) {
+                              console.error(error)
+                            }
+                          }}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                            padding: '3px 8px',
+                            borderRadius: '4px',
+                            border: `1px solid ${votedIds.has(t.id) ? 'var(--gold)' : 'var(--border)'}`,
+                            background: votedIds.has(t.id) ? 'var(--gold-pale)' : 'transparent',
+                            cursor: 'pointer',
+                            fontFamily: 'DM Mono, monospace',
+                            fontSize: '10px',
+                            color: votedIds.has(t.id) ? 'var(--gold)' : 'var(--ink-soft)',
+                          }}
+                        >
+                          ▲ {votedIds.has(t.id) ? 'Voté' : 'Voter'}
+                        </button>
                       )}
                     </div>
                   </div>
