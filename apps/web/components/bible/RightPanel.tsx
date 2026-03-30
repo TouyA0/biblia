@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import api from '@/lib/api'
 import { useAuthStore } from '@/store/auth'
 import ConfirmModal from './ConfirmModal'
+import CommentText from './CommentText'
 
 interface WordToken {
   id: string
@@ -42,13 +43,23 @@ interface Verse {
   translations: Translation[]
 }
 
+interface Comment {
+  id: string
+  text: string
+  createdAt: string
+  createdBy: string | null
+  creator: { username: string; role: string } | null
+}
+
 interface RightPanelProps {
   activeTab: 'verse' | 'word' | 'comments'
   setActiveTab: (tab: 'verse' | 'word' | 'comments') => void
   activeVerse: Verse | null
   activeWord: WordToken | null
   wordTranslations: WordTranslation[]
+  comments: Comment[]
   onTranslationAdded: () => void
+  onCommentAdded: () => void
 }
 
 export default function RightPanel({
@@ -57,7 +68,9 @@ export default function RightPanel({
   activeVerse,
   activeWord,
   wordTranslations,
+  comments,
   onTranslationAdded,
+  onCommentAdded,
 }: RightPanelProps) {
   const [newTranslation, setNewTranslation] = useState('')
   const [submitting, setSubmitting] = useState(false)
@@ -66,6 +79,8 @@ export default function RightPanel({
   const { user } = useAuthStore()
   const [votedIds, setVotedIds] = useState<Set<string>>(new Set())
   const [confirmModal, setConfirmModal] = useState<{ message: string; onConfirm: () => void } | null>(null)
+  const [newComment, setNewComment] = useState('')
+  const [submittingComment, setSubmittingComment] = useState(false)
 
   const validatedTranslations = wordTranslations.filter(t => t.isValidated)
   const proposedTranslations = wordTranslations.filter(t => !t.isValidated)
@@ -694,21 +709,212 @@ export default function RightPanel({
 
         {/* ONGLET COMMENTAIRES */}
         {activeTab === 'comments' && (
-          <div style={{
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            height: '300px',
-            color: 'var(--ink-faint)',
-            fontFamily: 'Spectral, serif',
-            fontStyle: 'italic',
-            textAlign: 'center',
-            gap: '10px',
-          }}>
-            <div style={{ fontSize: '36px', opacity: 0.3, fontFamily: 'Crimson Pro, serif' }}>ג</div>
-            <div>Cliquez sur un verset<br />pour voir les commentaires</div>
-          </div>
+          activeVerse ? (
+            <div>
+              <div style={{
+                fontFamily: 'DM Mono, monospace',
+                fontSize: '10px',
+                letterSpacing: '0.1em',
+                textTransform: 'uppercase' as const,
+                color: 'var(--ink-muted)',
+                marginBottom: '16px',
+              }}>
+                {comments.length} commentaire{comments.length !== 1 ? 's' : ''}
+              </div>
+
+              {comments.length === 0 && (
+                <div style={{
+                  fontFamily: 'Spectral, serif',
+                  fontSize: '14px',
+                  color: 'var(--ink-faint)',
+                  fontStyle: 'italic',
+                  marginBottom: '20px',
+                }}>
+                  Aucun commentaire pour ce verset.
+                </div>
+              )}
+
+              {comments.map(c => (
+                <div key={c.id} style={{
+                  padding: '12px 0',
+                  borderBottom: '1px solid var(--border)',
+                }}>
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    marginBottom: '6px',
+                  }}>
+                    <div style={{
+                      width: '24px',
+                      height: '24px',
+                      borderRadius: '50%',
+                      background: 'var(--blue-sacred)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontFamily: 'DM Mono, monospace',
+                      fontSize: '9px',
+                      color: 'white',
+                      flexShrink: 0,
+                    }}>
+                      {c.creator?.username?.substring(0, 2).toUpperCase() || '??'}
+                    </div>
+                    <span style={{
+                      fontFamily: 'DM Mono, monospace',
+                      fontSize: '10px',
+                      color: 'var(--ink-soft)',
+                    }}>
+                      {c.creator?.username || 'Anonyme'}
+                    </span>
+                    {c.creator?.role && (
+                      <span style={{
+                        fontFamily: 'DM Mono, monospace',
+                        fontSize: '9px',
+                        padding: '2px 6px',
+                        borderRadius: '20px',
+                        background: 'var(--blue-light)',
+                        color: 'var(--blue-sacred)',
+                        border: '1px solid rgba(42,74,122,0.15)',
+                      }}>
+                        {c.creator.role}
+                      </span>
+                    )}
+                    {user && (['EXPERT', 'ADMIN'].includes(user.role) || user.id === c.createdBy) && (
+                      <button
+                        onClick={() => {
+                          setConfirmModal({
+                            message: 'Supprimer ce commentaire ?',
+                            onConfirm: async () => {
+                              try {
+                                await api.delete(`/api/comments/${c.id}`)
+                                setConfirmModal(null)
+                                onCommentAdded()
+                              } catch (error) {
+                                console.error(error)
+                              }
+                            }
+                          })
+                        }}
+                        style={{
+                          marginLeft: 'auto',
+                          padding: '2px 6px',
+                          borderRadius: '4px',
+                          border: '1px solid rgba(122,42,42,0.2)',
+                          background: 'transparent',
+                          cursor: 'pointer',
+                          fontFamily: 'DM Mono, monospace',
+                          fontSize: '9px',
+                          color: 'var(--red-soft)',
+                        }}
+                      >
+                        ✕
+                      </button>
+                    )}
+                  </div>
+                  <div style={{
+                    fontFamily: 'Spectral, serif',
+                    fontSize: '13.5px',
+                    color: 'var(--ink-soft)',
+                    lineHeight: '1.65',
+                  }}>
+                    <CommentText text={c.text} />
+                  </div>
+                </div>
+              ))}
+
+              {user ? (
+                <div style={{ marginTop: '20px' }}>
+                  <textarea
+                    value={newComment}
+                    onChange={e => setNewComment(e.target.value)}
+                    placeholder="Ajouter un commentaire…"
+                    style={{
+                      width: '100%',
+                      padding: '10px 12px',
+                      border: '1px solid var(--border)',
+                      borderRadius: '8px',
+                      background: 'white',
+                      fontFamily: 'Spectral, serif',
+                      fontSize: '13.5px',
+                      color: 'var(--ink)',
+                      resize: 'vertical',
+                      minHeight: '80px',
+                      outline: 'none',
+                      marginBottom: '8px',
+                    }}
+                  />
+                  <div style={{
+                    fontFamily: 'DM Mono, monospace',
+                    fontSize: '9px',
+                    color: 'var(--ink-faint)',
+                    marginBottom: '8px',
+                    lineHeight: '1.6',
+                  }}>
+                    [Genèse 1:1] → lien verset · [texte](https://url.com) → lien externe
+                  </div>
+                  <button
+                    onClick={async () => {
+                      if (!newComment.trim() || !activeVerse) return
+                      setSubmittingComment(true)
+                      try {
+                        await api.post(`/api/verses/${activeVerse.id}/comments`, { text: newComment.trim() })
+                        setNewComment('')
+                        onCommentAdded()
+                      } catch (error) {
+                        console.error(error)
+                      } finally {
+                        setSubmittingComment(false)
+                      }
+                    }}
+                    disabled={submittingComment || !newComment.trim()}
+                    style={{
+                      padding: '8px 20px',
+                      background: 'var(--gold)',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '6px',
+                      fontFamily: 'DM Mono, monospace',
+                      fontSize: '10px',
+                      letterSpacing: '0.08em',
+                      textTransform: 'uppercase' as const,
+                      cursor: submittingComment ? 'not-allowed' : 'pointer',
+                      opacity: submittingComment || !newComment.trim() ? 0.6 : 1,
+                    }}
+                  >
+                    {submittingComment ? 'Envoi...' : 'Publier'}
+                  </button>
+                </div>
+              ) : (
+                <div style={{
+                  marginTop: '20px',
+                  fontFamily: 'Spectral, serif',
+                  fontSize: '13px',
+                  color: 'var(--ink-muted)',
+                  fontStyle: 'italic',
+                  textAlign: 'center',
+                }}>
+                  <a href="/login" style={{ color: 'var(--gold)' }}>Connectez-vous</a> pour commenter
+                </div>
+              )}
+            </div>
+          ) : (
+            <div style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              height: '300px',
+              color: 'var(--ink-faint)',
+              fontFamily: 'Spectral, serif',
+              fontStyle: 'italic',
+              textAlign: 'center',
+              gap: '10px',
+            }}>
+              <div style={{ fontSize: '36px', opacity: 0.3, fontFamily: 'Crimson Pro, serif' }}>ג</div>
+              <div>Cliquez sur un verset<br />pour voir les commentaires</div>
+            </div>
+          )
         )}
       </div>
       {confirmModal && (

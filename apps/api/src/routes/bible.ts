@@ -241,4 +241,76 @@ router.get('/verses/:id', async (req: Request, res: Response) => {
   }
 })
 
+// GET /api/verses/:id/comments
+router.get('/verses/:id/comments', async (req: Request, res: Response) => {
+  try {
+    const id = req.params.id as string
+    const comments = await prisma.comment.findMany({
+      where: { verseId: id },
+      orderBy: { createdAt: 'asc' },
+      include: {
+        creator: { select: { username: true, role: true } }
+      }
+    })
+    res.json(comments)
+  } catch (error) {
+    console.error(error)
+    res.status(500).json({ error: 'Erreur serveur' })
+  }
+})
+
+// POST /api/verses/:id/comments
+router.post('/verses/:id/comments', authenticateJWT, async (req: AuthRequest, res: Response) => {
+  try {
+    const id = req.params.id as string
+    const { text } = z.object({
+      text: z.string().min(1).max(2000)
+    }).parse(req.body)
+
+    const verse = await prisma.verse.findUnique({ where: { id } })
+    if (!verse) { res.status(404).json({ error: 'Verset non trouvé' }); return }
+
+    const comment = await prisma.comment.create({
+      data: {
+        text,
+        verseId: id,
+        createdBy: req.user!.id,
+      },
+      include: {
+        creator: { select: { username: true, role: true } }
+      }
+    })
+    res.status(201).json(comment)
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      res.status(400).json({ error: 'Données invalides', details: error.issues })
+      return
+    }
+    console.error(error)
+    res.status(500).json({ error: 'Erreur serveur' })
+  }
+})
+
+// DELETE /api/comments/:id
+router.delete('/comments/:id', authenticateJWT, async (req: AuthRequest, res: Response) => {
+  try {
+    const id = req.params.id as string
+    const comment = await prisma.comment.findUnique({ where: { id } })
+    if (!comment) { res.status(404).json({ error: 'Commentaire non trouvé' }); return }
+
+    const isOwner = comment.createdBy === req.user!.id
+    const isExpert = ['EXPERT', 'ADMIN'].includes(req.user!.role)
+
+    if (!isOwner && !isExpert) {
+      res.status(403).json({ error: 'Accès refusé' }); return
+    }
+
+    await prisma.comment.delete({ where: { id } })
+    res.json({ message: 'Commentaire supprimé' })
+  } catch (error) {
+    console.error(error)
+    res.status(500).json({ error: 'Erreur serveur' })
+  }
+})
+
 export default router

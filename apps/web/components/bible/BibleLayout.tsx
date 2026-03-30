@@ -59,6 +59,14 @@ interface BibleLayoutProps {
   testament: 'AT' | 'NT'
 }
 
+interface Comment {
+  id: string
+  text: string
+  createdAt: string
+  createdBy: string | null
+  creator: { username: string; role: string } | null
+}
+
 interface WordTranslation {
   id: string
   translation: string
@@ -82,6 +90,7 @@ export default function BibleLayout({ testament }: BibleLayoutProps) {
   const [loading, setLoading] = useState(true)
   const [popoverPos, setPopoverPos] = useState<{ x: number; y: number } | null>(null)
   const [wordTranslations, setWordTranslations] = useState<WordTranslation[]>([])
+  const [comments, setComments] = useState<Comment[]>([])
 
   useEffect(() => {
     loadData()
@@ -150,7 +159,17 @@ export default function BibleLayout({ testament }: BibleLayoutProps) {
             chapter={chapter}
             activeVerseId={activeVerse?.id || null}
             activeWordId={activeWord?.id || null}
-            onVerseClick={(verse) => { setActiveVerse(verse); setActiveTab('verse') }}
+            onVerseClick={async (verse) => {
+              setActiveVerse(verse)
+              setActiveTab('verse')
+              try {
+                const res = await api.get(`/api/verses/${verse.id}/comments`)
+                setComments(res.data)
+              } catch (error) {
+                console.error(error)
+                setComments([])
+              }
+            }}
             onWordClick={async (token, x, y) => {
               setActiveWord(token)
               setPopoverPos({ x, y })
@@ -171,6 +190,13 @@ export default function BibleLayout({ testament }: BibleLayoutProps) {
           activeVerse={activeVerse}
           activeWord={activeWord}
           wordTranslations={wordTranslations}
+          comments={comments}
+          onCommentAdded={async () => {
+            if (activeVerse) {
+              const res = await api.get(`/api/verses/${activeVerse.id}/comments`)
+              setComments(res.data)
+            }
+          }}
           onTranslationAdded={async () => {
             if (activeWord) {
               const res = await api.get(`/api/words/${activeWord.id}/translations`)
