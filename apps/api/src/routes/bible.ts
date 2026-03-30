@@ -152,6 +152,38 @@ router.get('/words/:id/occurrences', async (req: Request, res: Response) => {
   }
 })
 
+router.delete('/word-translations/:id', authenticateJWT, async (req: AuthRequest, res: Response) => {
+  try {
+    if (!['EXPERT', 'ADMIN'].includes(req.user!.role)) {
+      res.status(403).json({ error: 'Accès refusé' }); return
+    }
+    const id = req.params.id as string
+    await prisma.vote.deleteMany({ where: { wordTranslationId: id } })
+    await prisma.wordTranslation.delete({ where: { id } })
+    res.json({ message: 'Traduction supprimée' })
+  } catch (error) {
+    console.error(error)
+    res.status(500).json({ error: 'Erreur serveur' })
+  }
+})
+
+router.patch('/word-translations/:id/validate', authenticateJWT, async (req: AuthRequest, res: Response) => {
+  try {
+    if (!['EXPERT', 'ADMIN'].includes(req.user!.role)) {
+      res.status(403).json({ error: 'Accès refusé' }); return
+    }
+    const id = req.params.id as string
+    const translation = await prisma.wordTranslation.update({
+      where: { id },
+      data: { isValidated: true }
+    })
+    res.json(translation)
+  } catch (error) {
+    console.error(error)
+    res.status(500).json({ error: 'Erreur serveur' })
+  }
+})
+
 router.post('/word-translations/:id/vote', authenticateJWT, async (req: AuthRequest, res: Response) => {
   try {
     const id = req.params.id as string

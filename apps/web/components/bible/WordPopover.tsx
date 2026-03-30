@@ -9,14 +9,24 @@ interface WordToken {
   morphology: string | null
 }
 
+interface WordTranslation {
+  id: string
+  translation: string
+  isValidated: boolean
+}
+
 interface WordPopoverProps {
   word: WordToken
   position: { x: number; y: number }
   onClose: () => void
   onOpenPanel: () => void
+  translations: WordTranslation[]
 }
 
-export default function WordPopover({ word, position, onClose, onOpenPanel }: WordPopoverProps) {
+export default function WordPopover({ word, position, onClose, onOpenPanel, translations }: WordPopoverProps) {
+  const validatedTranslations = translations.filter(t => t.isValidated)
+  const allProposedTranslations = translations.filter(t => !t.isValidated)
+  const proposedTranslations = allProposedTranslations.slice(0, 2)
   return (
     <div
       onClick={e => e.stopPropagation()}
@@ -109,6 +119,92 @@ export default function WordPopover({ word, position, onClose, onOpenPanel }: Wo
       </div>
 
       <hr style={{ border: 'none', borderTop: '1px solid rgba(255,255,255,0.1)', margin: '10px 0' }} />
+
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: '6px',
+        marginBottom: '8px',
+      }}>
+        <span style={{
+          fontFamily: 'DM Mono, monospace',
+          fontSize: '9px',
+          letterSpacing: '0.1em',
+          textTransform: 'uppercase' as const,
+          color: 'rgba(255,255,255,0.35)',
+        }}>
+          Traductions
+        </span>
+        {allProposedTranslations.length > 0 && (
+          <span style={{
+            fontFamily: 'DM Mono, monospace',
+            fontSize: '8px',
+            padding: '1px 5px',
+            borderRadius: '20px',
+            background: 'rgba(122,90,26,0.35)',
+            color: 'rgba(212,168,90,0.8)',
+            border: '1px solid rgba(122,90,26,0.25)',
+          }}>
+            {allProposedTranslations.length}
+          </span>
+        )}
+      </div>
+
+      {validatedTranslations.length > 0 ? (
+        validatedTranslations.map(t => (
+          <div key={t.id} style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            padding: '4px 0',
+            borderBottom: '1px solid rgba(255,255,255,0.07)',
+          }}>
+            <span style={{
+              fontFamily: 'Spectral, serif',
+              fontSize: '13px',
+              fontStyle: 'italic',
+              color: 'rgba(255,255,255,0.85)',
+            }}>
+              {t.translation}
+            </span>
+            <span style={{
+              fontFamily: 'DM Mono, monospace',
+              fontSize: '8px',
+              padding: '1px 6px',
+              borderRadius: '20px',
+              background: 'rgba(45,90,58,0.4)',
+              color: '#8fccaa',
+              border: '1px solid rgba(45,90,58,0.3)',
+              marginLeft: '8px',
+              flexShrink: 0,
+            }}>
+              validée
+            </span>
+          </div>
+        ))
+      ) : proposedTranslations.length > 0 ? (
+        proposedTranslations.map(t => (
+          <div key={t.id} style={{
+            padding: '4px 0',
+            borderBottom: '1px solid rgba(255,255,255,0.07)',
+            fontFamily: 'Spectral, serif',
+            fontSize: '13px',
+            fontStyle: 'italic',
+            color: 'rgba(255,255,255,0.65)',
+          }}>
+            {t.translation}
+          </div>
+        ))
+      ) : (
+        <div style={{
+          fontFamily: 'Spectral, serif',
+          fontSize: '12px',
+          fontStyle: 'italic',
+          color: 'rgba(255,255,255,0.35)',
+        }}>
+          Aucune traduction
+        </div>
+      )}
 
       <div
         onClick={() => { onClose(); onOpenPanel() }}

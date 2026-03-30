@@ -186,6 +186,7 @@ export default function BibleLayout({ testament }: BibleLayoutProps) {
           position={popoverPos}
           onClose={() => setPopoverPos(null)}
           onOpenPanel={() => setActiveTab('word')}
+          translations={wordTranslations}
         />
       )}
     </div>
