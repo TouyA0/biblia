@@ -313,4 +313,244 @@ router.delete('/comments/:id', authenticateJWT, async (req: AuthRequest, res: Re
   }
 })
 
+// GET /api/verses/:id/proposals
+router.get('/verses/:id/proposals', async (req: Request, res: Response) => {
+  try {
+    const id = req.params.id as string
+
+    // Toutes les traductions du verset
+    const translations = await prisma.translation.findMany({
+      where: { verseId: id },
+      orderBy: { createdAt: 'asc' }
+    })
+
+    // Toutes les propositions liées à ce verset
+    const translationIds = translations.map(t => t.id)
+    const proposals = await prisma.proposal.findMany({
+      where: { translationId: { in: translationIds } },
+      orderBy: { createdAt: 'desc' },
+      include: {
+        creator: { select: { username: true, role: true } },
+        votes: true,
+      }
+    })
+
+    res.json({ translations, proposals })
+  } catch (error) {
+    console.error(error)
+    res.status(500).json({ error: 'Erreur serveur' })
+  }
+})
+
+// POST /api/verses/:id/proposals
+router.post('/verses/:id/proposals', authenticateJWT, async (req: AuthRequest, res: Response) => {
+  try {
+    const id = req.params.id as string
+    const { proposedText } = z.object({
+      proposedText: z.string().min(1).max(5000)
+    }).parse(req.body)
+
+    const translation = await prisma.translation.findFirst({
+      where: { verseId: id, isActive: true }
+    })
+    if (!translation) { res.status(404).json({ error: 'Traduction non trouvée' }); return }
+
+    const proposal = await prisma.proposal.create({
+      data: {
+        translationId: translation.id,
+        proposedText,
+        createdBy: req.user!.id,
+      },
+      include: {
+        creator: { select: { username: true, role: true } }
+      }
+    })
+    res.status(201).json(proposal)
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      res.status(400).json({ error: 'Données invalides', details: error.issues })
+      return
+    }
+    console.error(error)
+    res.status(500).json({ error: 'Erreur serveur' })
+  }
+})
+
+// PATCH /api/proposals/:id/accept
+// PATCH /api/proposals/:id/accept
+router.patch('/proposals/:id/accept', authenticateJWT, async (req: AuthRequest, res: Response) => {
+  try {
+    if (!['EXPERT', 'ADMIN'].includes(req.user!.role)) {
+      res.status(403).json({ error: 'Accès refusé' }); return
+    }
+    const id = req.params.id as string
+    const proposal = await prisma.proposal.findUnique({
+      where: { id },
+      include: { translation: true }
+    })
+    if (!proposal) { res.status(404).json({ error: 'Proposition non trouvée' }); return }
+
+    // Juste marquer la proposition comme acceptée, sans changer isActive
+    const updated = await prisma.proposal.update({
+      where: { id },
+      data: { status: 'ACCEPTED', reviewedBy: req.user!.id }
+    })
+    res.json(updated)
+  } catch (error) {
+    console.error(error)
+    res.status(500).json({ error: 'Erreur serveur' })
+  }
+})
+
+// PATCH /api/proposals/:id/activate — définir comme traduction officielle
+router.patch('/proposals/:id/activate', authenticateJWT, async (req: AuthRequest, res: Response) => {
+  try {
+    if (!['EXPERT', 'ADMIN'].includes(req.user!.role)) {
+      res.status(403).json({ error: 'Accès refusé' }); return
+    }
+    const id = req.params.id as string
+    const proposal = await prisma.proposal.findUnique({
+      where: { id },
+      include: { translation: true }
+    })
+    if (!proposal) { res.status(404).json({ error: 'Proposition non trouvée' }); return }
+
+    const verseId = proposal.translation.verseId
+
+    // Désactiver toutes les traductions du verset
+    await prisma.translation.updateMany({
+      where: { verseId },
+      data: { isActive: false }
+    })
+
+    // Chercher si cette proposition a déjà une traduction
+    const existing = await prisma.translation.findFirst({
+      where: { verseId, textFr: proposal.proposedText }
+    })
+
+    if (existing) {
+      // Réactiver la traduction existante
+      await prisma.translation.update({
+        where: { id: existing.id },
+        data: { isActive: true }
+      })
+    } else {
+      // Créer une nouvelle traduction active
+      await prisma.translation.create({
+        data: {
+          verseId,
+          textFr: proposal.proposedText,
+          isActive: true,
+          validatedBy: req.user!.id,
+          createdBy: proposal.createdBy,
+        }
+      })
+    }
+
+    res.json({ message: 'Traduction officielle mise à jour' })
+  } catch (error) {
+    console.error(error)
+    res.status(500).json({ error: 'Erreur serveur' })
+  }
+})
+
+// PATCH /api/translations/:id/activate — remettre une traduction existante comme active
+router.patch('/translations/:id/activate', authenticateJWT, async (req: AuthRequest, res: Response) => {
+  try {
+    if (!['EXPERT', 'ADMIN'].includes(req.user!.role)) {
+      res.status(403).json({ error: 'Accès refusé' }); return
+    }
+    const id = req.params.id as string
+    const translation = await prisma.translation.findUnique({ where: { id } })
+    if (!translation) { res.status(404).json({ error: 'Traduction non trouvée' }); return }
+
+    // Désactiver toutes les traductions du verset
+    await prisma.translation.updateMany({
+      where: { verseId: translation.verseId },
+      data: { isActive: false }
+    })
+
+    // Activer celle-ci
+    await prisma.translation.update({
+      where: { id },
+      data: { isActive: true }
+    })
+
+    res.json({ message: 'Traduction activée' })
+  } catch (error) {
+    console.error(error)
+    res.status(500).json({ error: 'Erreur serveur' })
+  }
+})
+
+// PATCH /api/proposals/:id/reject
+router.patch('/proposals/:id/reject', authenticateJWT, async (req: AuthRequest, res: Response) => {
+  try {
+    if (!['EXPERT', 'ADMIN'].includes(req.user!.role)) {
+      res.status(403).json({ error: 'Accès refusé' }); return
+    }
+    const id = req.params.id as string
+    const { reason } = z.object({
+      reason: z.string().min(1).max(500)
+    }).parse(req.body)
+
+    const updated = await prisma.proposal.update({
+      where: { id },
+      data: { status: 'REJECTED', reason, reviewedBy: req.user!.id }
+    })
+    res.json(updated)
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      res.status(400).json({ error: 'Raison obligatoire' })
+      return
+    }
+    console.error(error)
+    res.status(500).json({ error: 'Erreur serveur' })
+  }
+})
+
+// POST /api/proposals/:id/vote
+router.post('/proposals/:id/vote', authenticateJWT, async (req: AuthRequest, res: Response) => {
+  try {
+    const id = req.params.id as string
+    const userId = req.user!.id
+
+    const proposal = await prisma.proposal.findUnique({ where: { id } })
+    if (!proposal) { res.status(404).json({ error: 'Proposition non trouvée' }); return }
+
+    const existingVote = await prisma.vote.findFirst({
+      where: { proposalId: id, userId }
+    })
+
+    if (existingVote) {
+      await prisma.vote.delete({ where: { id: existingVote.id } })
+      res.json({ voted: false })
+    } else {
+      await prisma.vote.create({
+        data: { proposalId: id, userId, value: 1 }
+      })
+      res.json({ voted: true })
+    }
+  } catch (error) {
+    console.error(error)
+    res.status(500).json({ error: 'Erreur serveur' })
+  }
+})
+
+// DELETE /api/proposals/:id
+router.delete('/proposals/:id', authenticateJWT, async (req: AuthRequest, res: Response) => {
+  try {
+    if (!['EXPERT', 'ADMIN'].includes(req.user!.role)) {
+      res.status(403).json({ error: 'Accès refusé' }); return
+    }
+    const id = req.params.id as string
+    await prisma.vote.deleteMany({ where: { proposalId: id } })
+    await prisma.proposal.delete({ where: { id } })
+    res.json({ message: 'Proposition supprimée' })
+  } catch (error) {
+    console.error(error)
+    res.status(500).json({ error: 'Erreur serveur' })
+  }
+})
+
 export default router

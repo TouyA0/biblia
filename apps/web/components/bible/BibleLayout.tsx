@@ -59,6 +59,25 @@ interface BibleLayoutProps {
   testament: 'AT' | 'NT'
 }
 
+interface VerseTranslation {
+  id: string
+  textFr: string
+  isActive: boolean
+  isReference: boolean
+  source: string | null
+  createdAt: string
+}
+
+interface Proposal {
+  id: string
+  proposedText: string
+  status: string
+  reason: string | null
+  createdAt: string
+  createdBy: string | null
+  creator: { username: string; role: string } | null
+}
+
 interface Comment {
   id: string
   text: string
@@ -91,6 +110,8 @@ export default function BibleLayout({ testament }: BibleLayoutProps) {
   const [popoverPos, setPopoverPos] = useState<{ x: number; y: number } | null>(null)
   const [wordTranslations, setWordTranslations] = useState<WordTranslation[]>([])
   const [comments, setComments] = useState<Comment[]>([])
+  const [proposals, setProposals] = useState<Proposal[]>([])
+  const [verseTranslations, setVerseTranslations] = useState<VerseTranslation[]>([])
 
   useEffect(() => {
     loadData()
@@ -163,11 +184,17 @@ export default function BibleLayout({ testament }: BibleLayoutProps) {
               setActiveVerse(verse)
               setActiveTab('verse')
               try {
-                const res = await api.get(`/api/verses/${verse.id}/comments`)
-                setComments(res.data)
+                const [commentsRes, proposalsRes] = await Promise.all([
+                  api.get(`/api/verses/${verse.id}/comments`),
+                  api.get(`/api/verses/${verse.id}/proposals`),
+                ])
+                setComments(commentsRes.data)
+                setProposals(proposalsRes.data.proposals)
+                setVerseTranslations(proposalsRes.data.translations)
               } catch (error) {
                 console.error(error)
                 setComments([])
+                setProposals([])
               }
             }}
             onWordClick={async (token, x, y) => {
@@ -191,10 +218,23 @@ export default function BibleLayout({ testament }: BibleLayoutProps) {
           activeWord={activeWord}
           wordTranslations={wordTranslations}
           comments={comments}
+          proposals={proposals}
+          verseTranslations={verseTranslations}
           onCommentAdded={async () => {
             if (activeVerse) {
               const res = await api.get(`/api/verses/${activeVerse.id}/comments`)
               setComments(res.data)
+            }
+          }}
+          onProposalUpdated={async () => {
+            if (activeVerse) {
+              const [commentsRes, proposalsRes] = await Promise.all([
+                api.get(`/api/verses/${activeVerse.id}/comments`),
+                api.get(`/api/verses/${activeVerse.id}/proposals`),
+              ])
+              setComments(commentsRes.data)
+              setProposals(proposalsRes.data.proposals)
+              setVerseTranslations(proposalsRes.data.translations)
             }
           }}
           onTranslationAdded={async () => {

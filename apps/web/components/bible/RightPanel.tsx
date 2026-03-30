@@ -51,6 +51,26 @@ interface Comment {
   creator: { username: string; role: string } | null
 }
 
+interface VerseTranslation {
+  id: string
+  textFr: string
+  isActive: boolean
+  isReference: boolean
+  source: string | null
+  createdAt: string
+}
+
+interface Proposal {
+  id: string
+  proposedText: string
+  status: string
+  reason: string | null
+  createdAt: string
+  createdBy: string | null
+  creator: { username: string; role: string } | null
+  votes: { id: string; userId: string }[]
+}
+
 interface RightPanelProps {
   activeTab: 'verse' | 'word' | 'comments'
   setActiveTab: (tab: 'verse' | 'word' | 'comments') => void
@@ -58,8 +78,11 @@ interface RightPanelProps {
   activeWord: WordToken | null
   wordTranslations: WordTranslation[]
   comments: Comment[]
+  proposals: Proposal[]
+  verseTranslations: VerseTranslation[]
   onTranslationAdded: () => void
   onCommentAdded: () => void
+  onProposalUpdated: () => void
 }
 
 export default function RightPanel({
@@ -69,8 +92,11 @@ export default function RightPanel({
   activeWord,
   wordTranslations,
   comments,
+  proposals,
+  verseTranslations,
   onTranslationAdded,
   onCommentAdded,
+  onProposalUpdated,
 }: RightPanelProps) {
   const [newTranslation, setNewTranslation] = useState('')
   const [submitting, setSubmitting] = useState(false)
@@ -81,9 +107,18 @@ export default function RightPanel({
   const [confirmModal, setConfirmModal] = useState<{ message: string; onConfirm: () => void } | null>(null)
   const [newComment, setNewComment] = useState('')
   const [submittingComment, setSubmittingComment] = useState(false)
+  const [showProposalForm, setShowProposalForm] = useState(false)
+  const [newProposal, setNewProposal] = useState('')
+  const [submittingProposal, setSubmittingProposal] = useState(false)
+  const [rejectReason, setRejectReason] = useState('')
+  const [rejectingId, setRejectingId] = useState<string | null>(null)
+  const [showRejected, setShowRejected] = useState(false)
+  const [proposalVotedIds, setProposalVotedIds] = useState<Set<string>>(new Set())
 
   const validatedTranslations = wordTranslations.filter(t => t.isValidated)
   const proposedTranslations = wordTranslations.filter(t => !t.isValidated)
+  const activeProposals = proposals.filter(p => p.status === 'PENDING' || p.status === 'ACCEPTED')
+  const closedProposals = proposals.filter(p => p.status === 'REJECTED')
 
   useEffect(() => {
     const token = localStorage.getItem('token')
@@ -153,10 +188,12 @@ export default function RightPanel({
 
       <div style={{ padding: '24px', flex: 1 }}>
 
-        {/* ONGLET VERSET */}
+        {/* ═══════════════ ONGLET VERSET ═══════════════ */}
         {activeTab === 'verse' && (
           activeVerse ? (
             <div>
+
+              {/* Texte original */}
               <div style={{
                 background: 'var(--ink)',
                 borderRadius: '10px',
@@ -186,35 +223,714 @@ export default function RightPanel({
                   {activeVerse.texts[0]?.text}
                 </div>
               </div>
-              {activeVerse.translations[0] && (
-                <div style={{
-                  border: '1px solid rgba(45,90,58,0.3)',
-                  borderRadius: '8px',
-                  padding: '14px 16px',
-                  background: 'var(--green-light)',
-                }}>
-                  <div style={{
+
+              {/* Traduction active */}
+              {(() => {
+                const crampon = verseTranslations.find(t => t.isReference)
+                const activeTranslation = activeVerse.translations[0]
+                const cramponIsActive = crampon?.isActive
+
+                return (
+                  <>
+                    {activeTranslation && (
+                      <div style={{
+                        border: '1px solid rgba(45,90,58,0.3)',
+                        borderRadius: '8px',
+                        padding: '14px 16px',
+                        background: 'var(--green-light)',
+                        marginBottom: '12px',
+                      }}>
+                        <div style={{
+                          fontFamily: 'DM Mono, monospace',
+                          fontSize: '9px',
+                          letterSpacing: '0.1em',
+                          textTransform: 'uppercase' as const,
+                          color: 'var(--green-valid)',
+                          marginBottom: '8px',
+                          opacity: 0.7,
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                        }}>
+                          Traduction active
+                          {cramponIsActive && crampon && (
+                            <span style={{ opacity: 0.7 }}>· {crampon.source || 'Crampon 1923'} · Référence</span>
+                          )}
+                        </div>
+                        <div style={{
+                          fontFamily: 'Spectral, serif',
+                          fontSize: '15px',
+                          fontStyle: 'italic',
+                          color: 'var(--ink)',
+                          lineHeight: '1.7',
+                        }}>
+                          {activeTranslation.textFr}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Crampon si pas active */}
+                    {crampon && !cramponIsActive && (
+                      <div style={{
+                        border: '1px solid var(--border)',
+                        borderRadius: '8px',
+                        padding: '12px 14px',
+                        background: 'var(--parchment-dark)',
+                        marginBottom: '12px',
+                      }}>
+                        <div style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          marginBottom: '8px',
+                        }}>
+                          <span style={{
+                            fontFamily: 'DM Mono, monospace',
+                            fontSize: '9px',
+                            letterSpacing: '0.1em',
+                            textTransform: 'uppercase' as const,
+                            color: 'var(--ink-muted)',
+                          }}>
+                            {crampon.source || 'Crampon 1923'} · Référence
+                          </span>
+                          {user && ['EXPERT', 'ADMIN'].includes(user.role) && (
+                            <button
+                              onClick={async () => {
+                                try {
+                                  await api.patch(`/api/translations/${crampon.id}/activate`)
+                                  onProposalUpdated()
+                                } catch (error) {
+                                  console.error(error)
+                                }
+                              }}
+                              style={{
+                                padding: '3px 8px',
+                                borderRadius: '4px',
+                                border: '1px solid rgba(45,90,58,0.3)',
+                                background: 'var(--green-light)',
+                                cursor: 'pointer',
+                                fontFamily: 'DM Mono, monospace',
+                                fontSize: '9px',
+                                color: 'var(--green-valid)',
+                              }}
+                            >
+                              ↑ Remettre active
+                            </button>
+                          )}
+                        </div>
+                        <div style={{
+                          fontFamily: 'Spectral, serif',
+                          fontSize: '14px',
+                          fontStyle: 'italic',
+                          color: 'var(--ink-soft)',
+                          lineHeight: '1.7',
+                        }}>
+                          {crampon.textFr}
+                        </div>
+                      </div>
+                    )}
+                  </>
+                )
+              })()}
+
+              {/* Anciennes traductions acceptées (non référence, non active) */}
+              {verseTranslations
+                .filter(t => !t.isReference && !t.isActive)
+                .map(t => (
+                  <div key={t.id} style={{
+                    border: '1px solid var(--border)',
+                    borderRadius: '8px',
+                    padding: '12px 14px',
+                    background: 'white',
+                    marginBottom: '8px',
+                  }}>
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      marginBottom: '8px',
+                    }}>
+                      <span style={{
+                        fontFamily: 'DM Mono, monospace',
+                        fontSize: '9px',
+                        letterSpacing: '0.1em',
+                        textTransform: 'uppercase' as const,
+                        color: 'var(--ink-muted)',
+                      }}>
+                        Acceptée
+                      </span>
+                      {user && ['EXPERT', 'ADMIN'].includes(user.role) && (
+                        <button
+                          onClick={async () => {
+                            try {
+                              await api.patch(`/api/translations/${t.id}/activate`)
+                              onProposalUpdated()
+                            } catch (error) {
+                              console.error(error)
+                            }
+                          }}
+                          style={{
+                            padding: '3px 8px',
+                            borderRadius: '4px',
+                            border: '1px solid rgba(45,90,58,0.3)',
+                            background: 'var(--green-light)',
+                            cursor: 'pointer',
+                            fontFamily: 'DM Mono, monospace',
+                            fontSize: '9px',
+                            color: 'var(--green-valid)',
+                          }}
+                        >
+                          ↑ Remettre active
+                        </button>
+                      )}
+                    </div>
+                    <div style={{
+                      fontFamily: 'Spectral, serif',
+                      fontSize: '14px',
+                      fontStyle: 'italic',
+                      color: 'var(--ink-soft)',
+                      lineHeight: '1.7',
+                    }}>
+                      {t.textFr}
+                    </div>
+                  </div>
+                ))
+              }
+
+              {/* Titre Propositions */}
+              <div style={{
+                fontFamily: 'DM Mono, monospace',
+                fontSize: '10px',
+                letterSpacing: '0.1em',
+                textTransform: 'uppercase' as const,
+                color: 'var(--ink-muted)',
+                marginBottom: '12px',
+                marginTop: '8px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+              }}>
+                Propositions
+                {proposals.filter(p => p.status === 'PENDING').length > 0 && (
+                  <span style={{
                     fontFamily: 'DM Mono, monospace',
                     fontSize: '9px',
-                    letterSpacing: '0.1em',
-                    textTransform: 'uppercase' as const,
-                    color: 'var(--green-valid)',
-                    marginBottom: '8px',
-                    opacity: 0.7,
+                    padding: '1px 6px',
+                    borderRadius: '20px',
+                    background: 'var(--amber-light)',
+                    color: 'var(--amber-pending)',
+                    border: '1px solid rgba(122,90,26,0.2)',
                   }}>
-                    Traduction Crampon 1923
-                  </div>
-                  <div style={{
-                    fontFamily: 'Spectral, serif',
-                    fontSize: '15px',
-                    fontStyle: 'italic',
-                    color: 'var(--ink)',
-                    lineHeight: '1.7',
-                  }}>
-                    {activeVerse.translations[0].textFr}
-                  </div>
+                    {proposals.filter(p => p.status === 'PENDING').length} en attente
+                  </span>
+                )}
+              </div>
+
+              {activeProposals.length === 0 && (
+                <div style={{
+                  fontFamily: 'Spectral, serif',
+                  fontSize: '14px',
+                  color: 'var(--ink-faint)',
+                  fontStyle: 'italic',
+                  marginBottom: '16px',
+                }}>
+                  Aucune proposition pour ce verset.
                 </div>
               )}
+
+              {/* Propositions actives et acceptées */}
+              {activeProposals.map(p => {
+                const voteCount = p.votes?.length || 0
+                const hasVoted = proposalVotedIds.has(p.id)
+                return (
+                  <div key={p.id} style={{
+                    border: `1px solid ${p.status === 'ACCEPTED' ? 'rgba(45,90,58,0.3)' : 'var(--border)'}`,
+                    borderRadius: '8px',
+                    overflow: 'hidden',
+                    marginBottom: '12px',
+                    background: 'white',
+                  }}>
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      padding: '10px 14px',
+                      background: 'var(--parchment-dark)',
+                      borderBottom: '1px solid var(--border)',
+                    }}>
+                      <span style={{
+                        fontFamily: 'DM Mono, monospace',
+                        fontSize: '10px',
+                        color: 'var(--ink-soft)',
+                      }}>
+                        @{p.creator?.username || 'anonyme'}
+                      </span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <span style={{
+                          fontFamily: 'DM Mono, monospace',
+                          fontSize: '9px',
+                          padding: '2px 8px',
+                          borderRadius: '20px',
+                          background: p.status === 'ACCEPTED' ? 'var(--green-light)' : 'var(--amber-light)',
+                          color: p.status === 'ACCEPTED' ? 'var(--green-valid)' : 'var(--amber-pending)',
+                          border: `1px solid ${p.status === 'ACCEPTED' ? 'rgba(45,90,58,0.2)' : 'rgba(122,90,26,0.2)'}`,
+                        }}>
+                          {p.status === 'ACCEPTED' ? 'Acceptée' : 'En attente'}
+                        </span>
+                        {p.status === 'ACCEPTED' && user && ['EXPERT', 'ADMIN'].includes(user.role) && (
+                          <button
+                            onClick={async () => {
+                              try {
+                                await api.patch(`/api/proposals/${p.id}/activate`)
+                                onProposalUpdated()
+                              } catch (error) {
+                                console.error(error)
+                              }
+                            }}
+                            style={{
+                              padding: '2px 8px',
+                              borderRadius: '4px',
+                              border: '1px solid rgba(45,90,58,0.3)',
+                              background: 'var(--green-light)',
+                              cursor: 'pointer',
+                              fontFamily: 'DM Mono, monospace',
+                              fontSize: '9px',
+                              color: 'var(--green-valid)',
+                            }}
+                          >
+                            ↑ Rendre active
+                          </button>
+                        )}
+                        {user && ['EXPERT', 'ADMIN'].includes(user.role) && (
+                          <button
+                            onClick={() => setConfirmModal({
+                              message: 'Supprimer définitivement cette proposition ?',
+                              onConfirm: async () => {
+                                try {
+                                  await api.delete(`/api/proposals/${p.id}`)
+                                  setConfirmModal(null)
+                                  onProposalUpdated()
+                                } catch (error) {
+                                  console.error(error)
+                                }
+                              }
+                            })}
+                            style={{
+                              padding: '2px 6px',
+                              borderRadius: '4px',
+                              border: '1px solid rgba(122,42,42,0.2)',
+                              background: 'transparent',
+                              cursor: 'pointer',
+                              fontFamily: 'DM Mono, monospace',
+                              fontSize: '9px',
+                              color: 'var(--red-soft)',
+                            }}
+                          >
+                            ✕
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                    <div style={{ padding: '12px 14px' }}>
+                      <div style={{
+                        fontFamily: 'Spectral, serif',
+                        fontSize: '14px',
+                        fontStyle: 'italic',
+                        lineHeight: '1.8',
+                        color: 'var(--ink)',
+                      }}>
+                        {p.proposedText}
+                      </div>
+                    </div>
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      padding: '8px 14px',
+                      borderTop: '1px solid var(--border)',
+                      flexWrap: 'wrap',
+                    }}>
+                      {p.status === 'PENDING' && user && ['INTERMEDIATE', 'EXPERT', 'ADMIN'].includes(user.role) && (
+                        <button
+                          onClick={async () => {
+                            try {
+                              const res = await api.post(`/api/proposals/${p.id}/vote`)
+                              if (res.data.voted) {
+                                setProposalVotedIds(prev => new Set([...prev, p.id]))
+                              } else {
+                                setProposalVotedIds(prev => { const s = new Set(prev); s.delete(p.id); return s })
+                              }
+                              onProposalUpdated()
+                            } catch (error) {
+                              console.error(error)
+                            }
+                          }}
+                          style={{
+                            padding: '3px 8px',
+                            borderRadius: '4px',
+                            border: `1px solid ${hasVoted ? 'var(--gold)' : 'var(--border)'}`,
+                            background: hasVoted ? 'var(--gold-pale)' : 'transparent',
+                            cursor: 'pointer',
+                            fontFamily: 'DM Mono, monospace',
+                            fontSize: '10px',
+                            color: hasVoted ? 'var(--gold)' : 'var(--ink-soft)',
+                          }}
+                        >
+                          ▲ {hasVoted ? 'Voté' : 'Voter'}
+                        </button>
+                      )}
+                      <span style={{
+                        fontFamily: 'DM Mono, monospace',
+                        fontSize: '10px',
+                        color: 'var(--ink-muted)',
+                      }}>
+                        {voteCount} vote{voteCount !== 1 ? 's' : ''}
+                      </span>
+                      {p.status === 'PENDING' && user && ['EXPERT', 'ADMIN'].includes(user.role) && (
+                        <>
+                          {rejectingId === p.id ? (
+                            <div style={{ display: 'flex', gap: '6px', width: '100%', marginTop: '4px' }}>
+                              <input
+                                type="text"
+                                placeholder="Raison du rejet..."
+                                value={rejectReason}
+                                onChange={e => setRejectReason(e.target.value)}
+                                style={{
+                                  flex: 1,
+                                  padding: '5px 8px',
+                                  border: '1px solid var(--border)',
+                                  borderRadius: '6px',
+                                  fontFamily: 'Spectral, serif',
+                                  fontSize: '12px',
+                                  color: 'var(--ink)',
+                                  outline: 'none',
+                                }}
+                              />
+                              <button
+                                onClick={async () => {
+                                  if (!rejectReason.trim()) return
+                                  try {
+                                    await api.patch(`/api/proposals/${p.id}/reject`, { reason: rejectReason })
+                                    setRejectingId(null)
+                                    setRejectReason('')
+                                    onProposalUpdated()
+                                  } catch (error) {
+                                    console.error(error)
+                                  }
+                                }}
+                                style={{
+                                  padding: '5px 10px',
+                                  background: 'transparent',
+                                  color: 'var(--red-soft)',
+                                  border: '1px solid rgba(122,42,42,0.3)',
+                                  borderRadius: '6px',
+                                  fontFamily: 'DM Mono, monospace',
+                                  fontSize: '9px',
+                                  cursor: 'pointer',
+                                }}
+                              >
+                                Rejeter
+                              </button>
+                              <button
+                                onClick={() => { setRejectingId(null); setRejectReason('') }}
+                                style={{
+                                  padding: '5px 10px',
+                                  background: 'transparent',
+                                  color: 'var(--ink-muted)',
+                                  border: '1px solid var(--border)',
+                                  borderRadius: '6px',
+                                  fontFamily: 'DM Mono, monospace',
+                                  fontSize: '9px',
+                                  cursor: 'pointer',
+                                }}
+                              >
+                                Annuler
+                              </button>
+                            </div>
+                          ) : (
+                            <>
+                              <button
+                                onClick={async () => {
+                                  try {
+                                    await api.patch(`/api/proposals/${p.id}/accept`)
+                                    onProposalUpdated()
+                                  } catch (error) {
+                                    console.error(error)
+                                  }
+                                }}
+                                style={{
+                                  padding: '3px 8px',
+                                  background: 'var(--green-valid)',
+                                  color: 'white',
+                                  border: 'none',
+                                  borderRadius: '4px',
+                                  fontFamily: 'DM Mono, monospace',
+                                  fontSize: '9px',
+                                  cursor: 'pointer',
+                                }}
+                              >
+                                ✓ Accepter
+                              </button>
+                              <button
+                                onClick={() => setRejectingId(p.id)}
+                                style={{
+                                  padding: '3px 8px',
+                                  background: 'transparent',
+                                  color: 'var(--red-soft)',
+                                  border: '1px solid rgba(122,42,42,0.3)',
+                                  borderRadius: '4px',
+                                  fontFamily: 'DM Mono, monospace',
+                                  fontSize: '9px',
+                                  cursor: 'pointer',
+                                }}
+                              >
+                                ✕ Rejeter
+                              </button>
+                            </>
+                          )}
+                        </>
+                      )}
+                    </div>
+                  </div>
+                )
+              })}
+
+              {/* Formulaire proposition */}
+              {user ? (
+                !showProposalForm ? (
+                  <button
+                    onClick={() => {
+                      setShowProposalForm(true)
+                      setNewProposal(activeVerse.translations[0]?.textFr || '')
+                    }}
+                    style={{
+                      width: '100%',
+                      padding: '10px',
+                      border: '1.5px dashed var(--border-strong)',
+                      borderRadius: '8px',
+                      background: 'transparent',
+                      fontFamily: 'Spectral, serif',
+                      fontSize: '13px',
+                      fontStyle: 'italic',
+                      color: 'var(--ink-muted)',
+                      cursor: 'pointer',
+                      marginTop: '4px',
+                    }}
+                    onMouseEnter={e => {
+                      (e.target as HTMLElement).style.borderColor = 'var(--gold)'
+                      ;(e.target as HTMLElement).style.color = 'var(--gold)'
+                    }}
+                    onMouseLeave={e => {
+                      (e.target as HTMLElement).style.borderColor = 'var(--border-strong)'
+                      ;(e.target as HTMLElement).style.color = 'var(--ink-muted)'
+                    }}
+                  >
+                    + Proposer une reformulation
+                  </button>
+                ) : (
+                  <div style={{
+                    border: '1px solid var(--border)',
+                    borderRadius: '8px',
+                    padding: '12px',
+                    background: 'white',
+                    marginTop: '4px',
+                  }}>
+                    <div style={{
+                      fontFamily: 'DM Mono, monospace',
+                      fontSize: '9px',
+                      letterSpacing: '0.1em',
+                      textTransform: 'uppercase' as const,
+                      color: 'var(--ink-muted)',
+                      marginBottom: '8px',
+                    }}>
+                      Proposer une reformulation
+                    </div>
+                    <textarea
+                      value={newProposal}
+                      onChange={e => setNewProposal(e.target.value)}
+                      style={{
+                        width: '100%',
+                        padding: '8px 10px',
+                        border: '1px solid var(--border)',
+                        borderRadius: '6px',
+                        fontFamily: 'Spectral, serif',
+                        fontSize: '14px',
+                        color: 'var(--ink)',
+                        background: 'var(--parchment)',
+                        outline: 'none',
+                        marginBottom: '10px',
+                        resize: 'vertical',
+                        minHeight: '80px',
+                      }}
+                    />
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <button
+                        onClick={async () => {
+                          if (!newProposal.trim() || !activeVerse) return
+                          setSubmittingProposal(true)
+                          try {
+                            await api.post(`/api/verses/${activeVerse.id}/proposals`, {
+                              proposedText: newProposal.trim()
+                            })
+                            setShowProposalForm(false)
+                            setNewProposal('')
+                            onProposalUpdated()
+                          } catch (error) {
+                            console.error(error)
+                          } finally {
+                            setSubmittingProposal(false)
+                          }
+                        }}
+                        disabled={submittingProposal || !newProposal.trim()}
+                        style={{
+                          flex: 1,
+                          padding: '8px',
+                          background: 'var(--gold)',
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: '6px',
+                          fontFamily: 'DM Mono, monospace',
+                          fontSize: '10px',
+                          letterSpacing: '0.08em',
+                          textTransform: 'uppercase' as const,
+                          cursor: submittingProposal ? 'not-allowed' : 'pointer',
+                          opacity: submittingProposal || !newProposal.trim() ? 0.6 : 1,
+                        }}
+                      >
+                        {submittingProposal ? 'Envoi...' : 'Proposer'}
+                      </button>
+                      <button
+                        onClick={() => { setShowProposalForm(false); setNewProposal('') }}
+                        style={{
+                          padding: '8px 14px',
+                          background: 'transparent',
+                          color: 'var(--ink-muted)',
+                          border: '1px solid var(--border)',
+                          borderRadius: '6px',
+                          fontFamily: 'DM Mono, monospace',
+                          fontSize: '10px',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        Annuler
+                      </button>
+                    </div>
+                  </div>
+                )
+              ) : (
+                <div style={{
+                  marginTop: '16px',
+                  fontFamily: 'Spectral, serif',
+                  fontSize: '13px',
+                  color: 'var(--ink-muted)',
+                  fontStyle: 'italic',
+                  textAlign: 'center',
+                }}>
+                  <a href="/login" style={{ color: 'var(--gold)' }}>Connectez-vous</a> pour proposer une reformulation
+                </div>
+              )}
+
+              {/* Section repliable : propositions rejetées */}
+              {closedProposals.length > 0 && (
+                <div style={{ marginTop: '16px' }}>
+                  <div
+                    onClick={() => setShowRejected(!showRejected)}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      cursor: 'pointer',
+                      fontFamily: 'DM Mono, monospace',
+                      fontSize: '9px',
+                      letterSpacing: '0.1em',
+                      textTransform: 'uppercase' as const,
+                      color: 'var(--ink-faint)',
+                      marginBottom: '8px',
+                      userSelect: 'none' as const,
+                    }}
+                  >
+                    <span>{showRejected ? '▼' : '▶'}</span>
+                    {closedProposals.length} proposition{closedProposals.length > 1 ? 's' : ''} rejetée{closedProposals.length > 1 ? 's' : ''}
+                  </div>
+                  {showRejected && closedProposals.map(p => (
+                    <div key={p.id} style={{
+                      border: '1px solid rgba(122,42,42,0.2)',
+                      borderRadius: '8px',
+                      overflow: 'hidden',
+                      marginBottom: '8px',
+                      background: 'white',
+                      opacity: 0.7,
+                    }}>
+                      <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        padding: '8px 12px',
+                        background: 'var(--red-light)',
+                        borderBottom: '1px solid rgba(122,42,42,0.1)',
+                      }}>
+                        <span style={{
+                          fontFamily: 'DM Mono, monospace',
+                          fontSize: '9px',
+                          color: 'var(--red-soft)',
+                        }}>
+                          @{p.creator?.username || 'anonyme'} · Rejetée
+                        </span>
+                        {user && ['EXPERT', 'ADMIN'].includes(user.role) && (
+                          <button
+                            onClick={() => setConfirmModal({
+                              message: 'Supprimer définitivement cette proposition ?',
+                              onConfirm: async () => {
+                                try {
+                                  await api.delete(`/api/proposals/${p.id}`)
+                                  setConfirmModal(null)
+                                  onProposalUpdated()
+                                } catch (error) {
+                                  console.error(error)
+                                }
+                              }
+                            })}
+                            style={{
+                              padding: '1px 5px',
+                              borderRadius: '4px',
+                              border: 'none',
+                              background: 'transparent',
+                              cursor: 'pointer',
+                              fontSize: '10px',
+                              color: 'var(--red-soft)',
+                            }}
+                          >
+                            ✕
+                          </button>
+                        )}
+                      </div>
+                      <div style={{ padding: '10px 12px' }}>
+                        <div style={{
+                          fontFamily: 'Spectral, serif',
+                          fontSize: '13px',
+                          fontStyle: 'italic',
+                          color: 'var(--ink-soft)',
+                          lineHeight: '1.7',
+                          marginBottom: p.reason ? '6px' : '0',
+                        }}>
+                          {p.proposedText}
+                        </div>
+                        {p.reason && (
+                          <div style={{
+                            fontFamily: 'DM Mono, monospace',
+                            fontSize: '9px',
+                            color: 'var(--red-soft)',
+                            opacity: 0.8,
+                          }}>
+                            Raison : {p.reason}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
             </div>
           ) : (
             <div style={{
@@ -235,7 +951,7 @@ export default function RightPanel({
           )
         )}
 
-        {/* ONGLET MOT */}
+        {/* ═══════════════ ONGLET MOT ═══════════════ */}
         {activeTab === 'word' && (
           activeWord ? (
             <div>
@@ -331,7 +1047,6 @@ export default function RightPanel({
                 </div>
               ) : (
                 <>
-                  {/* VALIDÉES */}
                   {validatedTranslations.length > 0 && (
                     <>
                       <div style={{
@@ -392,20 +1107,18 @@ export default function RightPanel({
                             {t.creator && <span>@{t.creator.username}</span>}
                             {user && ['EXPERT', 'ADMIN'].includes(user.role) && (
                               <button
-                                onClick={() => {
-                                  setConfirmModal({
-                                    message: 'Êtes-vous sûr de vouloir supprimer cette traduction validée ?',
-                                    onConfirm: async () => {
-                                      try {
-                                        await api.delete(`/api/word-translations/${t.id}`)
-                                        setConfirmModal(null)
-                                        onTranslationAdded()
-                                      } catch (error) {
-                                        console.error(error)
-                                      }
+                                onClick={() => setConfirmModal({
+                                  message: 'Êtes-vous sûr de vouloir supprimer cette traduction validée ?',
+                                  onConfirm: async () => {
+                                    try {
+                                      await api.delete(`/api/word-translations/${t.id}`)
+                                      setConfirmModal(null)
+                                      onTranslationAdded()
+                                    } catch (error) {
+                                      console.error(error)
                                     }
-                                  })
-                                }}
+                                  }
+                                })}
                                 style={{
                                   padding: '3px 8px',
                                   borderRadius: '4px',
@@ -426,7 +1139,6 @@ export default function RightPanel({
                     </>
                   )}
 
-                  {/* PROPOSÉES */}
                   {proposedTranslations.length > 0 && (
                     <>
                       <div style={{
@@ -541,20 +1253,18 @@ export default function RightPanel({
                                   ✓ Valider
                                 </button>
                                 <button
-                                  onClick={() => {
-                                    setConfirmModal({
-                                      message: 'Êtes-vous sûr de vouloir supprimer cette proposition ?',
-                                      onConfirm: async () => {
-                                        try {
-                                          await api.delete(`/api/word-translations/${t.id}`)
-                                          setConfirmModal(null)
-                                          onTranslationAdded()
-                                        } catch (error) {
-                                          console.error(error)
-                                        }
+                                  onClick={() => setConfirmModal({
+                                    message: 'Êtes-vous sûr de vouloir supprimer cette proposition ?',
+                                    onConfirm: async () => {
+                                      try {
+                                        await api.delete(`/api/word-translations/${t.id}`)
+                                        setConfirmModal(null)
+                                        onTranslationAdded()
+                                      } catch (error) {
+                                        console.error(error)
                                       }
-                                    })
-                                  }}
+                                    }
+                                  })}
                                   style={{
                                     padding: '3px 8px',
                                     borderRadius: '4px',
@@ -578,7 +1288,6 @@ export default function RightPanel({
                 </>
               )}
 
-              {/* Formulaire de proposition */}
               {!showForm ? (
                 <button
                   onClick={() => setShowForm(true)}
@@ -707,7 +1416,7 @@ export default function RightPanel({
           )
         )}
 
-        {/* ONGLET COMMENTAIRES */}
+        {/* ═══════════════ ONGLET COMMENTAIRES ═══════════════ */}
         {activeTab === 'comments' && (
           activeVerse ? (
             <div>
@@ -782,20 +1491,18 @@ export default function RightPanel({
                     )}
                     {user && (['EXPERT', 'ADMIN'].includes(user.role) || user.id === c.createdBy) && (
                       <button
-                        onClick={() => {
-                          setConfirmModal({
-                            message: 'Supprimer ce commentaire ?',
-                            onConfirm: async () => {
-                              try {
-                                await api.delete(`/api/comments/${c.id}`)
-                                setConfirmModal(null)
-                                onCommentAdded()
-                              } catch (error) {
-                                console.error(error)
-                              }
+                        onClick={() => setConfirmModal({
+                          message: 'Supprimer ce commentaire ?',
+                          onConfirm: async () => {
+                            try {
+                              await api.delete(`/api/comments/${c.id}`)
+                              setConfirmModal(null)
+                              onCommentAdded()
+                            } catch (error) {
+                              console.error(error)
                             }
-                          })
-                        }}
+                          }
+                        })}
                         style={{
                           marginLeft: 'auto',
                           padding: '2px 6px',
@@ -916,6 +1623,7 @@ export default function RightPanel({
             </div>
           )
         )}
+
       </div>
       {confirmModal && (
         <ConfirmModal

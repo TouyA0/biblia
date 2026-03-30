@@ -92,6 +92,8 @@ model Translation {
   verseId     String
   textFr      String
   isActive    Boolean    @default(false)
+  isReference Boolean    @default(false)
+  source      String?
   validatedBy String?
   createdBy   String?
   createdAt   DateTime   @default(now())
