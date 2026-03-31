@@ -87,14 +87,15 @@ export default function TopBar({ testament, book, chapter }: TopBarProps) {
             }}>
               {user.role}
             </span>
-            <span style={{
+            <a href="/profile" style={{
               fontFamily: 'DM Mono, monospace',
               fontSize: '10px',
               color: 'rgba(255,255,255,0.6)',
               letterSpacing: '0.08em',
+              textDecoration: 'none',
             }}>
               {user.username}
-            </span>
+            </a>
             <button
               onClick={() => {
                 localStorage.removeItem('token')

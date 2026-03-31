@@ -65,6 +65,7 @@ export default function VerseList({ verses, bookName, chapter, activeVerseId, ac
         return (
           <div
             key={verse.id}
+            id={`v${verse.number}`}
             onClick={() => onVerseClick(verse)}
             style={{
               display: 'grid',

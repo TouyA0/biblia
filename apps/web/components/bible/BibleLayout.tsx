@@ -1,13 +1,14 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useParams } from 'next/navigation'
+import { useParams, useSearchParams } from 'next/navigation'
 import api from '@/lib/api'
 import TopBar from './TopBar'
 import Sidebar from './Sidebar'
 import VerseList from './VerseList'
 import RightPanel from './RightPanel'
 import WordPopover from './WordPopover'
+
 
 interface WordToken {
   id: string
@@ -101,6 +102,7 @@ export default function BibleLayout({ testament }: BibleLayoutProps) {
   const params = useParams()
   const book = params.book as string
   const chapter = params.chapter as string
+  const searchParams = useSearchParams()
 
   const [bookData, setBookData] = useState<Book | null>(null)
   const [chapterData, setChapterData] = useState<Chapter | null>(null)
@@ -118,6 +120,49 @@ export default function BibleLayout({ testament }: BibleLayoutProps) {
   useEffect(() => {
     loadData()
   }, [book, chapter])
+
+  useEffect(() => {
+    if (!chapterData) return
+
+    const wordId = searchParams.get('word')
+    const verseId = searchParams.get('verse')
+    const tab = searchParams.get('tab') as 'verse' | 'word' | 'comments' | null
+
+    if (wordId) {
+      // Trouver le token dans les données chargées
+      for (const verse of chapterData.verses) {
+        for (const text of verse.texts) {
+          const token = text.wordTokens?.find((w: WordToken) => w.id === wordId)
+          if (token) {
+            setActiveWord(token)
+            setActiveTab('word')
+            setPopoverPos(null)
+            // Charger les traductions
+            api.get(`/api/words/${wordId}/translations`).then(res => {
+              setWordTranslations(res.data)
+            }).catch(console.error)
+            return
+          }
+        }
+      }
+    }
+
+    if (verseId && tab) {
+      const verse = chapterData.verses.find((v: Verse) => v.id === verseId)
+      if (verse) {
+        setActiveVerse(verse)
+        setActiveTab(tab)
+        Promise.all([
+          api.get(`/api/verses/${verse.id}/comments`),
+          api.get(`/api/verses/${verse.id}/proposals`),
+        ]).then(([commentsRes, proposalsRes]) => {
+          setComments(commentsRes.data)
+          setProposals(proposalsRes.data.proposals)
+          setVerseTranslations(proposalsRes.data.translations)
+        }).catch(console.error)
+      }
+    }
+  }, [chapterData])
 
   async function loadData() {
     setLoading(true)
