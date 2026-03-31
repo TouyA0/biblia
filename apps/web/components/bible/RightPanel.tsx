@@ -68,6 +68,7 @@ interface Proposal {
   createdAt: string
   createdBy: string | null
   creator: { username: string; role: string } | null
+  reviewer: { username: string; role: string } | null
   votes: { id: string; userId: string }[]
 }
 
@@ -117,7 +118,17 @@ export default function RightPanel({
 
   const validatedTranslations = wordTranslations.filter(t => t.isValidated)
   const proposedTranslations = wordTranslations.filter(t => !t.isValidated)
-  const activeProposals = proposals.filter(p => p.status === 'PENDING' || p.status === 'ACCEPTED')
+  const activeProposals = proposals
+    .filter(p => p.status === 'PENDING' || p.status === 'ACCEPTED')
+    .sort((a, b) => {
+      const aIsActive = a.proposedText === activeVerse?.translations[0]?.textFr
+      const bIsActive = b.proposedText === activeVerse?.translations[0]?.textFr
+      if (aIsActive && !bIsActive) return -1
+      if (!aIsActive && bIsActive) return 1
+      if (a.status === 'ACCEPTED' && b.status !== 'ACCEPTED') return -1
+      if (a.status !== 'ACCEPTED' && b.status === 'ACCEPTED') return 1
+      return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+    })
   const closedProposals = proposals.filter(p => p.status === 'REJECTED')
 
   useEffect(() => {
@@ -335,7 +346,7 @@ export default function RightPanel({
 
               {/* Anciennes traductions acceptées (non référence, non active) */}
               {verseTranslations
-                .filter(t => !t.isReference && !t.isActive)
+                .filter(t => !t.isReference && !t.isActive && !proposals.some(p => p.proposedText === t.textFr))
                 .map(t => (
                   <div key={t.id} style={{
                     border: '1px solid var(--border)',
@@ -475,9 +486,14 @@ export default function RightPanel({
                           color: p.status === 'ACCEPTED' ? 'var(--green-valid)' : 'var(--amber-pending)',
                           border: `1px solid ${p.status === 'ACCEPTED' ? 'rgba(45,90,58,0.2)' : 'rgba(122,90,26,0.2)'}`,
                         }}>
-                          {p.status === 'ACCEPTED' ? 'Acceptée' : 'En attente'}
+                          {p.status === 'ACCEPTED' ? (
+                            <>
+                              {p.proposedText === activeVerse?.translations[0]?.textFr ? '★ Active' : 'Acceptée'}
+                            </>
+                          ) : 'En attente'}
                         </span>
-                        {p.status === 'ACCEPTED' && user && ['EXPERT', 'ADMIN'].includes(user.role) && (
+                        {p.status === 'ACCEPTED' && user && ['EXPERT', 'ADMIN'].includes(user.role) && 
+                          p.proposedText !== activeVerse?.translations[0]?.textFr && (
                           <button
                             onClick={async () => {
                               try {
@@ -542,155 +558,157 @@ export default function RightPanel({
                         {p.proposedText}
                       </div>
                     </div>
-                    <div style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '8px',
-                      padding: '8px 14px',
-                      borderTop: '1px solid var(--border)',
-                      flexWrap: 'wrap',
-                    }}>
-                      {p.status === 'PENDING' && user && ['INTERMEDIATE', 'EXPERT', 'ADMIN'].includes(user.role) && (
-                        <button
-                          onClick={async () => {
-                            try {
-                              const res = await api.post(`/api/proposals/${p.id}/vote`)
-                              if (res.data.voted) {
-                                setProposalVotedIds(prev => new Set([...prev, p.id]))
-                              } else {
-                                setProposalVotedIds(prev => { const s = new Set(prev); s.delete(p.id); return s })
-                              }
-                              onProposalUpdated()
-                            } catch (error) {
-                              console.error(error)
-                            }
-                          }}
-                          style={{
-                            padding: '3px 8px',
-                            borderRadius: '4px',
-                            border: `1px solid ${hasVoted ? 'var(--gold)' : 'var(--border)'}`,
-                            background: hasVoted ? 'var(--gold-pale)' : 'transparent',
-                            cursor: 'pointer',
-                            fontFamily: 'DM Mono, monospace',
-                            fontSize: '10px',
-                            color: hasVoted ? 'var(--gold)' : 'var(--ink-soft)',
-                          }}
-                        >
-                          ▲ {hasVoted ? 'Voté' : 'Voter'}
-                        </button>
-                      )}
-                      <span style={{
-                        fontFamily: 'DM Mono, monospace',
-                        fontSize: '10px',
-                        color: 'var(--ink-muted)',
+                    {p.status === 'PENDING' && (
+                      <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                        padding: '8px 14px',
+                        borderTop: '1px solid var(--border)',
+                        flexWrap: 'wrap',
                       }}>
-                        {voteCount} vote{voteCount !== 1 ? 's' : ''}
-                      </span>
-                      {p.status === 'PENDING' && user && ['EXPERT', 'ADMIN'].includes(user.role) && (
-                        <>
-                          {rejectingId === p.id ? (
-                            <div style={{ display: 'flex', gap: '6px', width: '100%', marginTop: '4px' }}>
-                              <input
-                                type="text"
-                                placeholder="Raison du rejet..."
-                                value={rejectReason}
-                                onChange={e => setRejectReason(e.target.value)}
-                                style={{
-                                  flex: 1,
-                                  padding: '5px 8px',
-                                  border: '1px solid var(--border)',
-                                  borderRadius: '6px',
-                                  fontFamily: 'Spectral, serif',
-                                  fontSize: '12px',
-                                  color: 'var(--ink)',
-                                  outline: 'none',
-                                }}
-                              />
-                              <button
-                                onClick={async () => {
-                                  if (!rejectReason.trim()) return
-                                  try {
-                                    await api.patch(`/api/proposals/${p.id}/reject`, { reason: rejectReason })
-                                    setRejectingId(null)
-                                    setRejectReason('')
-                                    onProposalUpdated()
-                                  } catch (error) {
-                                    console.error(error)
-                                  }
-                                }}
-                                style={{
-                                  padding: '5px 10px',
-                                  background: 'transparent',
-                                  color: 'var(--red-soft)',
-                                  border: '1px solid rgba(122,42,42,0.3)',
-                                  borderRadius: '6px',
-                                  fontFamily: 'DM Mono, monospace',
-                                  fontSize: '9px',
-                                  cursor: 'pointer',
-                                }}
-                              >
-                                Rejeter
-                              </button>
-                              <button
-                                onClick={() => { setRejectingId(null); setRejectReason('') }}
-                                style={{
-                                  padding: '5px 10px',
-                                  background: 'transparent',
-                                  color: 'var(--ink-muted)',
-                                  border: '1px solid var(--border)',
-                                  borderRadius: '6px',
-                                  fontFamily: 'DM Mono, monospace',
-                                  fontSize: '9px',
-                                  cursor: 'pointer',
-                                }}
-                              >
-                                Annuler
-                              </button>
-                            </div>
-                          ) : (
-                            <>
-                              <button
-                                onClick={async () => {
-                                  try {
-                                    await api.patch(`/api/proposals/${p.id}/accept`)
-                                    onProposalUpdated()
-                                  } catch (error) {
-                                    console.error(error)
-                                  }
-                                }}
-                                style={{
-                                  padding: '3px 8px',
-                                  background: 'var(--green-valid)',
-                                  color: 'white',
-                                  border: 'none',
-                                  borderRadius: '4px',
-                                  fontFamily: 'DM Mono, monospace',
-                                  fontSize: '9px',
-                                  cursor: 'pointer',
-                                }}
-                              >
-                                ✓ Accepter
-                              </button>
-                              <button
-                                onClick={() => setRejectingId(p.id)}
-                                style={{
-                                  padding: '3px 8px',
-                                  background: 'transparent',
-                                  color: 'var(--red-soft)',
-                                  border: '1px solid rgba(122,42,42,0.3)',
-                                  borderRadius: '4px',
-                                  fontFamily: 'DM Mono, monospace',
-                                  fontSize: '9px',
-                                  cursor: 'pointer',
-                                }}
-                              >
-                                ✕ Rejeter
-                              </button>
-                            </>
-                          )}
-                        </>
-                      )}
-                    </div>
+                        {user && ['INTERMEDIATE', 'EXPERT', 'ADMIN'].includes(user.role) && (
+                          <button
+                            onClick={async () => {
+                              try {
+                                const res = await api.post(`/api/proposals/${p.id}/vote`)
+                                if (res.data.voted) {
+                                  setProposalVotedIds(prev => new Set([...prev, p.id]))
+                                } else {
+                                  setProposalVotedIds(prev => { const s = new Set(prev); s.delete(p.id); return s })
+                                }
+                                onProposalUpdated()
+                              } catch (error) {
+                                console.error(error)
+                              }
+                            }}
+                            style={{
+                              padding: '3px 8px',
+                              borderRadius: '4px',
+                              border: `1px solid ${hasVoted ? 'var(--gold)' : 'var(--border)'}`,
+                              background: hasVoted ? 'var(--gold-pale)' : 'transparent',
+                              cursor: 'pointer',
+                              fontFamily: 'DM Mono, monospace',
+                              fontSize: '10px',
+                              color: hasVoted ? 'var(--gold)' : 'var(--ink-soft)',
+                            }}
+                          >
+                            ▲ {hasVoted ? 'Voté' : 'Voter'}
+                          </button>
+                        )}
+                        <span style={{
+                          fontFamily: 'DM Mono, monospace',
+                          fontSize: '10px',
+                          color: 'var(--ink-muted)',
+                        }}>
+                          {voteCount} vote{voteCount !== 1 ? 's' : ''}
+                        </span>
+                        {user && ['EXPERT', 'ADMIN'].includes(user.role) && (
+                          <>
+                            {rejectingId === p.id ? (
+                              <div style={{ display: 'flex', gap: '6px', width: '100%', marginTop: '4px' }}>
+                                <input
+                                  type="text"
+                                  placeholder="Raison du rejet..."
+                                  value={rejectReason}
+                                  onChange={e => setRejectReason(e.target.value)}
+                                  style={{
+                                    flex: 1,
+                                    padding: '5px 8px',
+                                    border: '1px solid var(--border)',
+                                    borderRadius: '6px',
+                                    fontFamily: 'Spectral, serif',
+                                    fontSize: '12px',
+                                    color: 'var(--ink)',
+                                    outline: 'none',
+                                  }}
+                                />
+                                <button
+                                  onClick={async () => {
+                                    if (!rejectReason.trim()) return
+                                    try {
+                                      await api.patch(`/api/proposals/${p.id}/reject`, { reason: rejectReason })
+                                      setRejectingId(null)
+                                      setRejectReason('')
+                                      onProposalUpdated()
+                                    } catch (error) {
+                                      console.error(error)
+                                    }
+                                  }}
+                                  style={{
+                                    padding: '5px 10px',
+                                    background: 'transparent',
+                                    color: 'var(--red-soft)',
+                                    border: '1px solid rgba(122,42,42,0.3)',
+                                    borderRadius: '6px',
+                                    fontFamily: 'DM Mono, monospace',
+                                    fontSize: '9px',
+                                    cursor: 'pointer',
+                                  }}
+                                >
+                                  Rejeter
+                                </button>
+                                <button
+                                  onClick={() => { setRejectingId(null); setRejectReason('') }}
+                                  style={{
+                                    padding: '5px 10px',
+                                    background: 'transparent',
+                                    color: 'var(--ink-muted)',
+                                    border: '1px solid var(--border)',
+                                    borderRadius: '6px',
+                                    fontFamily: 'DM Mono, monospace',
+                                    fontSize: '9px',
+                                    cursor: 'pointer',
+                                  }}
+                                >
+                                  Annuler
+                                </button>
+                              </div>
+                            ) : (
+                              <>
+                                <button
+                                  onClick={async () => {
+                                    try {
+                                      await api.patch(`/api/proposals/${p.id}/accept`)
+                                      onProposalUpdated()
+                                    } catch (error) {
+                                      console.error(error)
+                                    }
+                                  }}
+                                  style={{
+                                    padding: '3px 8px',
+                                    background: 'var(--green-valid)',
+                                    color: 'white',
+                                    border: 'none',
+                                    borderRadius: '4px',
+                                    fontFamily: 'DM Mono, monospace',
+                                    fontSize: '9px',
+                                    cursor: 'pointer',
+                                  }}
+                                >
+                                  ✓ Accepter
+                                </button>
+                                <button
+                                  onClick={() => setRejectingId(p.id)}
+                                  style={{
+                                    padding: '3px 8px',
+                                    background: 'transparent',
+                                    color: 'var(--red-soft)',
+                                    border: '1px solid rgba(122,42,42,0.3)',
+                                    borderRadius: '4px',
+                                    fontFamily: 'DM Mono, monospace',
+                                    fontSize: '9px',
+                                    cursor: 'pointer',
+                                  }}
+                                >
+                                  ✕ Rejeter
+                                </button>
+                              </>
+                            )}
+                          </>
+                        )}
+                      </div>
+                    )}
                   </div>
                 )
               })}
@@ -850,7 +868,7 @@ export default function RightPanel({
                     }}
                   >
                     <span>{showRejected ? '▼' : '▶'}</span>
-                    {closedProposals.length} proposition{closedProposals.length > 1 ? 's' : ''} rejetée{closedProposals.length > 1 ? 's' : ''}
+                    {closedProposals.length} proposition{closedProposals.length > 1 ? 's' : ''} rejetée{closedProposals.length > 1 ? 's' : ''} / supprimée{closedProposals.length > 1 ? 's' : ''}
                   </div>
                   {showRejected && closedProposals.map(p => (
                     <div key={p.id} style={{
@@ -874,7 +892,7 @@ export default function RightPanel({
                           fontSize: '9px',
                           color: 'var(--red-soft)',
                         }}>
-                          @{p.creator?.username || 'anonyme'} · Rejetée
+                          @{p.creator?.username || 'anonyme'} · {p.reason === 'Supprimée par un expert' ? 'Supprimée' : 'Rejetée'}{p.reviewer ? ` par @${p.reviewer.username}` : ''}
                         </span>
                         {user && ['EXPERT', 'ADMIN'].includes(user.role) && (
                           <button

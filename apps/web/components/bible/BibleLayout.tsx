@@ -76,6 +76,8 @@ interface Proposal {
   createdAt: string
   createdBy: string | null
   creator: { username: string; role: string } | null
+  reviewer: { username: string; role: string } | null
+  votes: { id: string; userId: string }[]
 }
 
 interface Comment {
@@ -228,13 +230,18 @@ export default function BibleLayout({ testament }: BibleLayoutProps) {
           }}
           onProposalUpdated={async () => {
             if (activeVerse) {
-              const [commentsRes, proposalsRes] = await Promise.all([
+              const [commentsRes, proposalsRes, chapterRes] = await Promise.all([
                 api.get(`/api/verses/${activeVerse.id}/comments`),
                 api.get(`/api/verses/${activeVerse.id}/proposals`),
+                api.get(`/api/books/${book}/chapters/${chapter}`),
               ])
               setComments(commentsRes.data)
               setProposals(proposalsRes.data.proposals)
               setVerseTranslations(proposalsRes.data.translations)
+              setChapterData(chapterRes.data)
+              // Mettre à jour activeVerse avec les nouvelles traductions
+              const updatedVerse = chapterRes.data.verses.find((v: { id: string }) => v.id === activeVerse.id)
+              if (updatedVerse) setActiveVerse(updatedVerse)
             }
           }}
           onTranslationAdded={async () => {

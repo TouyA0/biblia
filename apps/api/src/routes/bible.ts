@@ -331,6 +331,7 @@ router.get('/verses/:id/proposals', async (req: Request, res: Response) => {
       orderBy: { createdAt: 'desc' },
       include: {
         creator: { select: { username: true, role: true } },
+        reviewer: { select: { username: true, role: true } },
         votes: true,
       }
     })
@@ -544,8 +545,67 @@ router.delete('/proposals/:id', authenticateJWT, async (req: AuthRequest, res: R
       res.status(403).json({ error: 'Accès refusé' }); return
     }
     const id = req.params.id as string
+
+    const proposal = await prisma.proposal.findUnique({
+      where: { id },
+      include: { translation: true }
+    })
+    if (!proposal) { res.status(404).json({ error: 'Proposition non trouvée' }); return }
+
+    // Si déjà rejetée/supprimée → supprimer définitivement
+    if (proposal.status === 'REJECTED') {
+      const verseId = proposal.translation.verseId
+      await prisma.vote.deleteMany({ where: { proposalId: id } })
+      await prisma.proposal.delete({ where: { id } })
+      
+      // Supprimer la traduction orpheline si elle existe
+      const orphan = await prisma.translation.findFirst({
+        where: {
+          verseId,
+          textFr: proposal.proposedText,
+          isReference: false,
+          isActive: false,
+        },
+        include: { proposals: true }
+      })
+      if (orphan && orphan.proposals.length === 0) {
+        await prisma.translation.delete({ where: { id: orphan.id } })
+      }
+
+      res.json({ message: 'Proposition supprimée définitivement' })
+      return
+    }
+
+    const verseId = proposal.translation.verseId
+
+    // Vérifier si cette proposition est la traduction active
+    const activeTranslation = await prisma.translation.findFirst({
+      where: { verseId, isActive: true }
+    })
+    const isActive = activeTranslation?.textFr === proposal.proposedText
+
     await prisma.vote.deleteMany({ where: { proposalId: id } })
-    await prisma.proposal.delete({ where: { id } })
+    await prisma.proposal.update({
+      where: { id },
+      data: {
+        status: 'REJECTED',
+        reason: 'Supprimée par un expert',
+        reviewedBy: req.user!.id
+      }
+    })
+
+    // Si c'était la proposition active, remettre la Crampon
+    if (isActive) {
+      await prisma.translation.updateMany({
+        where: { verseId },
+        data: { isActive: false }
+      })
+      await prisma.translation.updateMany({
+        where: { verseId, isReference: true },
+        data: { isActive: true }
+      })
+    }
+
     res.json({ message: 'Proposition supprimée' })
   } catch (error) {
     console.error(error)
