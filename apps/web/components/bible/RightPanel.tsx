@@ -50,6 +50,13 @@ interface Comment {
   createdAt: string
   createdBy: string | null
   creator: { username: string; role: string } | null
+  replies: {
+    id: string
+    text: string
+    createdAt: string
+    createdBy: string | null
+    creator: { username: string; role: string } | null
+  }[]
 }
 
 interface VerseTranslation {
@@ -117,6 +124,9 @@ export default function RightPanel({
   const [rejectingId, setRejectingId] = useState<string | null>(null)
   const [showRejected, setShowRejected] = useState(false)
   const [proposalVotedIds, setProposalVotedIds] = useState<Set<string>>(new Set())
+  const [replyingToId, setReplyingToId] = useState<string | null>(null)
+  const [replyText, setReplyText] = useState('')
+  const [submittingReply, setSubmittingReply] = useState(false)
 
   const validatedTranslations = wordTranslations.filter(t => t.isValidated)
   const proposedTranslations = wordTranslations.filter(t => !t.isValidated)
@@ -1504,88 +1514,288 @@ export default function RightPanel({
 
               {comments.map(c => (
                 <div key={c.id} style={{
-                  padding: '12px 0',
                   borderBottom: '1px solid var(--border)',
                 }}>
-                  <div style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    marginBottom: '6px',
-                  }}>
+                  {/* Commentaire principal */}
+                  <div style={{ padding: '12px 0' }}>
                     <div style={{
-                      width: '24px',
-                      height: '24px',
-                      borderRadius: '50%',
-                      background: 'var(--blue-sacred)',
                       display: 'flex',
                       alignItems: 'center',
-                      justifyContent: 'center',
-                      fontFamily: 'DM Mono, monospace',
-                      fontSize: '9px',
-                      color: 'white',
-                      flexShrink: 0,
+                      gap: '8px',
+                      marginBottom: '6px',
                     }}>
-                      {c.creator?.username?.substring(0, 2).toUpperCase() || '??'}
-                    </div>
-                    <span style={{
-                      fontFamily: 'DM Mono, monospace',
-                      fontSize: '10px',
-                      color: c.creator ? getRoleColor(c.creator.role) : 'var(--ink-muted)',
-                    }}>
-                      {c.creator?.username || 'Anonyme'}
-                    </span>
-                    {c.creator?.role && (
-                      <span style={{
+                      <div style={{
+                        width: '24px',
+                        height: '24px',
+                        borderRadius: '50%',
+                        background: c.creator ? getRoleColor(c.creator.role) : 'var(--blue-sacred)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
                         fontFamily: 'DM Mono, monospace',
                         fontSize: '9px',
-                        padding: '2px 6px',
-                        borderRadius: '20px',
-                        background: 'var(--blue-light)',
-                        color: 'var(--blue-sacred)',
-                        border: '1px solid rgba(42,74,122,0.15)',
+                        color: 'white',
+                        flexShrink: 0,
                       }}>
-                        {c.creator.role}
+                        {c.creator?.username?.substring(0, 2).toUpperCase() || '??'}
+                      </div>
+                      <span style={{
+                        fontFamily: 'DM Mono, monospace',
+                        fontSize: '10px',
+                        color: c.creator ? getRoleColor(c.creator.role) : 'var(--ink-muted)',
+                      }}>
+                        {c.creator?.username || 'Anonyme'}
                       </span>
-                    )}
-                    {user && (['EXPERT', 'ADMIN'].includes(user.role) || user.id === c.createdBy) && (
-                      <button
-                        onClick={() => setConfirmModal({
-                          message: 'Supprimer ce commentaire ?',
-                          onConfirm: async () => {
-                            try {
-                              await api.delete(`/api/comments/${c.id}`)
-                              setConfirmModal(null)
-                              onCommentAdded()
-                            } catch (error) {
-                              console.error(error)
-                            }
-                          }
-                        })}
-                        style={{
-                          marginLeft: 'auto',
-                          padding: '2px 6px',
-                          borderRadius: '4px',
-                          border: '1px solid rgba(122,42,42,0.2)',
-                          background: 'transparent',
-                          cursor: 'pointer',
+                      {c.creator?.role && (
+                        <span style={{
                           fontFamily: 'DM Mono, monospace',
                           fontSize: '9px',
-                          color: 'var(--red-soft)',
-                        }}
-                      >
-                        ✕
-                      </button>
+                          padding: '2px 6px',
+                          borderRadius: '20px',
+                          background: 'var(--blue-light)',
+                          color: 'var(--blue-sacred)',
+                          border: '1px solid rgba(42,74,122,0.15)',
+                        }}>
+                          {c.creator.role}
+                        </span>
+                      )}
+                      <div style={{ marginLeft: 'auto', display: 'flex', gap: '6px', alignItems: 'center' }}>
+                        {user && (
+                          <button
+                            onClick={() => {
+                              if (replyingToId === c.id) {
+                                setReplyingToId(null)
+                                setReplyText('')
+                              } else {
+                                setReplyingToId(c.id)
+                                setReplyText('')
+                              }
+                            }}
+                            style={{
+                              padding: '2px 6px',
+                              borderRadius: '4px',
+                              border: `1px solid ${replyingToId === c.id ? 'var(--gold)' : 'var(--border)'}`,
+                              background: replyingToId === c.id ? 'var(--gold-pale)' : 'transparent',
+                              cursor: 'pointer',
+                              fontFamily: 'DM Mono, monospace',
+                              fontSize: '9px',
+                              color: replyingToId === c.id ? 'var(--gold)' : 'var(--ink-muted)',
+                            }}
+                          >
+                            ↩ Répondre
+                          </button>
+                        )}
+                        {user && (['EXPERT', 'ADMIN'].includes(user.role) || user.id === c.createdBy) && (
+                          <button
+                            onClick={() => setConfirmModal({
+                              message: 'Supprimer ce commentaire et ses réponses ?',
+                              onConfirm: async () => {
+                                try {
+                                  await api.delete(`/api/comments/${c.id}`)
+                                  setConfirmModal(null)
+                                  onCommentAdded()
+                                } catch (error) {
+                                  console.error(error)
+                                }
+                              }
+                            })}
+                            style={{
+                              padding: '2px 6px',
+                              borderRadius: '4px',
+                              border: '1px solid rgba(122,42,42,0.2)',
+                              background: 'transparent',
+                              cursor: 'pointer',
+                              fontFamily: 'DM Mono, monospace',
+                              fontSize: '9px',
+                              color: 'var(--red-soft)',
+                            }}
+                          >
+                            ✕
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                    <div style={{
+                      fontFamily: 'Spectral, serif',
+                      fontSize: '13.5px',
+                      color: 'var(--ink-soft)',
+                      lineHeight: '1.65',
+                    }}>
+                      <CommentText text={c.text} />
+                    </div>
+
+                    {/* Formulaire de réponse */}
+                    {replyingToId === c.id && (
+                      <div style={{
+                        marginTop: '10px',
+                        paddingLeft: '32px',
+                      }}>
+                        <textarea
+                          value={replyText}
+                          onChange={e => setReplyText(e.target.value)}
+                          placeholder={`Répondre à ${c.creator?.username || 'ce commentaire'}…`}
+                          style={{
+                            width: '100%',
+                            padding: '8px 10px',
+                            border: '1px solid var(--gold)',
+                            borderRadius: '6px',
+                            background: 'var(--gold-pale)',
+                            fontFamily: 'Spectral, serif',
+                            fontSize: '13px',
+                            color: 'var(--ink)',
+                            resize: 'vertical',
+                            minHeight: '60px',
+                            outline: 'none',
+                            marginBottom: '6px',
+                          }}
+                        />
+                        <div style={{ display: 'flex', gap: '6px' }}>
+                          <button
+                            onClick={async () => {
+                              if (!replyText.trim()) return
+                              setSubmittingReply(true)
+                              try {
+                                await api.post(`/api/comments/${c.id}/reply`, { text: replyText.trim() })
+                                setReplyingToId(null)
+                                setReplyText('')
+                                onCommentAdded()
+                              } catch (error) {
+                                console.error(error)
+                              } finally {
+                                setSubmittingReply(false)
+                              }
+                            }}
+                            disabled={submittingReply || !replyText.trim()}
+                            style={{
+                              padding: '6px 12px',
+                              background: 'var(--gold)',
+                              color: 'white',
+                              border: 'none',
+                              borderRadius: '4px',
+                              fontFamily: 'DM Mono, monospace',
+                              fontSize: '9px',
+                              cursor: submittingReply ? 'not-allowed' : 'pointer',
+                              opacity: submittingReply || !replyText.trim() ? 0.6 : 1,
+                            }}
+                          >
+                            {submittingReply ? 'Envoi...' : 'Publier'}
+                          </button>
+                          <button
+                            onClick={() => { setReplyingToId(null); setReplyText('') }}
+                            style={{
+                              padding: '6px 12px',
+                              background: 'transparent',
+                              color: 'var(--ink-muted)',
+                              border: '1px solid var(--border)',
+                              borderRadius: '4px',
+                              fontFamily: 'DM Mono, monospace',
+                              fontSize: '9px',
+                              cursor: 'pointer',
+                            }}
+                          >
+                            Annuler
+                          </button>
+                        </div>
+                      </div>
                     )}
                   </div>
-                  <div style={{
-                    fontFamily: 'Spectral, serif',
-                    fontSize: '13.5px',
-                    color: 'var(--ink-soft)',
-                    lineHeight: '1.65',
-                  }}>
-                    <CommentText text={c.text} />
-                  </div>
+
+                  {/* Réponses */}
+                  {c.replies && c.replies.length > 0 && (
+                    <div style={{
+                      paddingLeft: '32px',
+                      borderLeft: '2px solid var(--border)',
+                      marginLeft: '12px',
+                      marginBottom: '8px',
+                    }}>
+                      {c.replies.map(r => (
+                        <div key={r.id} style={{
+                          padding: '10px 0',
+                          borderBottom: '1px solid var(--border)',
+                        }}>
+                          <div style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '8px',
+                            marginBottom: '6px',
+                          }}>
+                            <div style={{
+                              width: '20px',
+                              height: '20px',
+                              borderRadius: '50%',
+                              background: r.creator ? getRoleColor(r.creator.role) : 'var(--blue-sacred)',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              fontFamily: 'DM Mono, monospace',
+                              fontSize: '8px',
+                              color: 'white',
+                              flexShrink: 0,
+                            }}>
+                              {r.creator?.username?.substring(0, 2).toUpperCase() || '??'}
+                            </div>
+                            <span style={{
+                              fontFamily: 'DM Mono, monospace',
+                              fontSize: '10px',
+                              color: r.creator ? getRoleColor(r.creator.role) : 'var(--ink-muted)',
+                            }}>
+                              {r.creator?.username || 'Anonyme'}
+                            </span>
+                            {r.creator?.role && (
+                              <span style={{
+                                fontFamily: 'DM Mono, monospace',
+                                fontSize: '9px',
+                                padding: '2px 6px',
+                                borderRadius: '20px',
+                                background: 'var(--blue-light)',
+                                color: 'var(--blue-sacred)',
+                                border: '1px solid rgba(42,74,122,0.15)',
+                              }}>
+                                {r.creator.role}
+                              </span>
+                            )}
+                            {user && (['EXPERT', 'ADMIN'].includes(user.role) || user.id === r.createdBy) && (
+                              <button
+                                onClick={() => setConfirmModal({
+                                  message: 'Supprimer cette réponse ?',
+                                  onConfirm: async () => {
+                                    try {
+                                      await api.delete(`/api/comments/${r.id}`)
+                                      setConfirmModal(null)
+                                      onCommentAdded()
+                                    } catch (error) {
+                                      console.error(error)
+                                    }
+                                  }
+                                })}
+                                style={{
+                                  marginLeft: 'auto',
+                                  padding: '2px 6px',
+                                  borderRadius: '4px',
+                                  border: '1px solid rgba(122,42,42,0.2)',
+                                  background: 'transparent',
+                                  cursor: 'pointer',
+                                  fontFamily: 'DM Mono, monospace',
+                                  fontSize: '9px',
+                                  color: 'var(--red-soft)',
+                                }}
+                              >
+                                ✕
+                              </button>
+                            )}
+                          </div>
+                          <div style={{
+                            fontFamily: 'Spectral, serif',
+                            fontSize: '13px',
+                            color: 'var(--ink-soft)',
+                            lineHeight: '1.65',
+                          }}>
+                            <CommentText text={r.text} />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               ))}
 

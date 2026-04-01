@@ -160,16 +160,20 @@ model Vote {
 }
 
 model Comment {
-  id          String     @id @default(uuid())
+  id          String   @id @default(uuid())
+  targetType  String?
   text        String
   createdBy   String?
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
   verseId     String?
   wordTokenId String?
-  creator     User?      @relation(fields: [createdBy], references: [id])
-  verse       Verse?     @relation(fields: [verseId], references: [id])
+  parentId    String?
+  verse       Verse?    @relation(fields: [verseId], references: [id])
   wordToken   WordToken? @relation(fields: [wordTokenId], references: [id])
+  creator     User?     @relation(fields: [createdBy], references: [id])
+  parent      Comment?  @relation("CommentReplies", fields: [parentId], references: [id])
+  replies     Comment[] @relation("CommentReplies")
 }
 
 model AuditLog {

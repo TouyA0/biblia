@@ -258,10 +258,16 @@ router.get('/verses/:id/comments', async (req: Request, res: Response) => {
   try {
     const id = req.params.id as string
     const comments = await prisma.comment.findMany({
-      where: { verseId: id },
+      where: { verseId: id, parentId: null }, // seulement les commentaires racines
       orderBy: { createdAt: 'asc' },
       include: {
-        creator: { select: { username: true, role: true } }
+        creator: { select: { username: true, role: true } },
+        replies: {
+          orderBy: { createdAt: 'asc' },
+          include: {
+            creator: { select: { username: true, role: true } }
+          }
+        }
       }
     })
     res.json(comments)
@@ -303,6 +309,38 @@ router.post('/verses/:id/comments', authenticateJWT, async (req: AuthRequest, re
   }
 })
 
+// POST /api/comments/:id/reply
+router.post('/comments/:id/reply', authenticateJWT, async (req: AuthRequest, res: Response) => {
+  try {
+    const parentId = req.params.id as string
+    const { text } = z.object({ text: z.string().min(1).max(2000) }).parse(req.body)
+
+    const parent = await prisma.comment.findUnique({ where: { id: parentId } })
+    if (!parent) { res.status(404).json({ error: 'Commentaire non trouvé' }); return }
+    if (parent.parentId) { res.status(400).json({ error: 'Impossible de répondre à une réponse' }); return }
+
+    const reply = await prisma.comment.create({
+      data: {
+        text,
+        createdBy: req.user!.id,
+        verseId: parent.verseId,
+        parentId,
+      },
+      include: {
+        creator: { select: { username: true, role: true } }
+      }
+    })
+    res.status(201).json(reply)
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      res.status(400).json({ error: 'Texte invalide' })
+      return
+    }
+    console.error(error)
+    res.status(500).json({ error: 'Erreur serveur' })
+  }
+})
+
 // DELETE /api/comments/:id
 router.delete('/comments/:id', authenticateJWT, async (req: AuthRequest, res: Response) => {
   try {
@@ -317,6 +355,7 @@ router.delete('/comments/:id', authenticateJWT, async (req: AuthRequest, res: Re
       res.status(403).json({ error: 'Accès refusé' }); return
     }
 
+    await prisma.comment.deleteMany({ where: { parentId: id } })
     await prisma.comment.delete({ where: { id } })
     res.json({ message: 'Commentaire supprimé' })
   } catch (error) {
