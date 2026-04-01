@@ -5,7 +5,7 @@ import api from '@/lib/api'
 import { useAuthStore } from '@/store/auth'
 import ConfirmModal from './ConfirmModal'
 import CommentText from './CommentText'
-import { getRoleColor } from '@/lib/roleColors'
+import { getRoleColor, getRoleBackground, getRoleBorder } from '@/lib/roleColors'
 
 interface WordToken {
   id: string
@@ -1552,9 +1552,9 @@ export default function RightPanel({
                           fontSize: '9px',
                           padding: '2px 6px',
                           borderRadius: '20px',
-                          background: 'var(--blue-light)',
-                          color: 'var(--blue-sacred)',
-                          border: '1px solid rgba(42,74,122,0.15)',
+                          background: getRoleBackground(c.creator.role),
+                          color: getRoleColor(c.creator.role),
+                          border: `1px solid ${getRoleBorder(c.creator.role)}`,
                         }}>
                           {c.creator.role}
                         </span>
@@ -1747,9 +1747,9 @@ export default function RightPanel({
                                 fontSize: '9px',
                                 padding: '2px 6px',
                                 borderRadius: '20px',
-                                background: 'var(--blue-light)',
-                                color: 'var(--blue-sacred)',
-                                border: '1px solid rgba(42,74,122,0.15)',
+                                background: getRoleBackground(r.creator.role),
+                                color: getRoleColor(r.creator.role),
+                                border: `1px solid ${getRoleBorder(r.creator.role)}`,
                               }}>
                                 {r.creator.role}
                               </span>
