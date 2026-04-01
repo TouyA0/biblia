@@ -22,7 +22,7 @@ interface Stats {
     proposedText: string
     status: string
     createdAt: string
-    creator: { username: string } | null
+    creator: { username: string; role: string } | null
     translation: {
       verse: {
         number: number
@@ -35,7 +35,7 @@ interface Stats {
     translation: string
     isValidated: boolean
     createdAt: string
-    creator: { username: string } | null
+    creator: { username: string; role: string } | null
     wordToken: {
       word: string
       verseText: {
@@ -50,7 +50,7 @@ interface Stats {
     id: string
     text: string
     createdAt: string
-    creator: { username: string } | null
+    creator: { username: string; role: string } | null
     verse: {
       number: number
       chapter: { number: number; book: { name: string; slug: string; testament: string } }
@@ -452,7 +452,7 @@ export default function AdminPage() {
 									color: 'var(--ink-muted)',
 									marginBottom: '16px',
 								}}>
-									Dernières propositions
+									Dernières propositions de reformulation
 								</div>
 								{stats.recentProposals.map(p => {
 									const verse = p.translation.verse
@@ -505,7 +505,10 @@ export default function AdminPage() {
 													fontSize: '9px',
 													color: 'var(--ink-faint)',
 												}}>
-													@{p.creator?.username || 'anonyme'} · {new Date(p.createdAt).toLocaleDateString('fr-FR')}
+													<span style={{ color: p.creator ? getRoleColor(p.creator.role) : 'var(--ink-muted)' }}>
+														@{p.creator?.username || 'anonyme'}
+													</span>
+													{' · '}{new Date(p.createdAt).toLocaleDateString('fr-FR')}
 												</div>
 											</div>
 										</Link>
@@ -528,7 +531,7 @@ export default function AdminPage() {
 									color: 'var(--ink-muted)',
 									marginBottom: '16px',
 								}}>
-									Dernières traductions
+									Dernières traductions de mots
 								</div>
 								{stats.recentWordTranslations.map(t => {
 									const verse = t.wordToken.verseText.verse
@@ -578,7 +581,10 @@ export default function AdminPage() {
 													fontSize: '9px',
 													color: 'var(--ink-faint)',
 												}}>
-													@{t.creator?.username || 'anonyme'} · {new Date(t.createdAt).toLocaleDateString('fr-FR')}
+													<span style={{ color: t.creator ? getRoleColor(t.creator.role) : 'var(--ink-muted)' }}>
+														@{t.creator?.username || 'anonyme'}
+													</span>
+													{' · '}{new Date(t.createdAt).toLocaleDateString('fr-FR')}
 												</div>
 											</div>
 										</Link>
@@ -644,7 +650,10 @@ export default function AdminPage() {
 												fontSize: '9px',
 												color: 'var(--ink-faint)',
 											}}>
-												@{c.creator?.username || 'anonyme'} · {new Date(c.createdAt).toLocaleDateString('fr-FR')}
+												<span style={{ color: c.creator ? getRoleColor(c.creator.role) : 'var(--ink-muted)' }}>
+													@{c.creator?.username || 'anonyme'}
+												</span>
+												{' · '}{new Date(c.createdAt).toLocaleDateString('fr-FR')}
 											</div>
 										</div>
 									)

@@ -36,7 +36,7 @@ router.get('/stats', async (req: AuthRequest, res: Response) => {
 			orderBy: { createdAt: 'desc' },
 			take: 5,
 			include: {
-				creator: { select: { username: true } },
+				creator: { select: { username: true, role: true } },
 				translation: {
 					include: {
 						verse: {
@@ -51,7 +51,7 @@ router.get('/stats', async (req: AuthRequest, res: Response) => {
 			orderBy: { createdAt: 'desc' },
 			take: 5,
 			include: {
-				creator: { select: { username: true } },
+				creator: { select: { username: true, role: true } },
 				wordToken: {
 					include: {
 						verseText: {
@@ -70,7 +70,7 @@ router.get('/stats', async (req: AuthRequest, res: Response) => {
 			orderBy: { createdAt: 'desc' },
 			take: 5,
 			include: {
-				creator: { select: { username: true } },
+				creator: { select: { username: true, role: true } },
 				verse: {
 					include: { chapter: { include: { book: true } } }
 				}
