@@ -5,6 +5,7 @@ import api from '@/lib/api'
 import { useAuthStore } from '@/store/auth'
 import ConfirmModal from './ConfirmModal'
 import CommentText from './CommentText'
+import { getRoleColor } from '@/lib/roleColors'
 
 interface WordToken {
   id: string
@@ -472,7 +473,7 @@ export default function RightPanel({
                       <span style={{
                         fontFamily: 'DM Mono, monospace',
                         fontSize: '10px',
-                        color: 'var(--ink-soft)',
+                        color: p.creator ? getRoleColor(p.creator.role) : 'var(--ink-muted)',
                       }}>
                         @{p.creator?.username || 'anonyme'}
                       </span>
@@ -890,9 +891,15 @@ export default function RightPanel({
                         <span style={{
                           fontFamily: 'DM Mono, monospace',
                           fontSize: '9px',
-                          color: 'var(--red-soft)',
+                          color: 'var(--ink-muted)',
                         }}>
-                          @{p.creator?.username || 'anonyme'} · {p.reason === 'Supprimée par un expert' ? 'Supprimée' : 'Rejetée'}{p.reviewer ? ` par @${p.reviewer.username}` : ''}
+                          <span style={{ color: p.creator ? getRoleColor(p.creator.role) : 'var(--ink-muted)' }}>
+                            @{p.creator?.username || 'anonyme'}
+                          </span>
+                          {' · '}{p.reason === 'Supprimée par un expert' ? 'Supprimée' : 'Rejetée'}
+                          {p.reviewer && (
+                            <> par <span style={{ color: getRoleColor(p.reviewer.role) }}>@{p.reviewer.username}</span></>
+                          )}
                         </span>
                         {user && ['EXPERT', 'ADMIN'].includes(user.role) && (
                           <button
@@ -1122,7 +1129,11 @@ export default function RightPanel({
                             fontSize: '10px',
                             color: 'var(--ink-muted)',
                           }}>
-                            {t.creator && <span>@{t.creator.username}</span>}
+                            {t.creator && (
+                              <span style={{ color: getRoleColor(t.creator.role) }}>
+                                @{t.creator.username}
+                              </span>
+                            )}
                             {user && ['EXPERT', 'ADMIN'].includes(user.role) && (
                               <button
                                 onClick={() => setConfirmModal({
@@ -1210,94 +1221,107 @@ export default function RightPanel({
                           <div style={{
                             display: 'flex',
                             alignItems: 'center',
-                            gap: '12px',
-                            fontFamily: 'DM Mono, monospace',
-                            fontSize: '10px',
-                            color: 'var(--ink-muted)',
+                            justifyContent: 'space-between',
+                            marginTop: '6px',
                           }}>
-                            <span>{t.voteCount} vote{t.voteCount !== 1 ? 's' : ''}</span>
-                            {t.creator && <span>@{t.creator.username}</span>}
-                            {user && ['INTERMEDIATE', 'EXPERT', 'ADMIN'].includes(user.role) && (
-                              <button
-                                onClick={async () => {
-                                  try {
-                                    const res = await api.post(`/api/word-translations/${t.id}/vote`)
-                                    if (res.data.voted) {
-                                      setVotedIds(prev => new Set([...prev, t.id]))
-                                    } else {
-                                      setVotedIds(prev => { const s = new Set(prev); s.delete(t.id); return s })
-                                    }
-                                    onTranslationAdded()
-                                  } catch (error) {
-                                    console.error(error)
-                                  }
-                                }}
-                                style={{
-                                  padding: '3px 8px',
-                                  borderRadius: '4px',
-                                  border: `1px solid ${votedIds.has(t.id) ? 'var(--gold)' : 'var(--border)'}`,
-                                  background: votedIds.has(t.id) ? 'var(--gold-pale)' : 'transparent',
-                                  cursor: 'pointer',
-                                  fontFamily: 'DM Mono, monospace',
-                                  fontSize: '10px',
-                                  color: votedIds.has(t.id) ? 'var(--gold)' : 'var(--ink-soft)',
-                                }}
-                              >
-                                ▲ {votedIds.has(t.id) ? 'Voté' : 'Voter'}
-                              </button>
-                            )}
-                            {user && ['EXPERT', 'ADMIN'].includes(user.role) && (
-                              <>
+                            <div style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '8px',
+                              fontFamily: 'DM Mono, monospace',
+                              fontSize: '10px',
+                              color: 'var(--ink-muted)',
+                            }}>
+                              <span>{t.voteCount} vote{t.voteCount !== 1 ? 's' : ''}</span>
+                              {t.creator && (
+                                <span style={{ color: getRoleColor(t.creator.role) }}>
+                                  @{t.creator.username}
+                                </span>
+                              )}
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                              {user && ['INTERMEDIATE', 'EXPERT', 'ADMIN'].includes(user.role) && (
                                 <button
                                   onClick={async () => {
                                     try {
-                                      await api.patch(`/api/word-translations/${t.id}/validate`)
+                                      const res = await api.post(`/api/word-translations/${t.id}/vote`)
+                                      if (res.data.voted) {
+                                        setVotedIds(prev => new Set([...prev, t.id]))
+                                      } else {
+                                        setVotedIds(prev => { const s = new Set(prev); s.delete(t.id); return s })
+                                      }
                                       onTranslationAdded()
                                     } catch (error) {
                                       console.error(error)
                                     }
                                   }}
                                   style={{
-                                    padding: '3px 8px',
+                                    padding: '2px 7px',
                                     borderRadius: '4px',
-                                    border: '1px solid rgba(45,90,58,0.3)',
-                                    background: 'var(--green-light)',
+                                    border: `1px solid ${votedIds.has(t.id) ? 'var(--gold)' : 'var(--border)'}`,
+                                    background: votedIds.has(t.id) ? 'var(--gold-pale)' : 'transparent',
                                     cursor: 'pointer',
                                     fontFamily: 'DM Mono, monospace',
-                                    fontSize: '10px',
-                                    color: 'var(--green-valid)',
+                                    fontSize: '9px',
+                                    color: votedIds.has(t.id) ? 'var(--gold)' : 'var(--ink-soft)',
                                   }}
                                 >
-                                  ✓ Valider
+                                  ▲ {votedIds.has(t.id) ? 'Voté' : 'Voter'}
                                 </button>
-                                <button
-                                  onClick={() => setConfirmModal({
-                                    message: 'Êtes-vous sûr de vouloir supprimer cette proposition ?',
-                                    onConfirm: async () => {
+                              )}
+                              {user && ['EXPERT', 'ADMIN'].includes(user.role) && (
+                                <>
+                                  <button
+                                    onClick={async () => {
                                       try {
-                                        await api.delete(`/api/word-translations/${t.id}`)
-                                        setConfirmModal(null)
+                                        await api.patch(`/api/word-translations/${t.id}/validate`)
                                         onTranslationAdded()
                                       } catch (error) {
                                         console.error(error)
                                       }
-                                    }
-                                  })}
-                                  style={{
-                                    padding: '3px 8px',
-                                    borderRadius: '4px',
-                                    border: '1px solid rgba(122,42,42,0.3)',
-                                    background: 'var(--red-light)',
-                                    cursor: 'pointer',
-                                    fontFamily: 'DM Mono, monospace',
-                                    fontSize: '10px',
-                                    color: 'var(--red-soft)',
-                                  }}
-                                >
-                                  ✕ Supprimer
-                                </button>
-                              </>
-                            )}
+                                    }}
+                                    style={{
+                                      padding: '2px 7px',
+                                      borderRadius: '4px',
+                                      border: '1px solid rgba(45,90,58,0.3)',
+                                      background: 'var(--green-light)',
+                                      cursor: 'pointer',
+                                      fontFamily: 'DM Mono, monospace',
+                                      fontSize: '9px',
+                                      color: 'var(--green-valid)',
+                                    }}
+                                  >
+                                    ✓
+                                  </button>
+                                  <button
+                                    onClick={() => setConfirmModal({
+                                      message: 'Êtes-vous sûr de vouloir supprimer cette proposition ?',
+                                      onConfirm: async () => {
+                                        try {
+                                          await api.delete(`/api/word-translations/${t.id}`)
+                                          setConfirmModal(null)
+                                          onTranslationAdded()
+                                        } catch (error) {
+                                          console.error(error)
+                                        }
+                                      }
+                                    })}
+                                    style={{
+                                      padding: '2px 7px',
+                                      borderRadius: '4px',
+                                      border: '1px solid rgba(122,42,42,0.3)',
+                                      background: 'var(--red-light)',
+                                      cursor: 'pointer',
+                                      fontFamily: 'DM Mono, monospace',
+                                      fontSize: '9px',
+                                      color: 'var(--red-soft)',
+                                    }}
+                                  >
+                                    ✕
+                                  </button>
+                                </>
+                              )}
+                            </div>
                           </div>
                         </div>
                       ))}
@@ -1490,7 +1514,7 @@ export default function RightPanel({
                     <span style={{
                       fontFamily: 'DM Mono, monospace',
                       fontSize: '10px',
-                      color: 'var(--ink-soft)',
+                      color: c.creator ? getRoleColor(c.creator.role) : 'var(--ink-muted)',
                     }}>
                       {c.creator?.username || 'Anonyme'}
                     </span>

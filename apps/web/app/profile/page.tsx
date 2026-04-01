@@ -6,6 +6,7 @@ import Link from 'next/link'
 import api from '@/lib/api'
 import { useAuthStore } from '@/store/auth'
 import CommentText from '@/components/bible/CommentText'
+import { getRoleColor, getRoleBackground, getRoleBorder } from '@/lib/roleColors'
 
 interface UserProfile {
   id: string
@@ -25,8 +26,10 @@ interface WordTranslationContrib {
   id: string
   translation: string
   isValidated: boolean
+  voteCount: number
   createdAt: string
   wordToken: {
+    id: string
     word: string
     verseText: {
       verse: {
@@ -49,6 +52,7 @@ interface ProposalContrib {
   votes: { id: string }[]
   translation: {
     verse: {
+      id: string
       number: number
       reference: string
       chapter: {
@@ -64,6 +68,7 @@ interface CommentContrib {
   text: string
   createdAt: string
   verse: {
+    id: string
     number: number
     reference: string
     chapter: {
@@ -182,13 +187,6 @@ export default function ProfilePage() {
     }
   }
 
-  const roleColors: Record<string, string> = {
-    NOVICE: '#9ab4d8',
-    INTERMEDIATE: '#d4a85a',
-    EXPERT: '#8fccaa',
-    ADMIN: '#e88',
-  }
-
   if (loading) return (
     <div style={{
       height: '100vh',
@@ -222,7 +220,7 @@ export default function ProfilePage() {
         alignItems: 'center',
         gap: '24px',
       }}>
-        <Link href="/at/genese/1" style={{
+        <Link href="/" style={{
           fontFamily: 'Crimson Pro, serif',
           fontSize: '22px',
           fontWeight: '300',
@@ -237,6 +235,21 @@ export default function ProfilePage() {
           Biblia
         </Link>
         <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '16px' }}>
+          {user?.role === 'ADMIN' && (
+            <Link href="/admin" style={{
+              fontFamily: 'DM Mono, monospace',
+              fontSize: '10px',
+              color: '#e88',
+              letterSpacing: '0.08em',
+              textDecoration: 'none',
+              padding: '3px 8px',
+              borderRadius: '4px',
+              border: '1px solid rgba(122,42,42,0.3)',
+              background: 'rgba(122,42,42,0.15)',
+            }}>
+              Administration
+            </Link>
+          )}
           {user && (
             <span style={{
               fontFamily: 'DM Mono, monospace',
@@ -308,9 +321,9 @@ export default function ProfilePage() {
                   fontSize: '10px',
                   padding: '3px 10px',
                   borderRadius: '20px',
-                  background: 'rgba(42,74,122,0.15)',
-                  color: roleColors[profile.role] || '#9ab4d8',
-                  border: `1px solid ${roleColors[profile.role] || '#9ab4d8'}40`,
+                  color: getRoleColor(profile.role),
+                  border: `1px solid ${getRoleBorder(profile.role)}`,
+                  background: getRoleBackground(profile.role),
                 }}>
                   {profile.role}
                 </span>

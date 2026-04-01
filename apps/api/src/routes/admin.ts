@@ -1,0 +1,171 @@
+import { Router, Response } from 'express'
+import { prisma } from '../lib/prisma'
+import { authenticateJWT, AuthRequest, checkRole } from '../middlewares/auth'
+import { z } from 'zod'
+
+const router = Router()
+
+// Middleware — toutes les routes admin nécessitent le rôle ADMIN
+router.use(authenticateJWT)
+router.use(checkRole(['ADMIN']))
+
+// GET /api/admin/stats
+router.get('/stats', async (req: AuthRequest, res: Response) => {
+  try {
+    const [users, books, verses, wordTranslations, proposals, comments] = await Promise.all([
+      prisma.user.count(),
+      prisma.book.count(),
+      prisma.verse.count(),
+      prisma.wordTranslation.count(),
+      prisma.proposal.count(),
+      prisma.comment.count(),
+    ])
+
+    const usersByRole = await prisma.user.groupBy({
+      by: ['role'],
+      _count: { role: true }
+    })
+
+    const recentUsers = await prisma.user.findMany({
+			orderBy: { createdAt: 'desc' },
+			take: 5,
+			select: { id: true, username: true, role: true, createdAt: true }
+		})
+
+		const recentProposals = await prisma.proposal.findMany({
+			orderBy: { createdAt: 'desc' },
+			take: 5,
+			include: {
+				creator: { select: { username: true } },
+				translation: {
+					include: {
+						verse: {
+							include: { chapter: { include: { book: true } } }
+						}
+					}
+				}
+			}
+		})
+
+		const recentWordTranslations = await prisma.wordTranslation.findMany({
+			orderBy: { createdAt: 'desc' },
+			take: 5,
+			include: {
+				creator: { select: { username: true } },
+				wordToken: {
+					include: {
+						verseText: {
+							include: {
+								verse: {
+									include: { chapter: { include: { book: true } } }
+								}
+							}
+						}
+					}
+				}
+			}
+		})
+
+		const recentComments = await prisma.comment.findMany({
+			orderBy: { createdAt: 'desc' },
+			take: 5,
+			include: {
+				creator: { select: { username: true } },
+				verse: {
+					include: { chapter: { include: { book: true } } }
+				}
+			}
+		})
+
+		res.json({ users, books, verses, wordTranslations, proposals, comments, usersByRole, recentUsers, recentProposals, recentWordTranslations, recentComments })
+  } catch (error) {
+    console.error(error)
+    res.status(500).json({ error: 'Erreur serveur' })
+  }
+})
+
+// GET /api/admin/users
+router.get('/users', async (req: AuthRequest, res: Response) => {
+  try {
+    const users = await prisma.user.findMany({
+      orderBy: { createdAt: 'desc' },
+      select: {
+        id: true,
+        email: true,
+        username: true,
+        role: true,
+        createdAt: true,
+        _count: {
+          select: {
+            wordTranslations: true,
+            proposals: true,
+            comments: true,
+          }
+        }
+      }
+    })
+    res.json(users)
+  } catch (error) {
+    console.error(error)
+    res.status(500).json({ error: 'Erreur serveur' })
+  }
+})
+
+// PATCH /api/admin/users/:id/role
+router.patch('/users/:id/role', async (req: AuthRequest, res: Response) => {
+  try {
+    const id = req.params.id as string
+    const { role } = z.object({
+      role: z.enum(['VISITOR', 'NOVICE', 'INTERMEDIATE', 'EXPERT', 'ADMIN'])
+    }).parse(req.body)
+
+    if (id === req.user!.id) {
+      res.status(400).json({ error: 'Vous ne pouvez pas modifier votre propre rôle' })
+      return
+    }
+
+    const user = await prisma.user.update({
+      where: { id },
+      data: { role },
+      select: { id: true, username: true, role: true }
+    })
+    res.json(user)
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      res.status(400).json({ error: 'Rôle invalide' })
+      return
+    }
+    console.error(error)
+    res.status(500).json({ error: 'Erreur serveur' })
+  }
+})
+
+// DELETE /api/admin/users/:id
+router.delete('/users/:id', async (req: AuthRequest, res: Response) => {
+  try {
+    const id = req.params.id as string
+
+    if (id === req.user!.id) {
+      res.status(400).json({ error: 'Vous ne pouvez pas supprimer votre propre compte' })
+      return
+    }
+
+    // Anonymiser les contributions plutôt que de tout supprimer
+    await prisma.user.update({
+      where: { id },
+      data: {
+        email: `deleted_${id}@deleted.com`,
+        username: `[supprimé]`,
+        passwordHash: '',
+        role: 'VISITOR',
+      }
+    })
+
+    res.json({ message: 'Compte anonymisé' })
+  } catch (error) {
+    console.error(error)
+    res.status(500).json({ error: 'Erreur serveur' })
+  }
+})
+
+export default router

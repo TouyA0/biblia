@@ -3,6 +3,7 @@ import cors from 'cors'
 import authRouter from './routes/auth'
 import bibleRouter from './routes/bible'
 import profileRouter from './routes/profile'
+import adminRouter from './routes/admin'
 
 const app = express()
 
@@ -19,6 +20,7 @@ app.get('/health', (req, res) => {
 
 app.use('/api/auth', authRouter)
 app.use('/api/profile', profileRouter)
+app.use('/api/admin', adminRouter)
 app.use('/api', bibleRouter)
 
 export default app

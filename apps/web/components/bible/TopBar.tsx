@@ -8,6 +8,7 @@ interface TopBarProps {
 
 import { useAuthStore } from '@/store/auth'
 import { useEffect } from 'react'
+import { getRoleColor, getRoleBackground, getRoleBorder } from '@/lib/roleColors'
 
 export default function TopBar({ testament, book, chapter }: TopBarProps) {
   const { user, setUser, setToken } = useAuthStore()
@@ -81,12 +82,27 @@ export default function TopBar({ testament, book, chapter }: TopBarProps) {
               textTransform: 'uppercase' as const,
               padding: '4px 10px',
               borderRadius: '20px',
-              background: 'rgba(42,74,122,0.4)',
-              color: '#9ab4d8',
-              border: '1px solid rgba(154,180,216,0.25)',
+              background: getRoleBackground(user.role),
+              color: getRoleColor(user.role),
+              border: `1px solid ${getRoleBorder(user.role)}`,
             }}>
               {user.role}
             </span>
+            {user.role === 'ADMIN' && (
+              <a href="/admin" style={{
+                fontFamily: 'DM Mono, monospace',
+                fontSize: '10px',
+                color: '#e88',
+                letterSpacing: '0.08em',
+                textDecoration: 'none',
+                padding: '3px 8px',
+                borderRadius: '4px',
+                border: '1px solid rgba(122,42,42,0.3)',
+                background: 'rgba(122,42,42,0.15)',
+              }}>
+                Administration
+              </a>
+            )}
             <a href="/profile" style={{
               fontFamily: 'DM Mono, monospace',
               fontSize: '10px',
