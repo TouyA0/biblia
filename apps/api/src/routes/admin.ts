@@ -2,6 +2,7 @@ import { Router, Response } from 'express'
 import { prisma } from '../lib/prisma'
 import { authenticateJWT, AuthRequest, checkRole } from '../middlewares/auth'
 import { z } from 'zod'
+import { logAction } from '../lib/audit'
 
 const router = Router()
 
@@ -129,6 +130,9 @@ router.patch('/users/:id/role', async (req: AuthRequest, res: Response) => {
       data: { role },
       select: { id: true, username: true, role: true }
     })
+
+    await logAction('ROLE_CHANGE', id, { newRole: role, changedBy: req.user!.id })
+
     res.json(user)
   } catch (error) {
     if (error instanceof z.ZodError) {

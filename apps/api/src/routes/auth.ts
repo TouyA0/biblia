@@ -3,6 +3,8 @@ import bcrypt from 'bcryptjs'
 import jwt from 'jsonwebtoken'
 import { z } from 'zod'
 import { prisma } from '../lib/prisma'
+import { logAction } from '../lib/audit'
+import { authenticateJWT, AuthRequest } from '../middlewares/auth'
 
 const router = Router()
 
@@ -34,6 +36,8 @@ router.post('/register', async (req: Request, res: Response) => {
     const user = await prisma.user.create({
       data: { email, username, passwordHash, isVerified: true }
     })
+
+    await logAction('REGISTER', user.id, { username: user.username }, req.ip)
 
     res.status(201).json({
       message: 'Compte créé avec succès',
@@ -138,6 +142,8 @@ router.post('/refresh', async (req: Request, res: Response) => {
       { expiresIn: '15m' }
     )
 
+    await logAction('LOGIN', user.id, { username: user.username }, req.ip)
+
     res.json({ token: newToken })
   } catch {
     res.status(401).json({ error: 'Refresh token invalide' })
@@ -153,6 +159,12 @@ router.post('/logout', async (req: Request, res: Response) => {
       const tokenHash = crypto.createHash('sha256').update(refreshToken).digest('hex')
       await prisma.session.deleteMany({ where: { tokenHash } })
     }
+
+    const authReq = req as AuthRequest
+    if (authReq.user?.id) {
+      await logAction('LOGOUT', authReq.user.id, {}, req.ip)
+    }
+
     res.json({ message: 'Déconnexion réussie' })
   } catch {
     res.status(500).json({ error: 'Erreur serveur' })

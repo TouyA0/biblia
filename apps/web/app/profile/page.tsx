@@ -529,7 +529,7 @@ export default function ProfilePage() {
               </div>
               {wordTranslations.length === 0 ? (
                 <div style={{ fontFamily: 'Spectral, serif', fontSize: '14px', color: 'var(--ink-faint)', fontStyle: 'italic' }}>
-                  Aucune traduction proposée.
+                  Aucune proposition.
                 </div>
               ) : (
                 <>
@@ -648,7 +648,7 @@ export default function ProfilePage() {
                   textTransform: 'uppercase' as const,
                   color: 'var(--ink-muted)',
                 }}>
-                  Propositions de reformulation ({profile?._count.proposals || 0})
+                  Reformulation de versets ({profile?._count.proposals || 0})
                 </div>
                 <div style={{ display: 'flex', gap: '4px' }}>
                   {(['ALL', 'PENDING', 'ACCEPTED', 'REJECTED'] as const).map(f => (

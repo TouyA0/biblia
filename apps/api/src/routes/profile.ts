@@ -3,6 +3,7 @@ import { prisma } from '../lib/prisma'
 import { authenticateJWT, AuthRequest } from '../middlewares/auth'
 import { z } from 'zod'
 import bcrypt from 'bcryptjs'
+import { logAction } from '../lib/audit'
 
 const router = Router()
 
@@ -62,6 +63,15 @@ router.patch('/', authenticateJWT, async (req: AuthRequest, res: Response) => {
       data: { ...(username && { username }), ...(email && { email }) },
       select: { id: true, email: true, username: true, role: true }
     })
+
+    const currentUser = await prisma.user.findUnique({ where: { id: req.user!.id }, select: { username: true } })
+    if (username && currentUser && username !== currentUser.username) {
+      await logAction('USERNAME_CHANGE', req.user!.id, { old: currentUser.username, new: username }, req.ip)
+    }
+    if (email) {
+      await logAction('EMAIL_CHANGE', req.user!.id, { new: email }, req.ip)
+    }
+
     res.json(user)
   } catch (error) {
     if (error instanceof z.ZodError) {
@@ -92,6 +102,9 @@ router.patch('/password', authenticateJWT, async (req: AuthRequest, res: Respons
       where: { id: req.user!.id },
       data: { passwordHash }
     })
+
+    await logAction('PASSWORD_CHANGE', req.user!.id, {}, req.ip)
+
     res.json({ message: 'Mot de passe modifié avec succès' })
   } catch (error) {
     if (error instanceof z.ZodError) {
