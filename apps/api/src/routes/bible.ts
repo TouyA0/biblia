@@ -154,10 +154,17 @@ router.get('/words/:id/occurrences', async (req: Request, res: Response) => {
 
 router.delete('/word-translations/:id', authenticateJWT, async (req: AuthRequest, res: Response) => {
   try {
-    if (!['EXPERT', 'ADMIN'].includes(req.user!.role)) {
+    const id = req.params.id as string
+    const translation = await prisma.wordTranslation.findUnique({ where: { id } })
+    if (!translation) { res.status(404).json({ error: 'Traduction non trouvée' }); return }
+
+    const isOwner = translation.createdBy === req.user!.id
+    const isExpertOrAdmin = ['EXPERT', 'ADMIN'].includes(req.user!.role)
+
+    if (!isExpertOrAdmin && !(isOwner && !translation.isValidated)) {
       res.status(403).json({ error: 'Accès refusé' }); return
     }
-    const id = req.params.id as string
+    
     await prisma.vote.deleteMany({ where: { wordTranslationId: id } })
     await prisma.wordTranslation.delete({ where: { id } })
     res.json({ message: 'Traduction supprimée' })
@@ -541,16 +548,21 @@ router.post('/proposals/:id/vote', authenticateJWT, async (req: AuthRequest, res
 // DELETE /api/proposals/:id
 router.delete('/proposals/:id', authenticateJWT, async (req: AuthRequest, res: Response) => {
   try {
-    if (!['EXPERT', 'ADMIN'].includes(req.user!.role)) {
-      res.status(403).json({ error: 'Accès refusé' }); return
-    }
     const id = req.params.id as string
-
     const proposal = await prisma.proposal.findUnique({
       where: { id },
       include: { translation: true }
     })
     if (!proposal) { res.status(404).json({ error: 'Proposition non trouvée' }); return }
+
+    const isOwner = proposal.createdBy === req.user!.id
+    const isExpertOrAdmin = ['EXPERT', 'ADMIN'].includes(req.user!.role)
+
+    // Le créateur peut supprimer ses propres propositions en attente
+    // Les experts/admins peuvent tout supprimer
+    if (!isExpertOrAdmin && !(isOwner && proposal.status === 'PENDING')) {
+      res.status(403).json({ error: 'Accès refusé' }); return
+    }
 
     // Si déjà rejetée/supprimée → supprimer définitivement
     if (proposal.status === 'REJECTED') {
@@ -585,14 +597,21 @@ router.delete('/proposals/:id', authenticateJWT, async (req: AuthRequest, res: R
     const isActive = activeTranslation?.textFr === proposal.proposedText
 
     await prisma.vote.deleteMany({ where: { proposalId: id } })
-    await prisma.proposal.update({
-      where: { id },
-      data: {
-        status: 'REJECTED',
-        reason: 'Supprimée par un expert',
-        reviewedBy: req.user!.id
-      }
-    })
+
+    if (isExpertOrAdmin) {
+      // Expert/Admin → passe en REJECTED pour garder la trace
+      await prisma.proposal.update({
+        where: { id },
+        data: {
+          status: 'REJECTED',
+          reason: 'Supprimée par un expert',
+          reviewedBy: req.user!.id
+        }
+      })
+    } else {
+      // Créateur → suppression définitive
+      await prisma.proposal.delete({ where: { id } })
+    }
 
     // Si c'était la proposition active, remettre la Crampon
     if (isActive) {

@@ -518,7 +518,7 @@ export default function RightPanel({
                             ↑ Rendre active
                           </button>
                         )}
-                        {user && ['EXPERT', 'ADMIN'].includes(user.role) && (
+                        {user && (['EXPERT', 'ADMIN'].includes(user.role) || (p.createdBy === user.id && p.status === 'PENDING')) && (
                           <button
                             onClick={() => setConfirmModal({
                               message: 'Supprimer définitivement cette proposition ?',
@@ -1270,56 +1270,56 @@ export default function RightPanel({
                                 </button>
                               )}
                               {user && ['EXPERT', 'ADMIN'].includes(user.role) && (
-                                <>
-                                  <button
-                                    onClick={async () => {
+                                <button
+                                  onClick={async () => {
+                                    try {
+                                      await api.patch(`/api/word-translations/${t.id}/validate`)
+                                      onTranslationAdded()
+                                    } catch (error) {
+                                      console.error(error)
+                                    }
+                                  }}
+                                  style={{
+                                    padding: '2px 7px',
+                                    borderRadius: '4px',
+                                    border: '1px solid rgba(45,90,58,0.3)',
+                                    background: 'var(--green-light)',
+                                    cursor: 'pointer',
+                                    fontFamily: 'DM Mono, monospace',
+                                    fontSize: '9px',
+                                    color: 'var(--green-valid)',
+                                  }}
+                                >
+                                  ✓
+                                </button>
+                              )}
+                              {user && (['EXPERT', 'ADMIN'].includes(user.role) || t.createdBy === user.id) && (
+                                <button
+                                  onClick={() => setConfirmModal({
+                                    message: 'Êtes-vous sûr de vouloir supprimer cette proposition ?',
+                                    onConfirm: async () => {
                                       try {
-                                        await api.patch(`/api/word-translations/${t.id}/validate`)
+                                        await api.delete(`/api/word-translations/${t.id}`)
+                                        setConfirmModal(null)
                                         onTranslationAdded()
                                       } catch (error) {
                                         console.error(error)
                                       }
-                                    }}
-                                    style={{
-                                      padding: '2px 7px',
-                                      borderRadius: '4px',
-                                      border: '1px solid rgba(45,90,58,0.3)',
-                                      background: 'var(--green-light)',
-                                      cursor: 'pointer',
-                                      fontFamily: 'DM Mono, monospace',
-                                      fontSize: '9px',
-                                      color: 'var(--green-valid)',
-                                    }}
-                                  >
-                                    ✓
-                                  </button>
-                                  <button
-                                    onClick={() => setConfirmModal({
-                                      message: 'Êtes-vous sûr de vouloir supprimer cette proposition ?',
-                                      onConfirm: async () => {
-                                        try {
-                                          await api.delete(`/api/word-translations/${t.id}`)
-                                          setConfirmModal(null)
-                                          onTranslationAdded()
-                                        } catch (error) {
-                                          console.error(error)
-                                        }
-                                      }
-                                    })}
-                                    style={{
-                                      padding: '2px 7px',
-                                      borderRadius: '4px',
-                                      border: '1px solid rgba(122,42,42,0.3)',
-                                      background: 'var(--red-light)',
-                                      cursor: 'pointer',
-                                      fontFamily: 'DM Mono, monospace',
-                                      fontSize: '9px',
-                                      color: 'var(--red-soft)',
-                                    }}
-                                  >
-                                    ✕
-                                  </button>
-                                </>
+                                    }
+                                  })}
+                                  style={{
+                                    padding: '2px 7px',
+                                    borderRadius: '4px',
+                                    border: '1px solid rgba(122,42,42,0.3)',
+                                    background: 'var(--red-light)',
+                                    cursor: 'pointer',
+                                    fontFamily: 'DM Mono, monospace',
+                                    fontSize: '9px',
+                                    color: 'var(--red-soft)',
+                                  }}
+                                >
+                                  ✕
+                                </button>
                               )}
                             </div>
                           </div>
