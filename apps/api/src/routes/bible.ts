@@ -84,10 +84,15 @@ router.post('/words/:id/translations', authenticateJWT, async (req: AuthRequest,
     }).parse(req.body)
     const word = await prisma.wordToken.findUnique({ where: { id } })
     if (!word) { res.status(404).json({ error: 'Mot non trouvé' }); return }
+
+    // Vérifier doublon
     const existing = await prisma.wordTranslation.findFirst({
-      where: { wordTokenId: id, translation }
+      where: { wordTokenId: id, translation: { equals: translation, mode: 'insensitive' } }
     })
-    if (existing) { res.status(409).json({ error: 'Cette traduction existe déjà' }); return }
+    if (existing) {
+      res.status(409).json({ error: 'Cette traduction existe déjà pour ce mot' }); return
+    }
+
     const newTranslation = await prisma.wordTranslation.create({
       data: { wordTokenId: id, translation, createdBy: req.user!.id },
       include: { creator: { select: { username: true, role: true } } }
@@ -362,6 +367,14 @@ router.post('/verses/:id/proposals', authenticateJWT, async (req: AuthRequest, r
       where: { verseId: id, isActive: true }
     })
     if (!translation) { res.status(404).json({ error: 'Traduction non trouvée' }); return }
+
+    // Vérifier doublon
+    const existingProposal = await prisma.proposal.findFirst({
+      where: { translationId: translation.id, proposedText: { equals: proposedText, mode: 'insensitive' } }
+    })
+    if (existingProposal) {
+      res.status(409).json({ error: 'Cette proposition existe déjà pour ce verset' }); return
+    }
 
     const proposal = await prisma.proposal.create({
       data: {

@@ -112,6 +112,7 @@ export default function RightPanel({
   const [showProposalForm, setShowProposalForm] = useState(false)
   const [newProposal, setNewProposal] = useState('')
   const [submittingProposal, setSubmittingProposal] = useState(false)
+  const [proposalError, setProposalError] = useState('')
   const [rejectReason, setRejectReason] = useState('')
   const [rejectingId, setRejectingId] = useState<string | null>(null)
   const [showRejected, setShowRejected] = useState(false)
@@ -764,6 +765,20 @@ export default function RightPanel({
                     }}>
                       Proposer une reformulation
                     </div>
+                    {proposalError && (
+                      <div style={{
+                        padding: '8px 10px',
+                        background: 'var(--red-light)',
+                        border: '1px solid rgba(122,42,42,0.2)',
+                        borderRadius: '6px',
+                        color: 'var(--red-soft)',
+                        fontFamily: 'Spectral, serif',
+                        fontSize: '12px',
+                        marginBottom: '10px',
+                      }}>
+                        {proposalError}
+                      </div>
+                    )}
                     <textarea
                       value={newProposal}
                       onChange={e => setNewProposal(e.target.value)}
@@ -787,6 +802,7 @@ export default function RightPanel({
                         onClick={async () => {
                           if (!newProposal.trim() || !activeVerse) return
                           setSubmittingProposal(true)
+                          setProposalError('')
                           try {
                             await api.post(`/api/verses/${activeVerse.id}/proposals`, {
                               proposedText: newProposal.trim()
@@ -794,8 +810,9 @@ export default function RightPanel({
                             setShowProposalForm(false)
                             setNewProposal('')
                             onProposalUpdated()
-                          } catch (error) {
-                            console.error(error)
+                          } catch (err: unknown) {
+                            const error = err as { response?: { data?: { error?: string } } }
+                            setProposalError(error.response?.data?.error || 'Erreur lors de la proposition')
                           } finally {
                             setSubmittingProposal(false)
                           }
