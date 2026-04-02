@@ -96,6 +96,8 @@ router.get('/users', async (req: AuthRequest, res: Response) => {
         username: true,
         role: true,
         createdAt: true,
+        isActive: true,
+        forcePasswordReset: true,
         _count: {
           select: {
             wordTranslations: true,
@@ -166,6 +168,74 @@ router.delete('/users/:id', async (req: AuthRequest, res: Response) => {
     })
 
     res.json({ message: 'Compte anonymisé' })
+  } catch (error) {
+    console.error(error)
+    res.status(500).json({ error: 'Erreur serveur' })
+  }
+})
+
+// PATCH /api/admin/users/:id/kick — déconnecter tous les appareils
+router.patch('/users/:id/kick', async (req: AuthRequest, res: Response) => {
+  try {
+    const id = req.params.id as string
+    if (id === req.user!.id) { res.status(400).json({ error: 'Impossible de vous kick vous-même' }); return }
+
+    // Invalider tous les refresh tokens
+    await prisma.session.deleteMany({ where: { userId: id } })
+    await logAction('ROLE_CHANGE', id, { action: 'KICK', by: req.user!.id }, req.ip)
+    res.json({ message: 'Utilisateur déconnecté de tous ses appareils' })
+  } catch (error) {
+    console.error(error)
+    res.status(500).json({ error: 'Erreur serveur' })
+  }
+})
+
+// PATCH /api/admin/users/:id/force-reset — forcer réinitialisation mdp
+router.patch('/users/:id/force-reset', async (req: AuthRequest, res: Response) => {
+  try {
+    const id = req.params.id as string
+    await prisma.user.update({
+      where: { id },
+      data: { forcePasswordReset: true }
+    })
+    await prisma.session.deleteMany({ where: { userId: id } })
+    await logAction('PASSWORD_CHANGE', id, { forced: 'true', by: req.user!.id }, req.ip)
+    res.json({ message: 'Réinitialisation du mot de passe forcée' })
+  } catch (error) {
+    console.error(error)
+    res.status(500).json({ error: 'Erreur serveur' })
+  }
+})
+
+// PATCH /api/admin/users/:id/deactivate — désactiver le compte
+router.patch('/users/:id/deactivate', async (req: AuthRequest, res: Response) => {
+  try {
+    const id = req.params.id as string
+    if (id === req.user!.id) { res.status(400).json({ error: 'Impossible de désactiver votre propre compte' }); return }
+
+    await prisma.user.update({
+      where: { id },
+      data: { isActive: false }
+    })
+    await prisma.session.deleteMany({ where: { userId: id } })
+    await logAction('ACCOUNT_SUSPENDED', id, { by: req.user!.id }, req.ip)
+    res.json({ message: 'Compte désactivé' })
+  } catch (error) {
+    console.error(error)
+    res.status(500).json({ error: 'Erreur serveur' })
+  }
+})
+
+// PATCH /api/admin/users/:id/reactivate — réactiver le compte
+router.patch('/users/:id/reactivate', async (req: AuthRequest, res: Response) => {
+  try {
+    const id = req.params.id as string
+    await prisma.user.update({
+      where: { id },
+      data: { isActive: true }
+    })
+    await logAction('ACCOUNT_SUSPENDED', id, { action: 'REACTIVATED', by: req.user!.id }, req.ip)
+    res.json({ message: 'Compte réactivé' })
   } catch (error) {
     console.error(error)
     res.status(500).json({ error: 'Erreur serveur' })

@@ -64,6 +64,8 @@ interface User {
   username: string
   role: string
   createdAt: string
+  isActive: boolean
+  forcePasswordReset: boolean
   _count: {
     wordTranslations: number
     proposals: number
@@ -88,6 +90,7 @@ export default function AdminPage() {
   const [search, setSearch] = useState('')
   const [roleFilter, setRoleFilter] = useState<string>('ALL')
   const [updatingRole, setUpdatingRole] = useState<string | null>(null)
+  const [actionLoading, setActionLoading] = useState<string | null>(null)
 
   useEffect(() => {
     const token = localStorage.getItem('token')
@@ -131,7 +134,8 @@ export default function AdminPage() {
   const filteredUsers = users.filter(u => {
     const matchSearch = u.username.toLowerCase().includes(search.toLowerCase()) ||
       u.email.toLowerCase().includes(search.toLowerCase())
-    const matchRole = roleFilter === 'ALL' || u.role === roleFilter
+    const matchRole = roleFilter === 'ALL' 
+      || (roleFilter === 'DISABLED' ? !u.isActive : u.role === roleFilter && u.isActive)
     return matchSearch && matchRole
   })
 
@@ -698,7 +702,7 @@ export default function AdminPage() {
                 }}
               />
               <div style={{ display: 'flex', gap: '4px' }}>
-                {(['ALL', ...ROLES] as const).map(r => (
+                {(['ALL', ...ROLES, 'DISABLED'] as const).map(r => (
                   <button
                     key={r}
                     onClick={() => setRoleFilter(r)}
@@ -730,7 +734,7 @@ export default function AdminPage() {
               {/* Header */}
               <div style={{
                 display: 'grid',
-                gridTemplateColumns: '1fr 200px 120px 80px 80px 80px 120px',
+                gridTemplateColumns: '1fr 200px 120px 80px 80px 80px 120px 100px',
                 padding: '10px 16px',
                 background: 'var(--parchment-dark)',
                 borderBottom: '1px solid var(--border)',
@@ -747,6 +751,7 @@ export default function AdminPage() {
                 <span>Prop.</span>
                 <span>Comm.</span>
                 <span>Rôle</span>
+                <span>Actions</span>
               </div>
 
               {filteredUsers.length === 0 ? (
@@ -766,13 +771,13 @@ export default function AdminPage() {
                 return (
                   <div key={u.id} style={{
                     display: 'grid',
-                    gridTemplateColumns: '1fr 200px 120px 80px 80px 80px 120px',
+                    gridTemplateColumns: '1fr 200px 120px 80px 80px 80px 120px 100px',
                     padding: '12px 16px',
                     borderBottom: i < filteredUsers.length - 1 ? '1px solid var(--border)' : 'none',
                     alignItems: 'center',
                     background: isMe ? 'var(--gold-pale)' : 'transparent',
                   }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', overflow: 'hidden' }}>
                       <div style={{
                         width: '28px',
                         height: '28px',
@@ -791,18 +796,24 @@ export default function AdminPage() {
                       <span style={{
                         fontFamily: 'Spectral, serif',
                         fontSize: '14px',
-                        color: 'var(--ink)',
+                        color: u.isActive ? 'var(--ink)' : 'var(--ink-muted)',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                        maxWidth: '150px',
+                        display: 'block',
                       }}>
-                        {u.username}
+                        <Link href={`/profile/${u.username}`} style={{ color: 'inherit', textDecoration: 'none' }}>
+                          {u.username}
+                        </Link>
                         {isMe && (
-                          <span style={{
-                            fontFamily: 'DM Mono, monospace',
-                            fontSize: '8px',
-                            color: 'var(--gold)',
-                            marginLeft: '6px',
-                          }}>
-                            (vous)
-                          </span>
+                          <span style={{ fontFamily: 'DM Mono, monospace', fontSize: '8px', color: 'var(--gold)', marginLeft: '6px' }}>(vous)</span>
+                        )}
+                        {!u.isActive && (
+                          <span style={{ fontFamily: 'DM Mono, monospace', fontSize: '8px', color: 'var(--red-soft)', marginLeft: '6px' }}>désactivé</span>
+                        )}
+                        {u.forcePasswordReset && (
+                          <span style={{ fontFamily: 'DM Mono, monospace', fontSize: '8px', color: 'var(--amber-pending)', marginLeft: '6px' }}>reset mdp</span>
                         )}
                       </span>
                     </div>
@@ -882,6 +893,97 @@ export default function AdminPage() {
                             <option key={r} value={r}>{r}</option>
                           ))}
                         </select>
+                      )}
+                    </div>
+                    {/* Actions */}
+                    <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+                      {!isMe && (
+                        <>
+                          {/* Désactiver / Réactiver */}
+                          <button
+                            title={u.isActive ? 'Désactiver' : 'Réactiver'}
+                            disabled={actionLoading === u.id}
+                            onClick={async () => {
+                              setActionLoading(u.id)
+                              try {
+                                if (u.isActive) {
+                                  await api.patch(`/api/admin/users/${u.id}/deactivate`)
+                                  setUsers(prev => prev.map(x => x.id === u.id ? { ...x, isActive: false } : x))
+                                } else {
+                                  await api.patch(`/api/admin/users/${u.id}/reactivate`)
+                                  setUsers(prev => prev.map(x => x.id === u.id ? { ...x, isActive: true } : x))
+                                }
+                              } catch (error) { console.error(error) }
+                              finally { setActionLoading(null) }
+                            }}
+                            style={{
+                              width: '24px', height: '24px',
+                              display: 'flex', alignItems: 'center', justifyContent: 'center',
+                              borderRadius: '4px',
+                              border: `1px solid ${u.isActive ? 'rgba(122,42,42,0.2)' : 'rgba(45,90,58,0.2)'}`,
+                              background: u.isActive ? 'var(--red-light)' : 'var(--green-light)',
+                              cursor: 'pointer',
+                              fontSize: '11px',
+                              color: u.isActive ? 'var(--red-soft)' : 'var(--green-valid)',
+                              opacity: actionLoading === u.id ? 0.5 : 1,
+                            }}
+                          >
+                            {u.isActive ? '✕' : '✓'}
+                          </button>
+
+                          {/* Kick */}
+                          <button
+                            title="Déconnecter tous les appareils"
+                            disabled={actionLoading === u.id}
+                            onClick={async () => {
+                              setActionLoading(u.id)
+                              try {
+                                await api.patch(`/api/admin/users/${u.id}/kick`)
+                              } catch (error) { console.error(error) }
+                              finally { setActionLoading(null) }
+                            }}
+                            style={{
+                              width: '24px', height: '24px',
+                              display: 'flex', alignItems: 'center', justifyContent: 'center',
+                              borderRadius: '4px',
+                              border: '1px solid rgba(42,74,122,0.2)',
+                              background: 'var(--blue-light)',
+                              cursor: 'pointer',
+                              fontSize: '11px',
+                              color: 'var(--blue-sacred)',
+                              opacity: actionLoading === u.id ? 0.5 : 1,
+                            }}
+                          >
+                            ⟳
+                          </button>
+
+                          {/* Forcer reset mdp */}
+                          <button
+                            title="Forcer réinitialisation mot de passe"
+                            disabled={actionLoading === u.id || u.forcePasswordReset}
+                            onClick={async () => {
+                              setActionLoading(u.id)
+                              try {
+                                await api.patch(`/api/admin/users/${u.id}/force-reset`)
+                                setUsers(prev => prev.map(x => x.id === u.id ? { ...x, forcePasswordReset: true } : x))
+                              } catch (error) { console.error(error) }
+                              finally { setActionLoading(null) }
+                            }}
+                            style={{
+                              width: '24px', height: '24px',
+                              display: 'flex', alignItems: 'center', justifyContent: 'center',
+                              borderRadius: '4px',
+                              border: '1px solid rgba(122,90,26,0.2)',
+                              background: 'var(--amber-light)',
+                              cursor: u.forcePasswordReset ? 'not-allowed' : 'pointer',
+                              fontSize: '11px',
+                              color: 'var(--amber-pending)',
+                              opacity: actionLoading === u.id || u.forcePasswordReset ? 0.5 : 1,
+                            }}
+                          >
+                            🔑
+                          </button>
+                        </>
                       )}
                     </div>
                   </div>

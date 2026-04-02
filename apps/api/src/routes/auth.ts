@@ -5,6 +5,7 @@ import { z } from 'zod'
 import { prisma } from '../lib/prisma'
 import { logAction } from '../lib/audit'
 import { authenticateJWT, AuthRequest } from '../middlewares/auth'
+import crypto from 'crypto'
 
 const router = Router()
 
@@ -70,6 +71,19 @@ router.post('/login', async (req: Request, res: Response) => {
       return
     }
 
+    if (!user.isActive) {
+      res.status(403).json({ error: 'Ce compte a été désactivé' }); return
+    }
+
+    if (user.forcePasswordReset) {
+      res.status(403).json({ error: 'FORCE_PASSWORD_RESET' }); return
+    }
+
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { lastLoginAt: new Date() }
+    })
+
     const token = jwt.sign(
       { id: user.id, role: user.role },
       process.env.JWT_SECRET!,
@@ -82,7 +96,6 @@ router.post('/login', async (req: Request, res: Response) => {
       { expiresIn: '30d' }
     )
 
-    const crypto = await import('crypto')
     const tokenHash = crypto.createHash('sha256').update(refreshToken).digest('hex')
 
     await prisma.session.create({
@@ -95,10 +108,11 @@ router.post('/login', async (req: Request, res: Response) => {
       }
     })
 
-    res.json({
-      token,
-      refreshToken,
-      user: { id: user.id, email: user.email, username: user.username, role: user.role }
+    res.json({ 
+      token, 
+      refreshToken, 
+      user: { id: user.id, email: user.email, username: user.username, role: user.role },
+      forcePasswordReset: user.forcePasswordReset
     })
   } catch (error) {
     if (error instanceof z.ZodError) {
@@ -121,7 +135,6 @@ router.post('/refresh', async (req: Request, res: Response) => {
 
     const decoded = jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET!) as { id: string }
 
-    const crypto = await import('crypto')
     const tokenHash = crypto.createHash('sha256').update(refreshToken).digest('hex')
 
     const session = await prisma.session.findUnique({ where: { tokenHash } })
@@ -155,7 +168,6 @@ router.post('/logout', async (req: Request, res: Response) => {
   try {
     const { refreshToken } = req.body
     if (refreshToken) {
-      const crypto = await import('crypto')
       const tokenHash = crypto.createHash('sha256').update(refreshToken).digest('hex')
       await prisma.session.deleteMany({ where: { tokenHash } })
     }

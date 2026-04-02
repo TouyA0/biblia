@@ -28,7 +28,11 @@ export default function LoginPage() {
       router.push('/')
     } catch (err: unknown) {
       const error = err as { response?: { data?: { error?: string } } }
-      setError(error.response?.data?.error || 'Erreur de connexion')
+      if (error.response?.data?.error === 'FORCE_PASSWORD_RESET') {
+        setError('Votre mot de passe doit être réinitialisé. Contactez un administrateur.')
+      } else {
+        setError(error.response?.data?.error || 'Erreur de connexion')
+      }
     } finally {
       setLoading(false)
     }
