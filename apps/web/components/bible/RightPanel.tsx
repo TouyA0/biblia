@@ -1,11 +1,12 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import api from '@/lib/api'
 import { useAuthStore } from '@/store/auth'
 import ConfirmModal from './ConfirmModal'
 import CommentText from './CommentText'
 import { getRoleColor, getRoleBackground, getRoleBorder } from '@/lib/roleColors'
+import { BOOK_NAME_TO_SLUG } from '@/lib/bookSlugs'
 
 interface WordToken {
   id: string
@@ -127,6 +128,19 @@ export default function RightPanel({
   const [replyingToId, setReplyingToId] = useState<string | null>(null)
   const [replyText, setReplyText] = useState('')
   const [submittingReply, setSubmittingReply] = useState(false)
+  const [insertMode, setInsertMode] = useState<null | 'verse' | 'link'>(null)
+  const [insertBook, setInsertBook] = useState('')
+  const [insertChapter, setInsertChapter] = useState('')
+  const [insertVerse, setInsertVerse] = useState('')
+  const [insertLinkText, setInsertLinkText] = useState('')
+  const [insertLinkUrl, setInsertLinkUrl] = useState('')
+  const [insertTestament, setInsertTestament] = useState<'AT' | 'NT'>('AT')
+  const commentRef = useRef<HTMLTextAreaElement>(null)
+
+  const booksByTestament = {
+    AT: Object.keys(BOOK_NAME_TO_SLUG).slice(0, 46),
+    NT: Object.keys(BOOK_NAME_TO_SLUG).slice(46),
+  }
 
   const validatedTranslations = wordTranslations.filter(t => t.isValidated)
   const proposedTranslations = wordTranslations.filter(t => !t.isValidated)
@@ -790,6 +804,7 @@ export default function RightPanel({
                       </div>
                     )}
                     <textarea
+                      ref={commentRef}
                       value={newProposal}
                       onChange={e => setNewProposal(e.target.value)}
                       style={{
@@ -1820,15 +1835,179 @@ export default function RightPanel({
                       marginBottom: '8px',
                     }}
                   />
-                  <div style={{
-                    fontFamily: 'DM Mono, monospace',
-                    fontSize: '9px',
-                    color: 'var(--ink-faint)',
-                    marginBottom: '8px',
-                    lineHeight: '1.6',
-                  }}>
-                    [Genèse 1:1] → lien verset · [texte](https://url.com) → lien externe
+                  {/* Boutons d'insertion */}
+                  <div style={{ display: 'flex', gap: '6px', marginBottom: '8px' }}>
+                    <button
+                      onClick={() => setInsertMode(insertMode === 'verse' ? null : 'verse')}
+                      style={{
+                        padding: '4px 10px',
+                        borderRadius: '4px',
+                        border: `1px solid ${insertMode === 'verse' ? 'var(--blue-sacred)' : 'var(--border)'}`,
+                        background: insertMode === 'verse' ? 'var(--blue-light)' : 'transparent',
+                        fontFamily: 'DM Mono, monospace',
+                        fontSize: '9px',
+                        color: insertMode === 'verse' ? 'var(--blue-sacred)' : 'var(--ink-muted)',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      📖 Insérer un verset
+                    </button>
+                    <button
+                      onClick={() => setInsertMode(insertMode === 'link' ? null : 'link')}
+                      style={{
+                        padding: '4px 10px',
+                        borderRadius: '4px',
+                        border: `1px solid ${insertMode === 'link' ? 'var(--gold)' : 'var(--border)'}`,
+                        background: insertMode === 'link' ? 'var(--gold-pale)' : 'transparent',
+                        fontFamily: 'DM Mono, monospace',
+                        fontSize: '9px',
+                        color: insertMode === 'link' ? 'var(--gold)' : 'var(--ink-muted)',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      🔗 Insérer un lien
+                    </button>
                   </div>
+
+                  {/* Panneau verset */}
+                  {insertMode === 'verse' && (
+                    <div style={{
+                      padding: '12px',
+                      background: 'var(--blue-light)',
+                      border: '1px solid rgba(42,74,122,0.2)',
+                      borderRadius: '8px',
+                      marginBottom: '8px',
+                    }}>
+                      <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', alignItems: 'center' }}>
+                        {/* Testament */}
+                        <div style={{ display: 'flex', gap: '4px' }}>
+                          {(['AT', 'NT'] as const).map(t => (
+                            <button key={t} onClick={() => { setInsertTestament(t); setInsertBook(''); setInsertChapter(''); setInsertVerse('') }}
+                              style={{ padding: '3px 8px', borderRadius: '20px', border: `1px solid ${insertTestament === t ? 'var(--blue-sacred)' : 'rgba(42,74,122,0.2)'}`, background: insertTestament === t ? 'var(--blue-sacred)' : 'transparent', fontFamily: 'DM Mono, monospace', fontSize: '9px', color: insertTestament === t ? 'white' : 'var(--blue-sacred)', cursor: 'pointer' }}>
+                              {t}
+                            </button>
+                          ))}
+                        </div>
+
+                        {/* Livre */}
+                        <select
+                          value={insertBook}
+                          onChange={e => { setInsertBook(e.target.value); setInsertChapter(''); setInsertVerse('') }}
+                          style={{ padding: '3px 6px', border: '1px solid rgba(42,74,122,0.2)', borderRadius: '4px', background: 'white', fontFamily: 'DM Mono, monospace', fontSize: '9px', color: 'var(--ink)', outline: 'none' }}
+                        >
+                          <option value="">Livre</option>
+                          {booksByTestament[insertTestament].map(b => <option key={b} value={b}>{b}</option>)}
+                        </select>
+
+                        {/* Chapitre */}
+                        {insertBook && (
+                          <input
+                            type="number"
+                            min={1}
+                            placeholder="Ch."
+                            value={insertChapter}
+                            onChange={e => { setInsertChapter(e.target.value); setInsertVerse('') }}
+                            style={{ width: '50px', padding: '3px 6px', border: '1px solid rgba(42,74,122,0.2)', borderRadius: '4px', background: 'white', fontFamily: 'DM Mono, monospace', fontSize: '9px', color: 'var(--ink)', outline: 'none' }}
+                          />
+                        )}
+
+                        {/* Verset */}
+                        {insertChapter && (
+                          <input
+                            type="number"
+                            min={1}
+                            placeholder="V."
+                            value={insertVerse}
+                            onChange={e => setInsertVerse(e.target.value)}
+                            style={{ width: '50px', padding: '3px 6px', border: '1px solid rgba(42,74,122,0.2)', borderRadius: '4px', background: 'white', fontFamily: 'DM Mono, monospace', fontSize: '9px', color: 'var(--ink)', outline: 'none' }}
+                          />
+                        )}
+
+                        {/* Insérer */}
+                        {insertBook && insertChapter && insertVerse && (
+                          <button
+                            onClick={() => {
+                              const ref = `[${insertBook} ${insertChapter}:${insertVerse}]`
+                              const ta = commentRef.current
+                              if (ta) {
+                                const start = ta.selectionStart
+                                const end = ta.selectionEnd
+                                const newText = newComment.slice(0, start) + ref + newComment.slice(end)
+                                setNewComment(newText)
+                                setTimeout(() => {
+                                  ta.focus()
+                                  ta.setSelectionRange(start + ref.length, start + ref.length)
+                                }, 0)
+                              } else {
+                                setNewComment(prev => prev + ref)
+                              }
+                              setInsertMode(null)
+                              setInsertBook('')
+                              setInsertChapter('')
+                              setInsertVerse('')
+                            }}
+                            style={{ padding: '3px 10px', borderRadius: '4px', border: 'none', background: 'var(--blue-sacred)', color: 'white', fontFamily: 'DM Mono, monospace', fontSize: '9px', cursor: 'pointer' }}
+                          >
+                            ✓ Insérer
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Panneau lien */}
+                  {insertMode === 'link' && (
+                    <div style={{
+                      padding: '12px',
+                      background: 'var(--gold-pale)',
+                      border: '1px solid rgba(184,132,58,0.2)',
+                      borderRadius: '8px',
+                      marginBottom: '8px',
+                    }}>
+                      <div style={{ display: 'flex', gap: '6px', alignItems: 'center', flexWrap: 'wrap' }}>
+                        <input
+                          type="text"
+                          placeholder="Texte du lien"
+                          value={insertLinkText}
+                          onChange={e => setInsertLinkText(e.target.value)}
+                          style={{ flex: 1, minWidth: '100px', padding: '3px 6px', border: '1px solid rgba(184,132,58,0.2)', borderRadius: '4px', background: 'white', fontFamily: 'Spectral, serif', fontSize: '12px', color: 'var(--ink)', outline: 'none' }}
+                        />
+                        <input
+                          type="url"
+                          placeholder="https://..."
+                          value={insertLinkUrl}
+                          onChange={e => setInsertLinkUrl(e.target.value)}
+                          style={{ flex: 2, minWidth: '150px', padding: '3px 6px', border: '1px solid rgba(184,132,58,0.2)', borderRadius: '4px', background: 'white', fontFamily: 'DM Mono, monospace', fontSize: '9px', color: 'var(--ink)', outline: 'none' }}
+                        />
+                        {insertLinkText && insertLinkUrl && (
+                          <button
+                            onClick={() => {
+                              const ref = `[${insertLinkText}](${insertLinkUrl})`
+                              const ta = commentRef.current
+                              if (ta) {
+                                const start = ta.selectionStart
+                                const end = ta.selectionEnd
+                                const newText = newComment.slice(0, start) + ref + newComment.slice(end)
+                                setNewComment(newText)
+                                setTimeout(() => {
+                                  ta.focus()
+                                  ta.setSelectionRange(start + ref.length, start + ref.length)
+                                }, 0)
+                              } else {
+                                setNewComment(prev => prev + ref)
+                              }
+                              setInsertMode(null)
+                              setInsertLinkText('')
+                              setInsertLinkUrl('')
+                            }}
+                            style={{ padding: '3px 10px', borderRadius: '4px', border: 'none', background: 'var(--gold)', color: 'white', fontFamily: 'DM Mono, monospace', fontSize: '9px', cursor: 'pointer' }}
+                          >
+                            ✓ Insérer
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  )}
                   <button
                     onClick={async () => {
                       if (!newComment.trim() || !activeVerse) return

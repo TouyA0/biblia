@@ -231,6 +231,43 @@ router.post('/word-translations/:id/vote', authenticateJWT, async (req: AuthRequ
   }
 })
 
+// GET /api/verses/by-ref?book=genese&chapter=1&verse=1
+router.get('/verses/by-ref', async (req: Request, res: Response) => {
+  try {
+    const { book, chapter, verse } = req.query
+    const chapterData = await prisma.chapter.findFirst({
+      where: {
+        number: Number(chapter),
+        book: { slug: book as string }
+      },
+      include: {
+        book: true
+      }
+    })
+    if (!chapterData) { res.status(404).json({ error: 'Chapitre non trouvé' }); return }
+
+    const verseData = await prisma.verse.findFirst({
+      where: {
+        number: Number(verse),
+        chapterId: chapterData.id
+      },
+      include: {
+        texts: true,
+        translations: {
+          where: { isActive: true },
+          take: 1
+        }
+      }
+    })
+    if (!verseData) { res.status(404).json({ error: 'Verset non trouvé' }); return }
+
+    res.json(verseData)
+  } catch (error) {
+    console.error(error)
+    res.status(500).json({ error: 'Erreur serveur' })
+  }
+})
+
 router.get('/verses/:id', async (req: Request, res: Response) => {
   try {
     const id = req.params.id as string
