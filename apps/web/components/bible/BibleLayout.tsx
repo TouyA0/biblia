@@ -87,6 +87,13 @@ interface Comment {
   createdAt: string
   createdBy: string | null
   creator: { username: string; role: string } | null
+  replies: {
+    id: string
+    text: string
+    createdAt: string
+    createdBy: string | null
+    creator: { username: string; role: string } | null
+  }[]
 }
 
 interface WordTranslation {
