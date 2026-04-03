@@ -418,14 +418,15 @@ export default function AdminPage() {
                     }}>
                       {u.username.substring(0, 2).toUpperCase()}
                     </div>
-                    <span style={{
+                    <Link href={`/profile/${u.username}`} style={{
                       fontFamily: 'Spectral, serif',
                       fontSize: '14px',
                       color: 'var(--ink)',
                       flex: 1,
+                      textDecoration: 'none',
                     }}>
                       {u.username}
-                    </span>
+                    </Link>
                     <span style={{
                       fontFamily: 'DM Mono, monospace',
                       fontSize: '9px',
