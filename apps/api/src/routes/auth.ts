@@ -75,10 +75,6 @@ router.post('/login', async (req: Request, res: Response) => {
       res.status(403).json({ error: 'Ce compte a été désactivé' }); return
     }
 
-    if (user.forcePasswordReset) {
-      res.status(403).json({ error: 'FORCE_PASSWORD_RESET' }); return
-    }
-
     await prisma.user.update({
       where: { id: user.id },
       data: { lastLoginAt: new Date() }
@@ -87,7 +83,7 @@ router.post('/login', async (req: Request, res: Response) => {
     const token = jwt.sign(
       { id: user.id, role: user.role },
       process.env.JWT_SECRET!,
-      { expiresIn: '15m' }
+      { expiresIn: '2m' }
     )
 
     const refreshToken = jwt.sign(

@@ -205,6 +205,132 @@ function ActivityGraph({ activity }: { activity: ActivityDay[] }) {
   )
 }
 
+function InlineField({ label, value, type, onSave }: {
+  label: string
+  value: string
+  type: string
+  onSave: (value: string) => Promise<void>
+}) {
+  const [editing, setEditing] = useState(false)
+  const [draft, setDraft] = useState(value)
+  const [saving, setSaving] = useState(false)
+
+  return (
+    <div style={{ marginBottom: '12px', padding: '12px 14px', border: '1px solid var(--border)', borderRadius: '8px', background: 'white' }}>
+      <div style={{ fontFamily: 'DM Mono, monospace', fontSize: '9px', letterSpacing: '0.1em', textTransform: 'uppercase' as const, color: 'var(--ink-muted)', marginBottom: '6px' }}>
+        {label}
+      </div>
+      {editing ? (
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <input
+            type={type}
+            value={draft}
+            onChange={e => setDraft(e.target.value)}
+            autoFocus
+            style={{ flex: 1, padding: '6px 10px', border: '1px solid var(--gold)', borderRadius: '6px', fontFamily: 'Spectral, serif', fontSize: '14px', color: 'var(--ink)', outline: 'none', background: 'var(--gold-pale)' }}
+          />
+          <button
+            onClick={async () => {
+              if (!draft.trim() || draft === value) { setEditing(false); return }
+              setSaving(true)
+              await onSave(draft.trim())
+              setSaving(false)
+              setEditing(false)
+            }}
+            disabled={saving}
+            style={{ width: '28px', height: '28px', borderRadius: '50%', border: 'none', background: 'var(--green-valid)', color: 'white', cursor: 'pointer', fontSize: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}
+          >
+            {saving ? '…' : '✓'}
+          </button>
+          <button
+            onClick={() => { setEditing(false); setDraft(value) }}
+            style={{ width: '28px', height: '28px', borderRadius: '50%', border: '1px solid var(--border)', background: 'transparent', color: 'var(--ink-muted)', cursor: 'pointer', fontSize: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}
+          >
+            ✕
+          </button>
+        </div>
+      ) : (
+        <div
+          onClick={() => { setEditing(true); setDraft(value) }}
+          style={{ fontFamily: 'Spectral, serif', fontSize: '14px', color: 'var(--ink)', cursor: 'pointer', padding: '2px 0', borderBottom: '1px dashed var(--border)', display: 'inline-block' }}
+          title="Cliquer pour modifier"
+        >
+          {value}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function PasswordField({ onSave }: { onSave: (current: string, newPwd: string) => Promise<void> }) {
+  const [editing, setEditing] = useState(false)
+  const [current, setCurrent] = useState('')
+  const [newPwd, setNewPwd] = useState('')
+  const [confirm, setConfirm] = useState('')
+  const [saving, setSaving] = useState(false)
+  const [err, setErr] = useState('')
+
+  return (
+    <div style={{ marginBottom: '12px', padding: '12px 14px', border: '1px solid var(--border)', borderRadius: '8px', background: 'white' }}>
+      <div style={{ fontFamily: 'DM Mono, monospace', fontSize: '9px', letterSpacing: '0.1em', textTransform: 'uppercase' as const, color: 'var(--ink-muted)', marginBottom: '6px' }}>
+        Mot de passe
+      </div>
+      {editing ? (
+        <div>
+          {err && <div style={{ fontFamily: 'Spectral, serif', fontSize: '12px', color: 'var(--red-soft)', marginBottom: '8px' }}>{err}</div>}
+          {[
+            { label: 'Actuel', value: current, setter: setCurrent },
+            { label: 'Nouveau', value: newPwd, setter: setNewPwd },
+            { label: 'Confirmer', value: confirm, setter: setConfirm },
+          ].map(f => (
+            <div key={f.label} style={{ marginBottom: '8px' }}>
+              <div style={{ fontFamily: 'DM Mono, monospace', fontSize: '8px', color: 'var(--ink-muted)', marginBottom: '3px' }}>{f.label}</div>
+              <input
+                type="password"
+                value={f.value}
+                onChange={e => f.setter(e.target.value)}
+                style={{ width: '100%', padding: '6px 10px', border: '1px solid var(--border)', borderRadius: '6px', fontFamily: 'Spectral, serif', fontSize: '13px', color: 'var(--ink)', outline: 'none' }}
+              />
+            </div>
+          ))}
+          <div style={{ display: 'flex', gap: '8px', marginTop: '10px' }}>
+            <button
+              onClick={async () => {
+                setErr('')
+                if (newPwd !== confirm) { setErr('Les mots de passe ne correspondent pas'); return }
+                if (newPwd.length < 8) { setErr('8 caractères minimum'); return }
+                setSaving(true)
+                await onSave(current, newPwd)
+                setSaving(false)
+                setEditing(false)
+                setCurrent(''); setNewPwd(''); setConfirm('')
+              }}
+              disabled={saving}
+              style={{ padding: '6px 14px', background: 'var(--green-valid)', color: 'white', border: 'none', borderRadius: '6px', fontFamily: 'DM Mono, monospace', fontSize: '9px', cursor: 'pointer' }}
+            >
+              {saving ? '…' : '✓ Enregistrer'}
+            </button>
+            <button
+              onClick={() => { setEditing(false); setCurrent(''); setNewPwd(''); setConfirm(''); setErr('') }}
+              style={{ padding: '6px 14px', background: 'transparent', color: 'var(--ink-muted)', border: '1px solid var(--border)', borderRadius: '6px', fontFamily: 'DM Mono, monospace', fontSize: '9px', cursor: 'pointer' }}
+            >
+              Annuler
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div
+          onClick={() => setEditing(true)}
+          style={{ fontFamily: 'Spectral, serif', fontSize: '14px', color: 'var(--ink-muted)', cursor: 'pointer', padding: '2px 0', borderBottom: '1px dashed var(--border)', display: 'inline-block', fontStyle: 'italic' }}
+          title="Cliquer pour modifier"
+        >
+          ••••••••
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default function UserProfilePage() {
   const params = useParams()
   const router = useRouter()
@@ -241,6 +367,7 @@ export default function UserProfilePage() {
   const [localUser, setLocalUser] = useState<{ username: string; role: string } | null>(null)
 
   const [confirmModal, setConfirmModal] = useState<{ message: string; onConfirm: () => void } | null>(null)
+  const [expandedLogCats, setExpandedLogCats] = useState<Set<string>>(new Set())
 
   useEffect(() => {
     const savedUser = localStorage.getItem('user')
@@ -350,7 +477,6 @@ export default function UserProfilePage() {
     { key: 'contributions', label: 'Contributions' },
     ...(isOwnProfile ? [
       { key: 'info', label: 'Mon profil' },
-      { key: 'password', label: 'Mot de passe' },
     ] : []),
     ...(isAdmin ? [{ key: 'admin', label: 'Admin' }] : []),
   ] as const
@@ -601,21 +727,76 @@ export default function UserProfilePage() {
         {/* ONGLET MON PROFIL */}
         {activeTab === 'info' && isOwnProfile && (
           <div style={{ maxWidth: '480px' }}>
-            {profileSuccess && <div style={{ padding: '10px 14px', background: 'var(--green-light)', border: '1px solid rgba(45,90,58,0.2)', borderRadius: '6px', color: 'var(--green-valid)', fontFamily: 'Spectral, serif', fontSize: '13px', marginBottom: '20px' }}>{profileSuccess}</div>}
-            {profileError && <div style={{ padding: '10px 14px', background: 'var(--red-light)', border: '1px solid rgba(122,42,42,0.2)', borderRadius: '6px', color: 'var(--red-soft)', fontFamily: 'Spectral, serif', fontSize: '13px', marginBottom: '20px' }}>{profileError}</div>}
-            {[
-              { label: "Nom d'utilisateur", value: editUsername, setter: setEditUsername, type: 'text' },
-              { label: 'Email', value: editEmail, setter: setEditEmail, type: 'email' },
-            ].map(field => (
-              <div key={field.label} style={{ marginBottom: '16px' }}>
-                <label style={{ display: 'block', fontFamily: 'DM Mono, monospace', fontSize: '10px', letterSpacing: '0.1em', textTransform: 'uppercase' as const, color: 'var(--ink-muted)', marginBottom: '6px' }}>{field.label}</label>
-                <input type={field.type} value={field.value} onChange={e => field.setter(e.target.value)}
-                  style={{ width: '100%', padding: '10px 12px', border: '1px solid var(--border)', borderRadius: '6px', background: 'white', fontFamily: 'Spectral, serif', fontSize: '14px', color: 'var(--ink)', outline: 'none' }} />
+            {profileSuccess && (
+              <div style={{ padding: '10px 14px', background: 'var(--green-light)', border: '1px solid rgba(45,90,58,0.2)', borderRadius: '6px', color: 'var(--green-valid)', fontFamily: 'Spectral, serif', fontSize: '13px', marginBottom: '20px' }}>
+                {profileSuccess}
               </div>
+            )}
+            {profileError && (
+              <div style={{ padding: '10px 14px', background: 'var(--red-light)', border: '1px solid rgba(122,42,42,0.2)', borderRadius: '6px', color: 'var(--red-soft)', fontFamily: 'Spectral, serif', fontSize: '13px', marginBottom: '20px' }}>
+                {profileError}
+              </div>
+            )}
+
+            {/* Champs inline */}
+            {[
+              { label: "Nom d'utilisateur", field: 'username' as const, value: editUsername, setter: setEditUsername, type: 'text' },
+              { label: 'Email', field: 'email' as const, value: editEmail, setter: setEditEmail, type: 'email' },
+            ].map(item => (
+              <InlineField
+                key={item.field}
+                label={item.label}
+                value={item.value}
+                type={item.type}
+                onSave={async (newValue) => {
+                  setProfileError('')
+                  setProfileSuccess('')
+                  try {
+                    const payload = item.field === 'username'
+                      ? { username: newValue, email: editEmail }
+                      : { username: editUsername, email: newValue }
+                    const res = await api.patch('/api/profile', payload)
+                    setUser(res.data)
+                    localStorage.setItem('user', JSON.stringify(res.data))
+                    if (item.field === 'username') {
+                      setEditUsername(newValue)
+                      router.push(`/profile/${newValue}`)
+                    } else {
+                      setEditEmail(newValue)
+                    }
+                    setProfileSuccess(`${item.label} mis à jour`)
+                  } catch (err: unknown) {
+                    const error = err as { response?: { data?: { error?: string } } }
+                    setProfileError(error.response?.data?.error || 'Erreur')
+                  }
+                }}
+              />
             ))}
-            <button onClick={handleUpdateProfile} style={{ padding: '10px 24px', background: 'var(--gold)', color: 'white', border: 'none', borderRadius: '6px', fontFamily: 'DM Mono, monospace', fontSize: '11px', letterSpacing: '0.08em', textTransform: 'uppercase' as const, cursor: 'pointer' }}>
-              Enregistrer
-            </button>
+
+            {/* Mot de passe inline */}
+            <PasswordField
+              onSave={async (currentPwd, newPwd) => {
+                setPasswordError('')
+                setPasswordSuccess('')
+                try {
+                  await api.patch('/api/profile/password', { currentPassword: currentPwd, newPassword: newPwd })
+                  setPasswordSuccess('Mot de passe modifié')
+                } catch (err: unknown) {
+                  const error = err as { response?: { data?: { error?: string } } }
+                  setPasswordError(error.response?.data?.error || 'Erreur')
+                }
+              }}
+            />
+            {passwordSuccess && (
+              <div style={{ padding: '10px 14px', background: 'var(--green-light)', border: '1px solid rgba(45,90,58,0.2)', borderRadius: '6px', color: 'var(--green-valid)', fontFamily: 'Spectral, serif', fontSize: '13px', marginTop: '12px' }}>
+                {passwordSuccess}
+              </div>
+            )}
+            {passwordError && (
+              <div style={{ padding: '10px 14px', background: 'var(--red-light)', border: '1px solid rgba(122,42,42,0.2)', borderRadius: '6px', color: 'var(--red-soft)', fontFamily: 'Spectral, serif', fontSize: '13px', marginTop: '12px' }}>
+                {passwordError}
+              </div>
+            )}
           </div>
         )}
 
@@ -701,98 +882,94 @@ export default function UserProfilePage() {
 
             {/* Actions admin */}
             <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: '10px', padding: '20px', marginBottom: '24px' }}>
-              <div style={{ fontFamily: 'DM Mono, monospace', fontSize: '10px', letterSpacing: '0.1em', textTransform: 'uppercase' as const, color: 'var(--ink-muted)', marginBottom: '16px' }}>
+              <div style={{ fontFamily: 'DM Mono, monospace', fontSize: '10px', letterSpacing: '0.1em', textTransform: 'uppercase' as const, color: 'var(--ink-muted)', marginBottom: '20px' }}>
                 Actions
               </div>
 
-              {/* Rôle */}
-              <div style={{ marginBottom: '16px' }}>
-                <label style={{ display: 'block', fontFamily: 'DM Mono, monospace', fontSize: '9px', color: 'var(--ink-muted)', marginBottom: '6px', letterSpacing: '0.08em' }}>RÔLE</label>
-                <select
-                  defaultValue={adminInfo.user.role}
-                  onChange={async e => {
-                    try {
-                      await api.patch(`/api/admin/users/${adminInfo.user.id}/role`, { role: e.target.value })
-                      setProfile(prev => prev ? { ...prev, role: e.target.value } : prev)
-                    } catch (error) { console.error(error) }
-                  }}
-                  style={{ padding: '6px 10px', border: `1px solid ${getRoleBorder(adminInfo.user.role)}`, borderRadius: '6px', background: getRoleBackground(adminInfo.user.role), fontFamily: 'DM Mono, monospace', fontSize: '10px', color: getRoleColor(adminInfo.user.role), cursor: 'pointer', outline: 'none' }}
-                >
-                  {['VISITOR', 'NOVICE', 'INTERMEDIATE', 'EXPERT', 'ADMIN'].map(r => (
-                    <option key={r} value={r}>{r}</option>
-                  ))}
-                </select>
-              </div>
+              <div style={{ display: 'flex', alignItems: 'flex-end', gap: '24px', flexWrap: 'wrap' }}>
+                {/* Rôle */}
+                <div>
+                  <label style={{ display: 'block', fontFamily: 'DM Mono, monospace', fontSize: '9px', color: 'var(--ink-muted)', marginBottom: '8px', letterSpacing: '0.1em', textTransform: 'uppercase' as const }}>Rôle</label>
+                  <select
+                    defaultValue={adminInfo.user.role}
+                    onChange={async e => {
+                      try {
+                        await api.patch(`/api/admin/users/${adminInfo.user.id}/role`, { role: e.target.value })
+                        setProfile(prev => prev ? { ...prev, role: e.target.value } : prev)
+                      } catch (error) { console.error(error) }
+                    }}
+                    style={{ padding: '8px 12px', border: `1px solid ${getRoleBorder(adminInfo.user.role)}`, borderRadius: '6px', background: getRoleBackground(adminInfo.user.role), fontFamily: 'DM Mono, monospace', fontSize: '10px', color: getRoleColor(adminInfo.user.role), cursor: 'pointer', outline: 'none' }}
+                  >
+                    {['VISITOR', 'NOVICE', 'INTERMEDIATE', 'EXPERT', 'ADMIN'].map(r => (
+                      <option key={r} value={r}>{r}</option>
+                    ))}
+                  </select>
+                </div>
 
-              {/* Boutons */}
-              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                {/* Séparateur */}
+                <div style={{ width: '1px', height: '40px', background: 'var(--border)' }} />
+
                 {/* Désactiver / Réactiver */}
-                {adminInfo.user.isActive ? (
+                <div>
+                  <label style={{ display: 'block', fontFamily: 'DM Mono, monospace', fontSize: '9px', color: 'var(--ink-muted)', marginBottom: '8px', letterSpacing: '0.1em', textTransform: 'uppercase' as const }}>Accès</label>
+                  {adminInfo.user.isActive ? (
+                    <button
+                      onClick={() => setConfirmModal({
+                        message: `Désactiver le compte de ${adminInfo.user.username} ? Il sera déconnecté immédiatement.`,
+                        onConfirm: async () => {
+                          try {
+                            await api.patch(`/api/admin/users/${adminInfo.user.id}/deactivate`)
+                            setConfirmModal(null)
+                            setAdminInfo(prev => prev ? { ...prev, user: { ...prev.user, isActive: false } } : prev)
+                          } catch (error) { console.error(error) }
+                        }
+                      })}
+                      style={{ padding: '8px 16px', background: 'var(--red-light)', color: 'var(--red-soft)', border: '1px solid rgba(122,42,42,0.2)', borderRadius: '6px', fontFamily: 'DM Mono, monospace', fontSize: '10px', cursor: 'pointer', letterSpacing: '0.06em' }}
+                    >
+                      ✕ Désactiver
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => setConfirmModal({
+                        message: `Réactiver le compte de ${adminInfo.user.username} ?`,
+                        onConfirm: async () => {
+                          try {
+                            await api.patch(`/api/admin/users/${adminInfo.user.id}/reactivate`)
+                            setConfirmModal(null)
+                            setAdminInfo(prev => prev ? { ...prev, user: { ...prev.user, isActive: true } } : prev)
+                          } catch (error) { console.error(error) }
+                        }
+                      })}
+                      style={{ padding: '8px 16px', background: 'var(--green-light)', color: 'var(--green-valid)', border: '1px solid rgba(45,90,58,0.2)', borderRadius: '6px', fontFamily: 'DM Mono, monospace', fontSize: '10px', cursor: 'pointer', letterSpacing: '0.06em' }}
+                    >
+                      ✓ Réactiver
+                    </button>
+                  )}
+                </div>
+
+                {/* Séparateur */}
+                <div style={{ width: '1px', height: '40px', background: 'var(--border)' }} />
+
+                {/* Reset mdp */}
+                <div>
+                  <label style={{ display: 'block', fontFamily: 'DM Mono, monospace', fontSize: '9px', color: 'var(--ink-muted)', marginBottom: '8px', letterSpacing: '0.1em', textTransform: 'uppercase' as const }}>Sécurité</label>
                   <button
                     onClick={() => setConfirmModal({
-                      message: `Désactiver le compte de ${adminInfo.user.username} ?`,
+                      message: `Forcer la réinitialisation du mot de passe de ${adminInfo.user.username} ?`,
                       onConfirm: async () => {
                         try {
-                          await api.patch(`/api/admin/users/${adminInfo.user.id}/deactivate`)
+                          await api.patch(`/api/admin/users/${adminInfo.user.id}/force-reset`)
                           setConfirmModal(null)
-                          setAdminInfo(prev => prev ? { ...prev, user: { ...prev.user, isActive: false } } : prev)
+                          setAdminInfo(prev => prev ? { ...prev, user: { ...prev.user, forcePasswordReset: true } } : prev)
                         } catch (error) { console.error(error) }
                       }
                     })}
-                    style={{ padding: '7px 14px', background: 'var(--red-light)', color: 'var(--red-soft)', border: '1px solid rgba(122,42,42,0.2)', borderRadius: '6px', fontFamily: 'DM Mono, monospace', fontSize: '9px', cursor: 'pointer' }}
+                    disabled={adminInfo.user.forcePasswordReset}
+                    style={{ padding: '8px 16px', background: adminInfo.user.forcePasswordReset ? 'var(--parchment-deep)' : 'var(--amber-light)', color: adminInfo.user.forcePasswordReset ? 'var(--ink-faint)' : 'var(--amber-pending)', border: `1px solid ${adminInfo.user.forcePasswordReset ? 'var(--border)' : 'rgba(122,90,26,0.2)'}`, borderRadius: '6px', fontFamily: 'DM Mono, monospace', fontSize: '10px', cursor: adminInfo.user.forcePasswordReset ? 'not-allowed' : 'pointer', letterSpacing: '0.06em' }}
                   >
-                    ✕ Désactiver
+                    🔑 {adminInfo.user.forcePasswordReset ? 'Reset en attente' : 'Reset mdp'}
                   </button>
-                ) : (
-                  <button
-                    onClick={() => setConfirmModal({
-                      message: `Réactiver le compte de ${adminInfo.user.username} ?`,
-                      onConfirm: async () => {
-                        try {
-                          await api.patch(`/api/admin/users/${adminInfo.user.id}/reactivate`)
-                          setConfirmModal(null)
-                          setAdminInfo(prev => prev ? { ...prev, user: { ...prev.user, isActive: true } } : prev)
-                        } catch (error) { console.error(error) }
-                      }
-                    })}
-                    style={{ padding: '7px 14px', background: 'var(--green-light)', color: 'var(--green-valid)', border: '1px solid rgba(45,90,58,0.2)', borderRadius: '6px', fontFamily: 'DM Mono, monospace', fontSize: '9px', cursor: 'pointer' }}
-                  >
-                    ✓ Réactiver
-                  </button>
-                )}
-
-                {/* Kick */}
-                <button
-                  onClick={() => setConfirmModal({
-                    message: `Déconnecter tous les appareils de ${adminInfo.user.username} ?`,
-                    onConfirm: async () => {
-                      try {
-                        await api.patch(`/api/admin/users/${adminInfo.user.id}/kick`)
-                          setConfirmModal(null)
-                      } catch (error) { console.error(error) }
-                      }
-                    })}
-                  style={{ padding: '7px 14px', background: 'var(--blue-light)', color: 'var(--blue-sacred)', border: '1px solid rgba(42,74,122,0.2)', borderRadius: '6px', fontFamily: 'DM Mono, monospace', fontSize: '9px', cursor: 'pointer' }}
-                >
-                  ⟳ Kick
-                </button>
-
-                {/* Forcer reset mdp */}
-                <button
-                  onClick={() => setConfirmModal({
-                    message: `Forcer la réinitialisation du mot de passe de ${adminInfo.user.username} ?`,
-                    onConfirm: async () => {
-                      try {
-                        await api.patch(`/api/admin/users/${adminInfo.user.id}/force-reset`)
-                          setConfirmModal(null)
-                        setAdminInfo(prev => prev ? { ...prev, user: { ...prev.user, forcePasswordReset: true } } : prev)
-                      } catch (error) { console.error(error) }
-                      }
-                    })}
-                  style={{ padding: '7px 14px', background: 'var(--amber-light)', color: 'var(--amber-pending)', border: '1px solid rgba(122,90,26,0.2)', borderRadius: '6px', fontFamily: 'DM Mono, monospace', fontSize: '9px', cursor: 'pointer' }}
-                >
-                  🔑 Reset mdp
-                </button>
+                </div>
               </div>
             </div>
             {/* Logs */}
@@ -806,8 +983,11 @@ export default function UserProfilePage() {
                 <div>
                   {(() => {
                     const grouped = adminInfo.logs.reduce((acc, log) => {
-                      const cat = ['PASSWORD_CHANGE', 'EMAIL_CHANGE', 'USERNAME_CHANGE'].includes(log.action)
-                        ? 'PROFILE_CHANGE' : log.action
+                      const cat = log.action === 'PASSWORD_CHANGE' && log.metadata?.forced === 'true'
+                        ? 'ROLE_CHANGE'
+                        : ['PASSWORD_CHANGE', 'EMAIL_CHANGE', 'USERNAME_CHANGE'].includes(log.action)
+                        ? 'PROFILE_CHANGE'
+                        : log.action
                       if (!acc[cat]) acc[cat] = []
                       acc[cat].push(log)
                       return acc
@@ -818,7 +998,8 @@ export default function UserProfilePage() {
                       LOGOUT: { label: 'Déconnexions', bg: 'var(--parchment-deep)', color: 'var(--ink-muted)' },
                       PROFILE_CHANGE: { label: 'Modifications du profil', bg: 'var(--amber-light)', color: 'var(--amber-pending)' },
                       REGISTER: { label: 'Inscription', bg: 'var(--blue-light)', color: 'var(--blue-sacred)' },
-                      ROLE_CHANGE: { label: 'Changements de rôle', bg: 'var(--red-light)', color: 'var(--red-soft)' },
+                      ROLE_CHANGE: { label: 'Actions administratives', bg: 'var(--red-light)', color: 'var(--red-soft)' },
+                      ACCOUNT_SUSPENDED: { label: 'Activations / Désactivations', bg: 'var(--red-light)', color: 'var(--red-soft)' },
                     }
 
                     const actionLabels: Record<string, string> = {
@@ -828,7 +1009,8 @@ export default function UserProfilePage() {
                       LOGIN: 'Connexion',
                       LOGOUT: 'Déconnexion',
                       REGISTER: 'Inscription',
-                      ROLE_CHANGE: 'Rôle modifié',
+                      ROLE_CHANGE: 'Action admin',
+                      ACCOUNT_SUSPENDED: 'Compte désactivé',
                     }
 
                     return Object.entries(grouped).map(([cat, logs]) => {
@@ -843,17 +1025,23 @@ export default function UserProfilePage() {
                               {logs.length} événement{logs.length > 1 ? 's' : ''}
                             </span>
                           </div>
-                          {logs.slice(0, 5).map(log => (
+                          {(expandedLogCats.has(cat) ? logs : logs.slice(0, 5)).map(log => (
                             <div key={log.id} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '6px 10px', borderRadius: '6px', background: 'var(--parchment)', marginBottom: '4px' }}>
-                              <span style={{ fontFamily: 'DM Mono, monospace', fontSize: '9px', color: style.color, flexShrink: 0 }}>
-                                {actionLabels[log.action] || log.action}
+                              <span style={{ fontFamily: 'DM Mono, monospace', fontSize: '10px', color: style.color, flexShrink: 0 }}>
+                                {log.action === 'PASSWORD_CHANGE' && log.metadata?.forced === 'true'
+                                  ? 'Reset mdp forcé par admin'
+                                  : log.action === 'ACCOUNT_SUSPENDED' && log.metadata?.action === 'REACTIVATED'
+                                  ? 'Compte réactivé'
+                                  : log.action === 'ROLE_CHANGE' && log.metadata?.action === 'KICK'
+                                  ? 'Kick (déconnexion forcée)'
+                                  : actionLabels[log.action] || log.action}
                               </span>
-                              {log.metadata && Object.keys(log.metadata).length > 0 && (
+                              {log.metadata && Object.keys(log.metadata).filter(k => !['forced', 'by'].includes(k)).length > 0 && (
                                 <span style={{ fontFamily: 'DM Mono, monospace', fontSize: '9px', color: 'var(--ink-soft)', flex: 1 }}>
-                                  {Object.entries(log.metadata).map(([k, v]) => `${k} : ${v}`).join(' · ')}
+                                  {Object.entries(log.metadata).filter(([k]) => !['forced', 'by'].includes(k)).map(([k, v]) => `${k} : ${v}`).join(' · ')}
                                 </span>
                               )}
-                              {log.ip && (
+                              {log.ip && log.ip !== '::1' && (
                                 <span style={{ fontFamily: 'DM Mono, monospace', fontSize: '9px', color: 'var(--ink-faint)', flexShrink: 0 }}>
                                   {log.ip}
                                 </span>
@@ -864,8 +1052,23 @@ export default function UserProfilePage() {
                             </div>
                           ))}
                           {logs.length > 5 && (
-                            <div style={{ fontFamily: 'DM Mono, monospace', fontSize: '9px', color: 'var(--ink-faint)', padding: '4px 10px' }}>
-                              + {logs.length - 5} autres
+                            <div
+                              onClick={() => setExpandedLogCats(prev => {
+                                const s = new Set(prev)
+                                if (s.has(cat)) s.delete(cat)
+                                else s.add(cat)
+                                return s
+                              })}
+                              style={{
+                                fontFamily: 'DM Mono, monospace',
+                                fontSize: '9px',
+                                color: 'var(--gold)',
+                                padding: '4px 10px',
+                                cursor: 'pointer',
+                                userSelect: 'none' as const,
+                              }}
+                            >
+                              {expandedLogCats.has(cat) ? '▼ Réduire' : `▶ Voir ${logs.length - 5} de plus`}
                             </div>
                           )}
                         </div>

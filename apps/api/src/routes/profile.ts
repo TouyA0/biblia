@@ -58,18 +58,19 @@ router.patch('/', authenticateJWT, async (req: AuthRequest, res: Response) => {
       if (existing) { res.status(409).json({ error: 'Email déjà utilisé' }); return }
     }
 
+    const currentUser = await prisma.user.findUnique({ where: { id: req.user!.id }, select: { username: true, email: true } })
+
     const user = await prisma.user.update({
       where: { id: req.user!.id },
       data: { ...(username && { username }), ...(email && { email }) },
       select: { id: true, email: true, username: true, role: true }
     })
-
-    const currentUser = await prisma.user.findUnique({ where: { id: req.user!.id }, select: { username: true } })
+    
     if (username && currentUser && username !== currentUser.username) {
-      await logAction('USERNAME_CHANGE', req.user!.id, { old: currentUser.username, new: username }, req.ip)
+      await logAction('USERNAME_CHANGE', req.user!.id, { ancien: currentUser.username, nouveau: username }, req.ip)
     }
-    if (email) {
-      await logAction('EMAIL_CHANGE', req.user!.id, { new: email }, req.ip)
+    if (email && currentUser && email !== currentUser.email) {
+      await logAction('EMAIL_CHANGE', req.user!.id, { ancien: currentUser.email, nouveau: email }, req.ip)
     }
 
     res.json(user)
@@ -164,6 +165,20 @@ router.get('/contributions', authenticateJWT, async (req: AuthRequest, res: Resp
     ])
 
     res.json({ wordTranslations, proposals, comments })
+  } catch (error) {
+    console.error(error)
+    res.status(500).json({ error: 'Erreur serveur' })
+  }
+})
+
+// PATCH /api/profile/clear-reset
+router.patch('/clear-reset', authenticateJWT, async (req: AuthRequest, res: Response) => {
+  try {
+    await prisma.user.update({
+      where: { id: req.user!.id },
+      data: { forcePasswordReset: false }
+    })
+    res.json({ message: 'OK' })
   } catch (error) {
     console.error(error)
     res.status(500).json({ error: 'Erreur serveur' })

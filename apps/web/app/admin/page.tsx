@@ -931,32 +931,6 @@ export default function AdminPage() {
                             {u.isActive ? '✕' : '✓'}
                           </button>
 
-                          {/* Kick */}
-                          <button
-                            title="Déconnecter tous les appareils"
-                            disabled={actionLoading === u.id}
-                            onClick={async () => {
-                              setActionLoading(u.id)
-                              try {
-                                await api.patch(`/api/admin/users/${u.id}/kick`)
-                              } catch (error) { console.error(error) }
-                              finally { setActionLoading(null) }
-                            }}
-                            style={{
-                              width: '24px', height: '24px',
-                              display: 'flex', alignItems: 'center', justifyContent: 'center',
-                              borderRadius: '4px',
-                              border: '1px solid rgba(42,74,122,0.2)',
-                              background: 'var(--blue-light)',
-                              cursor: 'pointer',
-                              fontSize: '11px',
-                              color: 'var(--blue-sacred)',
-                              opacity: actionLoading === u.id ? 0.5 : 1,
-                            }}
-                          >
-                            ⟳
-                          </button>
-
                           {/* Forcer reset mdp */}
                           <button
                             title="Forcer réinitialisation mot de passe"
