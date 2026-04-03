@@ -81,22 +81,40 @@ export default function CommentText({ text, disableLinks = false }: CommentTextP
                   border: '1px solid rgba(42,74,122,0.15)',
                 }
               }, verseRef)
-            : React.createElement('span', {
-                key: m.index,
-                onMouseEnter: (e: React.MouseEvent) => handleVerseHover(verseRef, e),
-                onMouseLeave: () => setTooltip(null),
-                style: {
-                  color: 'var(--blue-sacred)',
-                  textDecoration: 'none',
-                  fontFamily: 'DM Mono, monospace',
-                  fontSize: '11px',
-                  padding: '1px 5px',
-                  borderRadius: '4px',
-                  background: 'var(--blue-light)',
-                  border: '1px solid rgba(42,74,122,0.15)',
-                  cursor: 'pointer',
-                }
-              }, verseRef)
+            : React.createElement('a', {
+              key: m.index,
+              href: (() => {
+                const parsed = parseVerseRef(verseRef)
+                if (!parsed) return '#'
+                const ntSlugs = ['matthieu', 'marc', 'luc', 'jean', 'actes', 'romains', '1-corinthiens', '2-corinthiens', 'galates', 'ephesiens', 'philippiens', 'colossiens', '1-thessaloniciens', '2-thessaloniciens', '1-timothee', '2-timothee', 'tite', 'philemon', 'hebreux', 'jacques', '1-pierre', '2-pierre', '1-jean', '2-jean', '3-jean', 'jude', 'apocalypse']
+                const testament = ntSlugs.includes(parsed.slug) ? 'nt' : 'at'
+                return `/${testament}/${parsed.slug}/${parsed.chapter}#v${parsed.verse}`
+              })(),
+              onMouseEnter: (e: React.MouseEvent) => handleVerseHover(verseRef, e),
+              onMouseLeave: () => setTooltip(null),
+              onClick: async (e: React.MouseEvent) => {
+                e.preventDefault()
+                const parsed = parseVerseRef(verseRef)
+                if (!parsed) return
+                try {
+                  const res = await api.get(`/api/verses/by-ref?book=${parsed.slug}&chapter=${parsed.chapter}&verse=${parsed.verse}`)
+                  const verse = res.data
+                  const testament = verse.chapter.book.testament === 'AT' ? 'at' : 'nt'
+                  window.location.href = `/${testament}/${parsed.slug}/${parsed.chapter}?verse=${verse.id}&tab=verse#v${parsed.verse}`
+                } catch (e) { console.error(e) }
+              },
+              style: {
+                color: 'var(--blue-sacred)',
+                textDecoration: 'none',
+                fontFamily: 'DM Mono, monospace',
+                fontSize: '11px',
+                padding: '1px 5px',
+                borderRadius: '4px',
+                background: 'var(--blue-light)',
+                border: '1px solid rgba(42,74,122,0.15)',
+                cursor: 'pointer',
+              }
+            }, verseRef)
         )
       }
       lastIndex = m.index + m[0].length

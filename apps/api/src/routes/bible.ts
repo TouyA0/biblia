@@ -253,10 +253,8 @@ router.get('/verses/by-ref', async (req: Request, res: Response) => {
       },
       include: {
         texts: true,
-        translations: {
-          where: { isActive: true },
-          take: 1
-        }
+        translations: { where: { isActive: true }, take: 1 },
+        chapter: { include: { book: true } }
       }
     })
     if (!verseData) { res.status(404).json({ error: 'Verset non trouvé' }); return }

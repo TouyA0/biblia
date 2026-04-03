@@ -122,6 +122,34 @@ export default function BibleLayout({ testament }: BibleLayoutProps) {
   }, [book, chapter])
 
   useEffect(() => {
+    if (loading || !chapterData) return
+    const hash = window.location.hash
+    if (hash.startsWith('#v')) {
+      const verseNumber = Number(hash.slice(2))
+      setTimeout(() => {
+        const el = document.getElementById(`v${verseNumber}`)
+        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      }, 100)
+      // Si pas de verse ou word dans l'URL, ouvrir le verset par son numéro
+      if (!searchParams.get('verse') && !searchParams.get('word')) {
+        const verse = chapterData.verses.find((v: Verse) => v.number === verseNumber)
+        if (verse) {
+          setActiveVerse(verse)
+          setActiveTab('verse')
+          Promise.all([
+            api.get(`/api/verses/${verse.id}/comments`),
+            api.get(`/api/verses/${verse.id}/proposals`),
+          ]).then(([commentsRes, proposalsRes]) => {
+            setComments(commentsRes.data)
+            setProposals(proposalsRes.data.proposals)
+            setVerseTranslations(proposalsRes.data.translations)
+          }).catch(console.error)
+        }
+      }
+    }
+  }, [loading, chapterData])
+
+  useEffect(() => {
     if (!chapterData) return
 
     const wordId = searchParams.get('word')
@@ -137,6 +165,10 @@ export default function BibleLayout({ testament }: BibleLayoutProps) {
             setActiveWord(token)
             setActiveTab('word')
             setPopoverPos(null)
+            setTimeout(() => {
+              const el = document.getElementById(`v${verse.number}`)
+              if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+            }, 100)
             // Charger les traductions
             api.get(`/api/words/${wordId}/translations`).then(res => {
               setWordTranslations(res.data)
@@ -152,6 +184,10 @@ export default function BibleLayout({ testament }: BibleLayoutProps) {
       if (verse) {
         setActiveVerse(verse)
         setActiveTab(tab)
+        setTimeout(() => {
+          const el = document.getElementById(`v${verse.number}`)
+          if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+        }, 100)
         Promise.all([
           api.get(`/api/verses/${verse.id}/comments`),
           api.get(`/api/verses/${verse.id}/proposals`),

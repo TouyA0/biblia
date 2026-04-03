@@ -26,6 +26,7 @@ interface Stats {
     creator: { username: string; role: string } | null
     translation: {
       verse: {
+        id: string
         number: number
         chapter: { number: number; book: { name: string; slug: string; testament: string } }
       }
@@ -38,9 +39,11 @@ interface Stats {
     createdAt: string
     creator: { username: string; role: string } | null
     wordToken: {
+      id: string
       word: string
       verseText: {
         verse: {
+          id: string
           number: number
           chapter: { number: number; book: { name: string; slug: string; testament: string } }
         }
@@ -53,6 +56,7 @@ interface Stats {
     createdAt: string
     creator: { username: string; role: string } | null
     verse: {
+      id: string
       number: number
       chapter: { number: number; book: { name: string; slug: string; testament: string } }
     } | null
@@ -475,7 +479,7 @@ export default function AdminPage() {
 								</div>
 								{stats.recentProposals.map(p => {
 									const verse = p.translation.verse
-									const url = `/${verse.chapter.book.testament === 'AT' ? 'at' : 'nt'}/${verse.chapter.book.slug}/${verse.chapter.number}?verse=${encodeURIComponent(verse.number)}&tab=verse#v${verse.number}`
+									const url = `/${verse.chapter.book.testament === 'AT' ? 'at' : 'nt'}/${verse.chapter.book.slug}/${verse.chapter.number}?verse=${verse.id}&tab=verse#v${verse.number}`
 									return (
 										<Link key={p.id} href={url} style={{ textDecoration: 'none', display: 'block' }}>
 											<div style={{
@@ -554,7 +558,7 @@ export default function AdminPage() {
 								</div>
 								{stats.recentWordTranslations.map(t => {
 									const verse = t.wordToken.verseText.verse
-									const url = `/${verse.chapter.book.testament === 'AT' ? 'at' : 'nt'}/${verse.chapter.book.slug}/${verse.chapter.number}?word=${t.id}&tab=word#v${verse.number}`
+									const url = `/${verse.chapter.book.testament === 'AT' ? 'at' : 'nt'}/${verse.chapter.book.slug}/${verse.chapter.number}?word=${t.wordToken.id}&tab=word#v${verse.number}`
 									return (
 										<Link key={t.id} href={url} style={{ textDecoration: 'none', display: 'block' }}>
 											<div style={{
@@ -630,8 +634,8 @@ export default function AdminPage() {
 								</div>
 								{stats.recentComments.map(c => {
 									const url = c.verse
-										? `/${c.verse.chapter.book.testament === 'AT' ? 'at' : 'nt'}/${c.verse.chapter.book.slug}/${c.verse.chapter.number}?verse=${c.verse.number}&tab=comments#v${c.verse.number}`
-										: null
+                    ? `/${c.verse.chapter.book.testament === 'AT' ? 'at' : 'nt'}/${c.verse.chapter.book.slug}/${c.verse.chapter.number}?verse=${c.verse.id}&tab=comments#v${c.verse.number}`
+                    : null
 									const content = (
 										<div style={{
 											padding: '8px 0',

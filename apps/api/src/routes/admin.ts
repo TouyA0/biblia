@@ -34,19 +34,23 @@ router.get('/stats', async (req: AuthRequest, res: Response) => {
 		})
 
 		const recentProposals = await prisma.proposal.findMany({
-			orderBy: { createdAt: 'desc' },
-			take: 5,
-			include: {
-				creator: { select: { username: true, role: true } },
-				translation: {
-					include: {
-						verse: {
-							include: { chapter: { include: { book: true } } }
-						}
-					}
-				}
-			}
-		})
+      orderBy: { createdAt: 'desc' },
+      take: 5,
+      include: {
+        creator: { select: { username: true, role: true } },
+        translation: {
+          include: {
+            verse: {
+              select: {
+                id: true,
+                number: true,
+                chapter: { include: { book: true } }
+              }
+            }
+          }
+        }
+      }
+    })
 
 		const recentWordTranslations = await prisma.wordTranslation.findMany({
 			orderBy: { createdAt: 'desc' },
@@ -54,29 +58,39 @@ router.get('/stats', async (req: AuthRequest, res: Response) => {
 			include: {
 				creator: { select: { username: true, role: true } },
 				wordToken: {
-					include: {
-						verseText: {
-							include: {
-								verse: {
-									include: { chapter: { include: { book: true } } }
-								}
-							}
-						}
-					}
-				}
+          select: {
+            id: true,
+            word: true,
+            verseText: {
+              include: {
+                verse: {
+                  select: {
+                    id: true,
+                    number: true,
+                    chapter: { include: { book: true } }
+                  }
+                }
+              }
+            }
+          }
+        }
 			}
 		})
 
 		const recentComments = await prisma.comment.findMany({
-			orderBy: { createdAt: 'desc' },
-			take: 5,
-			include: {
-				creator: { select: { username: true, role: true } },
-				verse: {
-					include: { chapter: { include: { book: true } } }
-				}
-			}
-		})
+      orderBy: { createdAt: 'desc' },
+      take: 5,
+      include: {
+        creator: { select: { username: true, role: true } },
+        verse: {
+          select: {
+            id: true,
+            number: true,
+            chapter: { include: { book: true } }
+          }
+        }
+      }
+    })
 
 		res.json({ users, books, verses, wordTranslations, proposals, comments, usersByRole, recentUsers, recentProposals, recentWordTranslations, recentComments })
   } catch (error) {

@@ -118,73 +118,34 @@ function OccurrencesList({ occurrences, activeWord }: {
       {displayed.map((o, i) => {
         const verse = o.verseText.verse
         const prefix = verse.chapter.book.testament === 'AT' ? 'at' : 'nt'
-        const url = `/${prefix}/${verse.chapter.book.slug}/${verse.chapter.number}#v${verse.number}`
+        const url = `/${prefix}/${verse.chapter.book.slug}/${verse.chapter.number}?word=${o.id}&tab=word#v${verse.number}`
         const trans = verse.translations?.[0]?.textFr || ''
         const wordLower = activeWord.word.toLowerCase()
         const idx = trans.toLowerCase().indexOf(wordLower)
-
-        // Trouver un extrait centré autour du mot
-        const maxLen = 80
-        let excerpt = trans
-        let highlightStart = idx
-        if (trans.length > maxLen && idx >= 0) {
-          const start = Math.max(0, idx - 30)
-          excerpt = (start > 0 ? '…' : '') + trans.slice(start, start + maxLen) + (start + maxLen < trans.length ? '…' : '')
-          highlightStart = idx - start + (start > 0 ? 1 : 0)
-        }
-
         return (
           <Link key={o.id} href={url} style={{ textDecoration: 'none', display: 'block' }}>
             <div
-              style={{
-                padding: '10px 0',
-                borderBottom: i < displayed.length - 1 ? '1px solid var(--border)' : 'none',
-                cursor: 'pointer',
-                transition: 'opacity 0.15s',
-              }}
+              style={{ padding: '10px 0', borderBottom: i < displayed.length - 1 ? '1px solid var(--border)' : 'none', cursor: 'pointer', transition: 'opacity 0.15s' }}
               onMouseEnter={e => (e.currentTarget as HTMLElement).style.opacity = '0.7'}
               onMouseLeave={e => (e.currentTarget as HTMLElement).style.opacity = '1'}
             >
-              <div style={{
-                fontFamily: 'DM Mono, monospace',
-                fontSize: '9px',
-                color: 'var(--ink-muted)',
-                marginBottom: '5px',
-              }}>
+              <div style={{ fontFamily: 'DM Mono, monospace', fontSize: '9px', color: 'var(--ink-muted)', marginBottom: '6px' }}>
                 {verse.chapter.book.name} {verse.chapter.number}:{verse.number}
               </div>
               {trans ? (
-                <div style={{
-                  fontFamily: 'Spectral, serif',
-                  fontSize: '13px',
-                  fontStyle: 'italic',
-                  color: 'var(--ink-soft)',
-                  lineHeight: '1.6',
-                }}>
-                  {highlightStart >= 0 ? (
+                <div style={{ fontFamily: 'Spectral, serif', fontSize: '13px', fontStyle: 'italic', color: 'var(--ink-soft)', lineHeight: '1.6', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' as const }}>
+                  {idx >= 0 ? (
                     <>
-                      {excerpt.slice(0, highlightStart)}
-                      <span style={{
-                        background: 'var(--gold-pale)',
-                        color: 'var(--gold)',
-                        borderRadius: '3px',
-                        padding: '0 3px',
-                        fontStyle: 'normal',
-                        fontWeight: '500',
-                      }}>
-                        {excerpt.slice(highlightStart, highlightStart + wordLower.length)}
+                      {trans.slice(0, idx)}
+                      <span style={{ background: 'var(--gold-pale)', color: 'var(--gold)', borderRadius: '3px', padding: '0 2px', fontStyle: 'normal', fontWeight: '500' }}>
+                        {trans.slice(idx, idx + wordLower.length)}
                       </span>
-                      {excerpt.slice(highlightStart + wordLower.length)}
+                      {trans.slice(idx + wordLower.length)}
                     </>
-                  ) : excerpt}
+                  ) : trans}
                 </div>
               ) : (
-                <div style={{
-                  fontFamily: 'DM Mono, monospace',
-                  fontSize: '13px',
-                  color: 'var(--ink)',
-                  direction: 'rtl',
-                }}>
+                <div style={{ fontFamily: 'DM Mono, monospace', fontSize: '12px', color: 'var(--ink)', direction: 'rtl' }}>
                   {o.word}
                 </div>
               )}
@@ -195,14 +156,7 @@ function OccurrencesList({ occurrences, activeWord }: {
       {occurrences.length > 5 && (
         <div
           onClick={e => { e.preventDefault(); setShowAll(!showAll) }}
-          style={{
-            fontFamily: 'DM Mono, monospace',
-            fontSize: '9px',
-            color: 'var(--gold)',
-            padding: '8px 0',
-            cursor: 'pointer',
-            userSelect: 'none' as const,
-          }}
+          style={{ fontFamily: 'DM Mono, monospace', fontSize: '9px', color: 'var(--gold)', padding: '8px 0', cursor: 'pointer', userSelect: 'none' as const }}
         >
           {showAll ? '▼ Réduire' : `▶ Voir ${occurrences.length - 5} de plus`}
         </div>
