@@ -96,6 +96,121 @@ interface RightPanelProps {
   onProposalUpdated: () => void
 }
 
+function OccurrencesList({ occurrences, activeWord }: {
+  occurrences: {
+    id: string
+    word: string
+    verseText: {
+      verse: {
+        number: number
+        chapter: { number: number; book: { name: string; slug: string; testament: string } }
+        translations?: { textFr: string }[]
+      }
+    }
+  }[]
+  activeWord: { word: string }
+}) {
+  const [showAll, setShowAll] = useState(false)
+  const displayed = showAll ? occurrences : occurrences.slice(0, 5)
+
+  return (
+    <div>
+      {displayed.map((o, i) => {
+        const verse = o.verseText.verse
+        const prefix = verse.chapter.book.testament === 'AT' ? 'at' : 'nt'
+        const url = `/${prefix}/${verse.chapter.book.slug}/${verse.chapter.number}#v${verse.number}`
+        const trans = verse.translations?.[0]?.textFr || ''
+        const wordLower = activeWord.word.toLowerCase()
+        const idx = trans.toLowerCase().indexOf(wordLower)
+
+        // Trouver un extrait centré autour du mot
+        const maxLen = 80
+        let excerpt = trans
+        let highlightStart = idx
+        if (trans.length > maxLen && idx >= 0) {
+          const start = Math.max(0, idx - 30)
+          excerpt = (start > 0 ? '…' : '') + trans.slice(start, start + maxLen) + (start + maxLen < trans.length ? '…' : '')
+          highlightStart = idx - start + (start > 0 ? 1 : 0)
+        }
+
+        return (
+          <Link key={o.id} href={url} style={{ textDecoration: 'none', display: 'block' }}>
+            <div
+              style={{
+                padding: '10px 0',
+                borderBottom: i < displayed.length - 1 ? '1px solid var(--border)' : 'none',
+                cursor: 'pointer',
+                transition: 'opacity 0.15s',
+              }}
+              onMouseEnter={e => (e.currentTarget as HTMLElement).style.opacity = '0.7'}
+              onMouseLeave={e => (e.currentTarget as HTMLElement).style.opacity = '1'}
+            >
+              <div style={{
+                fontFamily: 'DM Mono, monospace',
+                fontSize: '9px',
+                color: 'var(--ink-muted)',
+                marginBottom: '5px',
+              }}>
+                {verse.chapter.book.name} {verse.chapter.number}:{verse.number}
+              </div>
+              {trans ? (
+                <div style={{
+                  fontFamily: 'Spectral, serif',
+                  fontSize: '13px',
+                  fontStyle: 'italic',
+                  color: 'var(--ink-soft)',
+                  lineHeight: '1.6',
+                }}>
+                  {highlightStart >= 0 ? (
+                    <>
+                      {excerpt.slice(0, highlightStart)}
+                      <span style={{
+                        background: 'var(--gold-pale)',
+                        color: 'var(--gold)',
+                        borderRadius: '3px',
+                        padding: '0 3px',
+                        fontStyle: 'normal',
+                        fontWeight: '500',
+                      }}>
+                        {excerpt.slice(highlightStart, highlightStart + wordLower.length)}
+                      </span>
+                      {excerpt.slice(highlightStart + wordLower.length)}
+                    </>
+                  ) : excerpt}
+                </div>
+              ) : (
+                <div style={{
+                  fontFamily: 'DM Mono, monospace',
+                  fontSize: '13px',
+                  color: 'var(--ink)',
+                  direction: 'rtl',
+                }}>
+                  {o.word}
+                </div>
+              )}
+            </div>
+          </Link>
+        )
+      })}
+      {occurrences.length > 5 && (
+        <div
+          onClick={e => { e.preventDefault(); setShowAll(!showAll) }}
+          style={{
+            fontFamily: 'DM Mono, monospace',
+            fontSize: '9px',
+            color: 'var(--gold)',
+            padding: '8px 0',
+            cursor: 'pointer',
+            userSelect: 'none' as const,
+          }}
+        >
+          {showAll ? '▼ Réduire' : `▶ Voir ${occurrences.length - 5} de plus`}
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default function RightPanel({
   activeTab,
   setActiveTab,
@@ -129,6 +244,21 @@ export default function RightPanel({
   const [replyingToId, setReplyingToId] = useState<string | null>(null)
   const [replyText, setReplyText] = useState('')
   const [submittingReply, setSubmittingReply] = useState(false)
+
+  const [occurrences, setOccurrences] = useState<{
+    id: string
+    word: string
+    position: number
+    verseText: {
+      verse: {
+        number: number
+        chapter: { number: number; book: { name: string; slug: string; testament: string } }
+        translations?: { textFr: string }[]
+      }
+    }
+  }[]>([])
+  const [loadingOccurrences, setLoadingOccurrences] = useState(false)
+
   const [insertMode, setInsertMode] = useState<null | 'verse' | 'link'>(null)
   const [insertBook, setInsertBook] = useState('')
   const [insertChapter, setInsertChapter] = useState('')
@@ -166,6 +296,15 @@ export default function RightPanel({
       useAuthStore.getState().setUser(JSON.parse(savedUser))
     }
   }, [])
+
+  useEffect(() => {
+    if (!activeWord) return
+    setLoadingOccurrences(true)
+    api.get(`/api/words/${activeWord.id}/occurrences`)
+      .then(res => setOccurrences(res.data))
+      .catch(console.error)
+      .finally(() => setLoadingOccurrences(false))
+  }, [activeWord?.id])
 
   async function handleSubmitTranslation() {
     if (!activeWord || !newTranslation.trim()) return
@@ -1373,7 +1512,6 @@ export default function RightPanel({
                   )}
                 </>
               )}
-
               {!showForm ? (
                 <button
                   onClick={() => setShowForm(true)}
@@ -1482,6 +1620,37 @@ export default function RightPanel({
                   </div>
                 </div>
               )}
+            {/* Occurrences */}
+              {activeWord.lemma && (
+                <div style={{ marginTop: '24px', borderTop: '1px solid var(--border)', paddingTop: '20px' }}>
+                  <div style={{
+                    fontFamily: 'DM Mono, monospace',
+                    fontSize: '10px',
+                    letterSpacing: '0.1em',
+                    textTransform: 'uppercase' as const,
+                    color: 'var(--ink-muted)',
+                    marginBottom: '12px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                  }}>
+                    Occurrences dans la Bible
+                    {!loadingOccurrences && occurrences.length > 0 && (
+                      <span style={{ fontFamily: 'DM Mono, monospace', fontSize: '9px', padding: '1px 6px', borderRadius: '20px', background: 'var(--parchment-deep)', color: 'var(--ink-muted)', border: '1px solid var(--border)' }}>
+                        {occurrences.length}
+                      </span>
+                    )}
+                  </div>
+                  {loadingOccurrences ? (
+                    <div style={{ fontFamily: 'Spectral, serif', fontSize: '13px', color: 'var(--ink-faint)', fontStyle: 'italic' }}>Chargement...</div>
+                  ) : occurrences.length === 0 ? (
+                    <div style={{ fontFamily: 'Spectral, serif', fontSize: '13px', color: 'var(--ink-faint)', fontStyle: 'italic' }}>Aucune autre occurrence trouvée.</div>
+                  ) : (
+                    <OccurrencesList occurrences={occurrences} activeWord={activeWord} />
+                  )}
+                </div>
+              )}
+
             </div>
           ) : (
             <div style={{
