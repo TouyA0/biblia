@@ -7,6 +7,7 @@ import ConfirmModal from './ConfirmModal'
 import CommentText from './CommentText'
 import { getRoleColor, getRoleBackground, getRoleBorder } from '@/lib/roleColors'
 import { BOOK_NAME_TO_SLUG } from '@/lib/bookSlugs'
+import Link from 'next/link'
 
 interface WordToken {
   id: string
@@ -495,13 +496,14 @@ export default function RightPanel({
                       background: 'var(--parchment-dark)',
                       borderBottom: '1px solid var(--border)',
                     }}>
-                      <span style={{
+                      <Link href={p.creator ? `/profile/${p.creator.username}` : '#'} style={{
                         fontFamily: 'DM Mono, monospace',
                         fontSize: '10px',
                         color: p.creator ? getRoleColor(p.creator.role) : 'var(--ink-muted)',
+                        textDecoration: 'none',
                       }}>
                         @{p.creator?.username || 'anonyme'}
-                      </span>
+                      </Link>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                         <span style={{
                           fontFamily: 'DM Mono, monospace',
@@ -935,12 +937,12 @@ export default function RightPanel({
                           fontSize: '9px',
                           color: 'var(--ink-muted)',
                         }}>
-                          <span style={{ color: p.creator ? getRoleColor(p.creator.role) : 'var(--ink-muted)' }}>
+                          <Link href={p.creator ? `/profile/${p.creator.username}` : '#'} style={{ color: p.creator ? getRoleColor(p.creator.role) : 'var(--ink-muted)', textDecoration: 'none' }}>
                             @{p.creator?.username || 'anonyme'}
-                          </span>
+                          </Link>
                           {' · '}{p.reason === 'Supprimée par un expert' ? 'Supprimée' : 'Rejetée'}
                           {p.reviewer && (
-                            <> par <span style={{ color: getRoleColor(p.reviewer.role) }}>@{p.reviewer.username}</span></>
+                            <> par <Link href={`/profile/${p.reviewer.username}`} style={{ color: getRoleColor(p.reviewer.role), textDecoration: 'none' }}>@{p.reviewer.username}</Link></>
                           )}
                         </span>
                         {user && ['EXPERT', 'ADMIN'].includes(user.role) && (
@@ -1172,9 +1174,9 @@ export default function RightPanel({
                             color: 'var(--ink-muted)',
                           }}>
                             {t.creator && (
-                              <span style={{ color: getRoleColor(t.creator.role) }}>
+                              <Link href={`/profile/${t.creator.username}`} style={{ color: getRoleColor(t.creator.role), textDecoration: 'none' }}>
                                 @{t.creator.username}
-                              </span>
+                              </Link>
                             )}
                             {user && ['EXPERT', 'ADMIN'].includes(user.role) && (
                               <button
@@ -1276,9 +1278,9 @@ export default function RightPanel({
                             }}>
                               <span>{t.voteCount} vote{t.voteCount !== 1 ? 's' : ''}</span>
                               {t.creator && (
-                                <span style={{ color: getRoleColor(t.creator.role) }}>
+                                <Link href={`/profile/${t.creator.username}`} style={{ color: getRoleColor(t.creator.role), textDecoration: 'none' }}>
                                   @{t.creator.username}
-                                </span>
+                                </Link>
                               )}
                             </div>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
@@ -1554,13 +1556,14 @@ export default function RightPanel({
                       }}>
                         {c.creator?.username?.substring(0, 2).toUpperCase() || '??'}
                       </div>
-                      <span style={{
+                      <Link href={c.creator ? `/profile/${c.creator.username}` : '#'} style={{
                         fontFamily: 'DM Mono, monospace',
                         fontSize: '10px',
                         color: c.creator ? getRoleColor(c.creator.role) : 'var(--ink-muted)',
+                        textDecoration: 'none',
                       }}>
                         {c.creator?.username || 'Anonyme'}
-                      </span>
+                      </Link>
                       {c.creator?.role && (
                         <span style={{
                           fontFamily: 'DM Mono, monospace',
@@ -1749,13 +1752,14 @@ export default function RightPanel({
                             }}>
                               {r.creator?.username?.substring(0, 2).toUpperCase() || '??'}
                             </div>
-                            <span style={{
+                            <Link href={r.creator ? `/profile/${r.creator.username}` : '#'} style={{
                               fontFamily: 'DM Mono, monospace',
                               fontSize: '10px',
                               color: r.creator ? getRoleColor(r.creator.role) : 'var(--ink-muted)',
+                              textDecoration: 'none',
                             }}>
                               {r.creator?.username || 'Anonyme'}
-                            </span>
+                            </Link>
                             {r.creator?.role && (
                               <span style={{
                                 fontFamily: 'DM Mono, monospace',
