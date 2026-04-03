@@ -360,6 +360,10 @@ export default function UserProfilePage() {
   const [commentPage, setCommentPage] = useState(1)
   const [wordFilter, setWordFilter] = useState<'ALL' | 'VALIDATED' | 'PROPOSED'>('ALL')
   const [proposalFilter, setProposalFilter] = useState<'ALL' | 'PENDING' | 'ACCEPTED' | 'REJECTED'>('ALL')
+  const [filterTestament, setFilterTestament] = useState<'ALL' | 'AT' | 'NT'>('ALL')
+  const [filterBook, setFilterBook] = useState<string>('')
+  const [filterChapter, setFilterChapter] = useState<string>('')
+  const [filterVerse, setFilterVerse] = useState<string>('')
 
   // Formulaire profil (seulement si c'est sa propre page)
   const [editUsername, setEditUsername] = useState('')
@@ -462,11 +466,88 @@ export default function UserProfilePage() {
     }
   }
 
-  const filteredWords = wordFilter === 'ALL' ? wordTranslations : wordTranslations.filter(t => wordFilter === 'VALIDATED' ? t.isValidated : !t.isValidated)
+  // Extraire tous les versets uniques des contributions
+  const allVerseRefs = [
+    ...wordTranslations.map(t => ({
+      testament: t.wordToken.verseText.verse.chapter.book.testament,
+      book: t.wordToken.verseText.verse.chapter.book.name,
+      chapter: t.wordToken.verseText.verse.chapter.number,
+      verse: t.wordToken.verseText.verse.number,
+    })),
+    ...proposals.map(p => ({
+      testament: p.translation.verse.chapter.book.testament,
+      book: p.translation.verse.chapter.book.name,
+      chapter: p.translation.verse.chapter.number,
+      verse: p.translation.verse.number,
+    })),
+    ...comments.map(c => {
+      const v = c.verse || c.parent?.verse
+      return v ? {
+        testament: v.chapter.book.testament,
+        book: v.chapter.book.name,
+        chapter: v.chapter.number,
+        verse: v.number,
+      } : null
+    }).filter(Boolean),
+  ]
+
+  // Options disponibles en cascade
+  const availableBooks = [...new Set(
+    allVerseRefs
+      .filter(r => filterTestament === 'ALL' || r!.testament === filterTestament)
+      .map(r => r!.book)
+  )].sort()
+
+  const availableChapters = [...new Set(
+    allVerseRefs
+      .filter(r => filterTestament === 'ALL' || r!.testament === filterTestament)
+      .filter(r => !filterBook || r!.book === filterBook)
+      .map(r => r!.chapter)
+  )].sort((a, b) => a - b)
+
+  const availableVerses = [...new Set(
+    allVerseRefs
+      .filter(r => filterTestament === 'ALL' || r!.testament === filterTestament)
+      .filter(r => !filterBook || r!.book === filterBook)
+      .filter(r => !filterChapter || r!.chapter === Number(filterChapter))
+      .map(r => r!.verse)
+  )].sort((a, b) => a - b)
+
+  // Appliquer les filtres
+  const matchesFilter = (testament: string, book: string, chapter: number, verse: number) => {
+    if (filterTestament !== 'ALL' && testament !== filterTestament) return false
+    if (filterBook && book !== filterBook) return false
+    if (filterChapter && chapter !== Number(filterChapter)) return false
+    if (filterVerse && verse !== Number(filterVerse)) return false
+    return true
+  }
+
+  const filteredWords = wordTranslations
+    .filter(t => wordFilter === 'ALL' ? true : wordFilter === 'VALIDATED' ? t.isValidated : !t.isValidated)
+    .filter(t => matchesFilter(
+      t.wordToken.verseText.verse.chapter.book.testament,
+      t.wordToken.verseText.verse.chapter.book.name,
+      t.wordToken.verseText.verse.chapter.number,
+      t.wordToken.verseText.verse.number,
+    ))
   const pagedWords = filteredWords.slice(0, wordPage * ITEMS_PER_PAGE)
-  const filteredProposals = proposalFilter === 'ALL' ? proposals : proposals.filter(p => p.status === proposalFilter)
+
+  const filteredProposals = proposals
+    .filter(p => proposalFilter === 'ALL' ? true : p.status === proposalFilter)
+    .filter(p => matchesFilter(
+      p.translation.verse.chapter.book.testament,
+      p.translation.verse.chapter.book.name,
+      p.translation.verse.chapter.number,
+      p.translation.verse.number,
+    ))
   const pagedProposals = filteredProposals.slice(0, proposalPage * ITEMS_PER_PAGE)
-  const pagedComments = comments.slice(0, commentPage * ITEMS_PER_PAGE)
+
+  const filteredComments = comments.filter(c => {
+    const v = c.verse || c.parent?.verse
+    if (!v) return filterTestament === 'ALL' && !filterBook && !filterChapter && !filterVerse
+    return matchesFilter(v.chapter.book.testament, v.chapter.book.name, v.chapter.number, v.number)
+  })
+  const pagedComments = filteredComments.slice(0, commentPage * ITEMS_PER_PAGE)
 
   if (loading) return (
     <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--parchment)', fontFamily: 'Spectral, serif', fontStyle: 'italic', color: 'var(--ink-muted)' }}>
@@ -575,6 +656,62 @@ export default function UserProfilePage() {
         {/* ONGLET CONTRIBUTIONS */}
         {activeTab === 'contributions' && (
           <div>
+            {/* Filtres en cascade */}
+            <div style={{ display: 'flex', gap: '8px', marginBottom: '24px', flexWrap: 'wrap', alignItems: 'center' }}>
+              {/* Testament */}
+              <div style={{ display: 'flex', gap: '4px' }}>
+                {(['ALL', 'AT', 'NT'] as const).map(t => (
+                  <button key={t} onClick={() => { setFilterTestament(t); setFilterBook(''); setFilterChapter(''); setFilterVerse(''); setWordPage(1); setProposalPage(1); setCommentPage(1) }}
+                    style={{ padding: '5px 10px', borderRadius: '20px', border: `1px solid ${filterTestament === t ? 'var(--gold)' : 'var(--border)'}`, background: filterTestament === t ? 'var(--gold-pale)' : 'transparent', fontFamily: 'DM Mono, monospace', fontSize: '9px', color: filterTestament === t ? 'var(--gold)' : 'var(--ink-muted)', cursor: 'pointer' }}>
+                    {t === 'ALL' ? 'Tout' : t}
+                  </button>
+                ))}
+              </div>
+
+              {/* Livre */}
+              {availableBooks.length > 0 && (
+                <select
+                  value={filterBook}
+                  onChange={e => { setFilterBook(e.target.value); setFilterChapter(''); setFilterVerse(''); setWordPage(1); setProposalPage(1); setCommentPage(1) }}
+                  style={{ padding: '5px 10px', border: `1px solid ${filterBook ? 'var(--gold)' : 'var(--border)'}`, borderRadius: '6px', background: filterBook ? 'var(--gold-pale)' : 'white', fontFamily: 'DM Mono, monospace', fontSize: '9px', color: filterBook ? 'var(--gold)' : 'var(--ink-muted)', cursor: 'pointer', outline: 'none' }}
+                >
+                  <option value="">Tous les livres</option>
+                  {availableBooks.map(b => <option key={b} value={b}>{b}</option>)}
+                </select>
+              )}
+
+              {/* Chapitre */}
+              {filterBook && availableChapters.length > 0 && (
+                <select
+                  value={filterChapter}
+                  onChange={e => { setFilterChapter(e.target.value); setFilterVerse(''); setWordPage(1); setProposalPage(1); setCommentPage(1) }}
+                  style={{ padding: '5px 10px', border: `1px solid ${filterChapter ? 'var(--gold)' : 'var(--border)'}`, borderRadius: '6px', background: filterChapter ? 'var(--gold-pale)' : 'white', fontFamily: 'DM Mono, monospace', fontSize: '9px', color: filterChapter ? 'var(--gold)' : 'var(--ink-muted)', cursor: 'pointer', outline: 'none' }}
+                >
+                  <option value="">Tous les chapitres</option>
+                  {availableChapters.map(c => <option key={c} value={c}>Chapitre {c}</option>)}
+                </select>
+              )}
+
+              {/* Verset */}
+              {filterChapter && availableVerses.length > 0 && (
+                <select
+                  value={filterVerse}
+                  onChange={e => { setFilterVerse(e.target.value); setWordPage(1); setProposalPage(1); setCommentPage(1) }}
+                  style={{ padding: '5px 10px', border: `1px solid ${filterVerse ? 'var(--gold)' : 'var(--border)'}`, borderRadius: '6px', background: filterVerse ? 'var(--gold-pale)' : 'white', fontFamily: 'DM Mono, monospace', fontSize: '9px', color: filterVerse ? 'var(--gold)' : 'var(--ink-muted)', cursor: 'pointer', outline: 'none' }}
+                >
+                  <option value="">Tous les versets</option>
+                  {availableVerses.map(v => <option key={v} value={v}>Verset {v}</option>)}
+                </select>
+              )}
+
+              {/* Reset */}
+              {(filterTestament !== 'ALL' || filterBook || filterChapter || filterVerse) && (
+                <button onClick={() => { setFilterTestament('ALL'); setFilterBook(''); setFilterChapter(''); setFilterVerse(''); setWordPage(1); setProposalPage(1); setCommentPage(1) }}
+                  style={{ padding: '5px 10px', borderRadius: '20px', border: '1px solid rgba(122,42,42,0.2)', background: 'var(--red-light)', fontFamily: 'DM Mono, monospace', fontSize: '9px', color: 'var(--red-soft)', cursor: 'pointer' }}>
+                  ✕ Réinitialiser
+                </button>
+              )}
+            </div>
             {/* Traductions */}
             <div style={{ marginBottom: '32px' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
@@ -689,7 +826,7 @@ export default function UserProfilePage() {
             {/* Commentaires */}
             <div>
               <div style={{ fontFamily: 'DM Mono, monospace', fontSize: '10px', letterSpacing: '0.1em', textTransform: 'uppercase' as const, color: 'var(--ink-muted)', marginBottom: '12px' }}>
-                Commentaires ({profile?._count.comments || 0})
+                Commentaires ({filteredComments.length})
               </div>
               {pagedComments.length === 0 ? (
                 <div style={{ fontFamily: 'Spectral, serif', fontSize: '14px', color: 'var(--ink-faint)', fontStyle: 'italic' }}>Aucun commentaire.</div>
@@ -729,9 +866,9 @@ export default function UserProfilePage() {
                       </div>
                     )
                   })}
-                  {pagedComments.length < comments.length && (
+                  {pagedComments.length < filteredComments.length && (
                     <button onClick={() => setCommentPage(p => p + 1)} style={{ width: '100%', padding: '8px', background: 'transparent', border: '1px dashed var(--border-strong)', borderRadius: '6px', fontFamily: 'DM Mono, monospace', fontSize: '10px', color: 'var(--ink-muted)', cursor: 'pointer', marginTop: '4px' }}>
-                      Voir plus ({comments.length - pagedComments.length} restants)
+                      Voir plus ({filteredComments.length - pagedComments.length} restants)
                     </button>
                   )}
                 </>
