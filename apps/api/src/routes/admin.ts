@@ -242,4 +242,21 @@ router.patch('/users/:id/reactivate', async (req: AuthRequest, res: Response) =>
   }
 })
 
+// GET /api/admin/logs
+router.get('/logs', async (req: AuthRequest, res: Response) => {
+  try {
+    const logs = await prisma.auditLog.findMany({
+      orderBy: { createdAt: 'desc' },
+      take: 200,
+      include: {
+        user: { select: { username: true, role: true } }
+      }
+    })
+    res.json(logs)
+  } catch (error) {
+    console.error(error)
+    res.status(500).json({ error: 'Erreur serveur' })
+  }
+})
+
 export default router

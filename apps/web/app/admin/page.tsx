@@ -7,6 +7,7 @@ import api from '@/lib/api'
 import { useAuthStore } from '@/store/auth'
 import CommentText from '@/components/bible/CommentText'
 import { getRoleColor, getRoleBackground, getRoleBorder } from '@/lib/roleColors'
+import React from 'react'
 
 interface Stats {
   users: number
@@ -73,11 +74,6 @@ interface User {
   }
 }
 
-function getVerseUrl(book: { name: string }, bookSlug: string, testament: string, chapterNumber: number, verseNumber: number): string {
-  const prefix = testament === 'AT' ? 'at' : 'nt'
-  return `/${prefix}/${bookSlug}/${chapterNumber}#v${verseNumber}`
-}
-
 const ROLES = ['VISITOR', 'NOVICE', 'INTERMEDIATE', 'EXPERT', 'ADMIN']
 
 export default function AdminPage() {
@@ -86,11 +82,26 @@ export default function AdminPage() {
   const [stats, setStats] = useState<Stats | null>(null)
   const [users, setUsers] = useState<User[]>([])
   const [loading, setLoading] = useState(true)
-  const [activeTab, setActiveTab] = useState<'stats' | 'users'>('stats')
+  const [activeTab, setActiveTab] = useState<'stats' | 'users' | 'logs'>('stats')
   const [search, setSearch] = useState('')
   const [roleFilter, setRoleFilter] = useState<string>('ALL')
   const [updatingRole, setUpdatingRole] = useState<string | null>(null)
   const [actionLoading, setActionLoading] = useState<string | null>(null)
+  const [logSearch, setLogSearch] = useState('')
+  const [logActionFilter, setLogActionFilter] = useState<string>('ADMIN')
+  const [logPage, setLogPage] = useState(1)
+  const LOG_PAGE_SIZE = 20
+  
+  
+  const [adminLogs, setAdminLogs] = useState<{
+    id: string
+    action: string
+    userId: string | null
+    metadata: Record<string, string> | null
+    ip: string | null
+    createdAt: string
+    user: { username: string; role: string } | null
+  }[]>([])
 
   useEffect(() => {
     const token = localStorage.getItem('token')
@@ -105,12 +116,14 @@ export default function AdminPage() {
 
   async function loadData() {
     try {
-      const [statsRes, usersRes] = await Promise.all([
+      const [statsRes, usersRes, logsRes] = await Promise.all([
         api.get('/api/admin/stats'),
         api.get('/api/admin/users'),
+        api.get('/api/admin/logs'),
       ])
       setStats(statsRes.data)
       setUsers(usersRes.data)
+      setAdminLogs(logsRes.data)
     } catch (error) {
       console.error(error)
       router.push('/')
@@ -242,6 +255,7 @@ export default function AdminPage() {
           {([
             { key: 'stats', label: 'Statistiques' },
             { key: 'users', label: `Utilisateurs (${users.length})` },
+            { key: 'logs', label: 'Logs' },
           ] as const).map(tab => (
             <div
               key={tab.key}
@@ -974,6 +988,163 @@ export default function AdminPage() {
             }}>
               {filteredUsers.length} utilisateur{filteredUsers.length !== 1 ? 's' : ''}
             </div>
+          </div>
+        )}
+        {/* ONGLET LOGS */}
+        {activeTab === 'logs' && (
+          <div>
+            {/* Filtres */}
+            <div style={{ display: 'flex', gap: '12px', marginBottom: '16px', flexWrap: 'wrap', alignItems: 'center' }}>
+              <input
+                type="text"
+                placeholder="Rechercher par utilisateur..."
+                value={logSearch}
+                onChange={e => { setLogSearch(e.target.value); setLogPage(1) }}
+                style={{ flex: 1, minWidth: '200px', padding: '8px 12px', border: '1px solid var(--border)', borderRadius: '6px', background: 'white', fontFamily: 'Spectral, serif', fontSize: '14px', color: 'var(--ink)', outline: 'none' }}
+              />
+              <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+                {[
+                  { key: 'ADMIN', label: 'Admin' },
+                  { key: 'ALL', label: 'Tous' },
+                  { key: 'LOGIN', label: 'Connexions' },
+                  { key: 'REGISTER', label: 'Inscriptions' },
+                  { key: 'PROFILE_CHANGE', label: 'Profil' },
+                  { key: 'ACCOUNT_SUSPENDED', label: 'Comptes' },
+                  { key: 'ROLE_CHANGE', label: 'Rôles' },
+                  { key: 'PASSWORD_CHANGE', label: 'Mdp' },
+                ].map(f => (
+                  <button key={f.key} onClick={() => { setLogActionFilter(f.key); setLogPage(1) }}
+                    style={{ padding: '4px 10px', borderRadius: '20px', border: `1px solid ${logActionFilter === f.key ? 'var(--gold)' : 'var(--border)'}`, background: logActionFilter === f.key ? 'var(--gold-pale)' : 'transparent', fontFamily: 'DM Mono, monospace', fontSize: '9px', color: logActionFilter === f.key ? 'var(--gold)' : 'var(--ink-muted)', cursor: 'pointer' }}>
+                    {f.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Table */}
+            {(() => {
+              const ADMIN_ACTIONS = ['ACCOUNT_SUSPENDED', 'ROLE_CHANGE', 'PASSWORD_CHANGE']
+              const filtered = adminLogs.filter(log => {
+                const matchSearch = !logSearch || log.user?.username.toLowerCase().includes(logSearch.toLowerCase())
+                const matchAction = logActionFilter === 'ALL'
+                  ? true
+                  : logActionFilter === 'ADMIN'
+                  ? ADMIN_ACTIONS.includes(log.action) && !(log.action === 'PASSWORD_CHANGE' && !log.metadata?.forced)
+                  : logActionFilter === 'PROFILE_CHANGE'
+                  ? ['PASSWORD_CHANGE', 'EMAIL_CHANGE', 'USERNAME_CHANGE'].includes(log.action) && !log.metadata?.forced
+                  : log.action === logActionFilter
+                return matchSearch && matchAction
+              })
+
+              const totalPages = Math.ceil(filtered.length / LOG_PAGE_SIZE)
+              const paged = filtered.slice((logPage - 1) * LOG_PAGE_SIZE, logPage * LOG_PAGE_SIZE)
+
+              return (
+                <>
+                  <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: '10px', overflow: 'hidden' }}>
+                    <div style={{ padding: '12px 20px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ fontFamily: 'DM Mono, monospace', fontSize: '10px', letterSpacing: '0.1em', textTransform: 'uppercase' as const, color: 'var(--ink-muted)' }}>
+                        {filtered.length} entrée{filtered.length !== 1 ? 's' : ''}
+                      </span>
+                      <span style={{ fontFamily: 'DM Mono, monospace', fontSize: '9px', color: 'var(--ink-faint)' }}>
+                        Page {logPage} / {Math.max(totalPages, 1)}
+                      </span>
+                    </div>
+
+                    {paged.length === 0 ? (
+                      <div style={{ padding: '24px', textAlign: 'center', fontFamily: 'Spectral, serif', fontSize: '14px', color: 'var(--ink-faint)', fontStyle: 'italic' }}>
+                        Aucun log trouvé.
+                      </div>
+                    ) : paged.map((log, i) => {
+                      const actionLabel = 
+                        log.action === 'ACCOUNT_SUSPENDED' && log.metadata?.action === 'REACTIVATED' ? 'Compte réactivé'
+                        : log.action === 'ACCOUNT_SUSPENDED' ? 'Compte désactivé'
+                        : log.action === 'ROLE_CHANGE' ? 'Changement de rôle'
+                        : log.action === 'PASSWORD_CHANGE' && log.metadata?.forced === 'true' ? 'Reset mdp forcé'
+                        : log.action === 'PASSWORD_CHANGE' ? 'Mdp modifié'
+                        : log.action === 'EMAIL_CHANGE' ? 'Email modifié'
+                        : log.action === 'USERNAME_CHANGE' ? 'Pseudo modifié'
+                        : log.action === 'LOGIN' ? 'Connexion'
+                        : log.action === 'LOGOUT' ? 'Déconnexion'
+                        : log.action === 'REGISTER' ? 'Inscription'
+                        : log.action
+
+                      const colors = 
+                        log.action === 'ACCOUNT_SUSPENDED' ? { bg: 'var(--red-light)', color: 'var(--red-soft)' }
+                        : log.action === 'ROLE_CHANGE' ? { bg: 'var(--blue-light)', color: 'var(--blue-sacred)' }
+                        : log.action === 'LOGIN' || log.action === 'REGISTER' ? { bg: 'var(--green-light)', color: 'var(--green-valid)' }
+                        : log.action === 'LOGOUT' ? { bg: 'var(--parchment-deep)', color: 'var(--ink-muted)' }
+                        : { bg: 'var(--amber-light)', color: 'var(--amber-pending)' }
+
+                      return (
+                        <div key={log.id} style={{
+                          display: 'grid',
+                          gridTemplateColumns: '150px 160px 1fr 120px',
+                          padding: '10px 20px',
+                          borderBottom: i < paged.length - 1 ? '1px solid var(--border)' : 'none',
+                          alignItems: 'center',
+                          gap: '12px',
+                        }}>
+                          <span style={{ fontFamily: 'DM Mono, monospace', fontSize: '9px', padding: '2px 8px', borderRadius: '20px', background: colors.bg, color: colors.color, textAlign: 'center', whiteSpace: 'nowrap' as const }}>
+                            {actionLabel}
+                          </span>
+                          <div>
+                            {log.user ? (
+                              <Link href={`/profile/${log.user.username}`} style={{ fontFamily: 'DM Mono, monospace', fontSize: '10px', color: getRoleColor(log.user.role), textDecoration: 'none' }}>
+                                @{log.user.username}
+                              </Link>
+                            ) : (
+                              <span style={{ fontFamily: 'DM Mono, monospace', fontSize: '10px', color: 'var(--ink-faint)' }}>compte supprimé</span>
+                            )}
+                          </div>
+                          <div style={{ fontFamily: 'DM Mono, monospace', fontSize: '9px', color: 'var(--ink-soft)' }}>
+                            {log.metadata && Object.keys(log.metadata).filter(k => !['forced', 'by', 'action'].includes(k)).length > 0
+                              ? Object.entries(log.metadata).filter(([k]) => !['forced', 'by', 'action'].includes(k)).map(([k, v]) => `${k} : ${v}`).join(' · ')
+                              : ''}
+                          </div>
+                          <span style={{ fontFamily: 'DM Mono, monospace', fontSize: '9px', color: 'var(--ink-faint)', textAlign: 'right' }}>
+                            {new Date(log.createdAt).toLocaleDateString('fr-FR')} {new Date(log.createdAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                          </span>
+                        </div>
+                      )
+                    })}
+                  </div>
+
+                  {/* Pagination */}
+                  {totalPages > 1 && (
+                    <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', marginTop: '16px', alignItems: 'center' }}>
+                      <button
+                        onClick={() => setLogPage(p => Math.max(1, p - 1))}
+                        disabled={logPage === 1}
+                        style={{ padding: '6px 12px', borderRadius: '6px', border: '1px solid var(--border)', background: 'transparent', fontFamily: 'DM Mono, monospace', fontSize: '10px', color: logPage === 1 ? 'var(--ink-faint)' : 'var(--ink-muted)', cursor: logPage === 1 ? 'not-allowed' : 'pointer' }}
+                      >
+                        ← Précédent
+                      </button>
+                      {Array.from({ length: totalPages }, (_, i) => i + 1).filter(p => p === 1 || p === totalPages || Math.abs(p - logPage) <= 2).map((p, idx, arr) => (
+                        <React.Fragment key={p}>
+                          {idx > 0 && arr[idx - 1] !== p - 1 && (
+                            <span style={{ fontFamily: 'DM Mono, monospace', fontSize: '10px', color: 'var(--ink-faint)' }}>...</span>
+                          )}
+                          <button
+                            onClick={() => setLogPage(p)}
+                            style={{ padding: '6px 10px', borderRadius: '6px', border: `1px solid ${logPage === p ? 'var(--gold)' : 'var(--border)'}`, background: logPage === p ? 'var(--gold-pale)' : 'transparent', fontFamily: 'DM Mono, monospace', fontSize: '10px', color: logPage === p ? 'var(--gold)' : 'var(--ink-muted)', cursor: 'pointer' }}
+                          >
+                            {p}
+                          </button>
+                        </ React.Fragment>
+                      ))}
+                      <button
+                        onClick={() => setLogPage(p => Math.min(totalPages, p + 1))}
+                        disabled={logPage === totalPages}
+                        style={{ padding: '6px 12px', borderRadius: '6px', border: '1px solid var(--border)', background: 'transparent', fontFamily: 'DM Mono, monospace', fontSize: '10px', color: logPage === totalPages ? 'var(--ink-faint)' : 'var(--ink-muted)', cursor: logPage === totalPages ? 'not-allowed' : 'pointer' }}
+                      >
+                        Suivant →
+                      </button>
+                    </div>
+                  )}
+                </>
+              )
+            })()}
           </div>
         )}
       </div>
