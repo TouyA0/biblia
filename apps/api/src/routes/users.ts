@@ -66,10 +66,16 @@ router.get('/:username/contributions', async (req: Request, res: Response) => {
         }
       }),
       prisma.comment.findMany({
-        where: { createdBy: user.id, parentId: null },
+        where: { createdBy: user.id },
         orderBy: { createdAt: 'desc' },
         include: {
-          verse: { include: { chapter: { include: { book: true } } } }
+          verse: { include: { chapter: { include: { book: true } } } },
+          parent: {
+            include: {
+              verse: { include: { chapter: { include: { book: true } } } },
+              creator: { select: { username: true } }
+            }
+          }
         }
       }),
       // Activité par jour sur 12 mois pour le graphique

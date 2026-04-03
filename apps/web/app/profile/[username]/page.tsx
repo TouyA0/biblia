@@ -85,6 +85,14 @@ interface CommentContrib {
     number: number
     chapter: { number: number; book: { name: string; slug: string; testament: string } }
   } | null
+  parent: {
+    verse: {
+      id: string
+      number: number
+      chapter: { number: number; book: { name: string; slug: string; testament: string } }
+    } | null
+    creator: { username: string } | null
+  } | null
 }
 
 interface ActivityDay {
@@ -688,7 +696,8 @@ export default function UserProfilePage() {
               ) : (
                 <>
                   {pagedComments.map(c => {
-                    const url = c.verse ? getVerseUrl(c.verse.chapter.book, c.verse.chapter.number, c.verse.number, { verseId: c.verse.id, tab: 'comments' }) : null
+                    const verse = c.verse || c.parent?.verse || null
+                    const url = verse ? getVerseUrl(verse.chapter.book, verse.chapter.number, verse.number, { verseId: verse.id, tab: 'comments' }) : null
                     return url ? (
                       <Link key={c.id} href={url} style={{ textDecoration: 'none', display: 'block' }}>
                         <div style={{ padding: '10px 14px', border: '1px solid var(--border)', borderRadius: '8px', background: 'white', marginBottom: '8px', transition: 'opacity 0.15s' }}
@@ -696,7 +705,14 @@ export default function UserProfilePage() {
                           onMouseLeave={e => (e.currentTarget as HTMLElement).style.opacity = '1'}>
                           {c.verse && (
                             <div style={{ display: 'flex', justifyContent: 'space-between', fontFamily: 'DM Mono, monospace', fontSize: '9px', color: 'var(--ink-muted)', marginBottom: '4px' }}>
-                              <span>{c.verse.chapter.book.name} {c.verse.chapter.number}:{c.verse.number}</span>
+                              <span>
+                                {verse.chapter.book.name} {verse.chapter.number}:{verse.number}
+                                {c.parent && (
+                                  <span style={{ color: 'var(--ink-faint)', marginLeft: '6px' }}>
+                                    · ↩ réponse à @{c.parent.creator?.username || 'anonyme'}
+                                  </span>
+                                )}
+                              </span>
                               <span style={{ color: 'var(--ink-faint)' }}>{new Date(c.createdAt).toLocaleDateString('fr-FR')}</span>
                             </div>
                           )}
