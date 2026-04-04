@@ -2,6 +2,7 @@ import { z } from 'zod'
 import { Router, Request, Response } from 'express'
 import { prisma } from '../lib/prisma'
 import { authenticateJWT, AuthRequest } from '../middlewares/auth'
+import { logAction } from '../lib/audit'
 
 const router = Router()
 
@@ -97,6 +98,7 @@ router.post('/words/:id/translations', authenticateJWT, async (req: AuthRequest,
       data: { wordTokenId: id, translation, createdBy: req.user!.id },
       include: { creator: { select: { username: true, role: true } } }
     })
+    await logAction('TRANSLATION_ADDED', req.user!.id, { word: word.word, translation: newTranslation.translation }, req.ip)
     res.status(201).json(newTranslation)
   } catch (error) {
     if (error instanceof z.ZodError) {
@@ -172,6 +174,7 @@ router.delete('/word-translations/:id', authenticateJWT, async (req: AuthRequest
     
     await prisma.vote.deleteMany({ where: { wordTranslationId: id } })
     await prisma.wordTranslation.delete({ where: { id } })
+    await logAction('TRANSLATION_DELETED', req.user!.id, { translationId: id }, req.ip)
     res.json({ message: 'Traduction supprimée' })
   } catch (error) {
     console.error(error)
@@ -189,6 +192,7 @@ router.patch('/word-translations/:id/validate', authenticateJWT, async (req: Aut
       where: { id },
       data: { isValidated: true }
     })
+    await logAction('TRANSLATION_VALIDATED', req.user!.id, { translationId: id }, req.ip)
     res.json(translation)
   } catch (error) {
     console.error(error)
@@ -333,6 +337,7 @@ router.post('/verses/:id/comments', authenticateJWT, async (req: AuthRequest, re
         creator: { select: { username: true, role: true } }
       }
     })
+    await logAction('COMMENT_ADDED', req.user!.id, { verseId: id }, req.ip)
     res.status(201).json(comment)
   } catch (error) {
     if (error instanceof z.ZodError) {
@@ -392,6 +397,7 @@ router.delete('/comments/:id', authenticateJWT, async (req: AuthRequest, res: Re
 
     await prisma.comment.deleteMany({ where: { parentId: id } })
     await prisma.comment.delete({ where: { id } })
+    await logAction('COMMENT_DELETED', req.user!.id, { commentId: id }, req.ip)
     res.json({ message: 'Commentaire supprimé' })
   } catch (error) {
     console.error(error)
@@ -460,6 +466,7 @@ router.post('/verses/:id/proposals', authenticateJWT, async (req: AuthRequest, r
         creator: { select: { username: true, role: true } }
       }
     })
+    await logAction('PROPOSAL_ADDED', req.user!.id, { verseId: id }, req.ip)
     res.status(201).json(proposal)
   } catch (error) {
     if (error instanceof z.ZodError) {
@@ -490,6 +497,7 @@ router.patch('/proposals/:id/accept', authenticateJWT, async (req: AuthRequest, 
       where: { id },
       data: { status: 'ACCEPTED', reviewedBy: req.user!.id }
     })
+    await logAction('PROPOSAL_ACCEPTED', req.user!.id, { proposalId: id }, req.ip)
     res.json(updated)
   } catch (error) {
     console.error(error)
@@ -593,6 +601,7 @@ router.patch('/proposals/:id/reject', authenticateJWT, async (req: AuthRequest, 
       where: { id },
       data: { status: 'REJECTED', reason, reviewedBy: req.user!.id }
     })
+    await logAction('PROPOSAL_REJECTED', req.user!.id, { proposalId: id, reason }, req.ip)
     res.json(updated)
   } catch (error) {
     if (error instanceof z.ZodError) {
@@ -670,7 +679,7 @@ router.delete('/proposals/:id', authenticateJWT, async (req: AuthRequest, res: R
       if (orphan && orphan.proposals.length === 0) {
         await prisma.translation.delete({ where: { id: orphan.id } })
       }
-
+      await logAction('PROPOSAL_DELETED', req.user!.id, { proposalId: id }, req.ip)
       res.json({ message: 'Proposition supprimée définitivement' })
       return
     }

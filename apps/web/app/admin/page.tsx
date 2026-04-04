@@ -843,9 +843,9 @@ export default function AdminPage() {
                 <span>Utilisateur</span>
                 <span>Email</span>
                 <span>Inscription</span>
-                <span>Mots.</span>
-                <span>Vers.</span>
-                <span>Comm.</span>
+                <span style={{ textAlign: 'center' }}>Mots.</span>
+                <span style={{ textAlign: 'center' }}>Vers.</span>
+                <span style={{ textAlign: 'center' }}>Comm.</span>
                 <span>Rôle</span>
                 <span>Actions</span>
               </div>
@@ -1299,6 +1299,7 @@ export default function AdminPage() {
                   { key: 'ACCOUNT_SUSPENDED', label: 'Comptes' },
                   { key: 'ROLE_CHANGE', label: 'Rôles' },
                   { key: 'PASSWORD_CHANGE', label: 'Mdp' },
+                  { key: 'CONTRIBUTIONS', label: 'Contributions' },
                 ].map(f => (
                   <button key={f.key} onClick={() => { setLogActionFilter(f.key); setLogPage(1) }}
                     style={{ padding: '4px 10px', borderRadius: '20px', border: `1px solid ${logActionFilter === f.key ? 'var(--gold)' : 'var(--border)'}`, background: logActionFilter === f.key ? 'var(--gold-pale)' : 'transparent', fontFamily: 'DM Mono, monospace', fontSize: '9px', color: logActionFilter === f.key ? 'var(--gold)' : 'var(--ink-muted)', cursor: 'pointer' }}>
@@ -1319,6 +1320,8 @@ export default function AdminPage() {
                   ? ADMIN_ACTIONS.includes(log.action) && !(log.action === 'PASSWORD_CHANGE' && !log.metadata?.forced)
                   : logActionFilter === 'PROFILE_CHANGE'
                   ? ['PASSWORD_CHANGE', 'EMAIL_CHANGE', 'USERNAME_CHANGE'].includes(log.action) && !log.metadata?.forced
+                  : logActionFilter === 'CONTRIBUTIONS'
+                  ? ['TRANSLATION_ADDED', 'TRANSLATION_VALIDATED', 'TRANSLATION_DELETED', 'PROPOSAL_ADDED', 'PROPOSAL_ACCEPTED', 'PROPOSAL_REJECTED', 'PROPOSAL_DELETED', 'COMMENT_ADDED', 'COMMENT_DELETED'].includes(log.action)
                   : log.action === logActionFilter
                 return matchSearch && matchAction
               })
@@ -1354,6 +1357,15 @@ export default function AdminPage() {
                         : log.action === 'LOGIN' ? 'Connexion'
                         : log.action === 'LOGOUT' ? 'Déconnexion'
                         : log.action === 'REGISTER' ? 'Inscription'
+                        : log.action === 'TRANSLATION_ADDED' ? 'Trad. mot ajoutée'
+                        : log.action === 'TRANSLATION_VALIDATED' ? 'Trad. mot validée'
+                        : log.action === 'TRANSLATION_DELETED' ? 'Trad. mot supprimée'
+                        : log.action === 'PROPOSAL_ADDED' ? 'Ref. verset ajoutée'
+                        : log.action === 'PROPOSAL_ACCEPTED' ? 'Ref. verset acceptée'
+                        : log.action === 'PROPOSAL_REJECTED' ? 'Ref. verset rejetée'
+                        : log.action === 'PROPOSAL_DELETED' ? 'Ref. verset supprimée'
+                        : log.action === 'COMMENT_ADDED' ? 'Commentaire ajouté'
+                        : log.action === 'COMMENT_DELETED' ? 'Commentaire supprimé'
                         : log.action
 
                       const colors = 
@@ -1361,6 +1373,9 @@ export default function AdminPage() {
                         : log.action === 'ROLE_CHANGE' ? { bg: 'var(--blue-light)', color: 'var(--blue-sacred)' }
                         : log.action === 'LOGIN' || log.action === 'REGISTER' ? { bg: 'var(--green-light)', color: 'var(--green-valid)' }
                         : log.action === 'LOGOUT' ? { bg: 'var(--parchment-deep)', color: 'var(--ink-muted)' }
+                        : ['TRANSLATION_ADDED', 'PROPOSAL_ADDED', 'COMMENT_ADDED'].includes(log.action) ? { bg: 'var(--green-light)', color: 'var(--green-valid)' }
+                        : ['TRANSLATION_DELETED', 'PROPOSAL_DELETED', 'COMMENT_DELETED', 'PROPOSAL_REJECTED'].includes(log.action) ? { bg: 'var(--red-light)', color: 'var(--red-soft)' }
+                        : ['TRANSLATION_VALIDATED', 'PROPOSAL_ACCEPTED'].includes(log.action) ? { bg: 'var(--blue-light)', color: 'var(--blue-sacred)' }
                         : { bg: 'var(--amber-light)', color: 'var(--amber-pending)' }
 
                       return (

@@ -10,6 +10,15 @@ export type AuditAction =
   | 'ROLE_CHANGE'
   | 'ACCOUNT_SUSPENDED'
   | 'ACCOUNT_BANNED'
+  | 'TRANSLATION_ADDED'
+  | 'TRANSLATION_VALIDATED'
+  | 'TRANSLATION_DELETED'
+  | 'PROPOSAL_ADDED'
+  | 'PROPOSAL_ACCEPTED'
+  | 'PROPOSAL_REJECTED'
+  | 'PROPOSAL_DELETED'
+  | 'COMMENT_ADDED'
+  | 'COMMENT_DELETED'
 
 export async function logAction(
   action: AuditAction,

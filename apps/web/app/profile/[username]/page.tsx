@@ -1140,6 +1140,8 @@ export default function UserProfilePage() {
                         ? 'ROLE_CHANGE'
                         : ['PASSWORD_CHANGE', 'EMAIL_CHANGE', 'USERNAME_CHANGE'].includes(log.action)
                         ? 'PROFILE_CHANGE'
+                        : ['TRANSLATION_ADDED', 'TRANSLATION_VALIDATED', 'TRANSLATION_DELETED', 'PROPOSAL_ADDED', 'PROPOSAL_ACCEPTED', 'PROPOSAL_REJECTED', 'PROPOSAL_DELETED', 'COMMENT_ADDED', 'COMMENT_DELETED'].includes(log.action)
+                        ? 'CONTRIBUTIONS'
                         : log.action
                       if (!acc[cat]) acc[cat] = []
                       acc[cat].push(log)
@@ -1153,6 +1155,7 @@ export default function UserProfilePage() {
                       REGISTER: { label: 'Inscription', bg: 'var(--blue-light)', color: 'var(--blue-sacred)' },
                       ROLE_CHANGE: { label: 'Actions administratives', bg: 'var(--red-light)', color: 'var(--red-soft)' },
                       ACCOUNT_SUSPENDED: { label: 'Activations / Désactivations', bg: 'var(--red-light)', color: 'var(--red-soft)' },
+                      CONTRIBUTIONS: { label: 'Contributions', bg: 'var(--blue-light)', color: 'var(--blue-sacred)' },
                     }
 
                     const actionLabels: Record<string, string> = {
@@ -1164,6 +1167,15 @@ export default function UserProfilePage() {
                       REGISTER: 'Inscription',
                       ROLE_CHANGE: 'Action admin',
                       ACCOUNT_SUSPENDED: 'Compte désactivé',
+                      TRANSLATION_ADDED: 'Trad. mot ajoutée',
+                      TRANSLATION_VALIDATED: 'Trad. mot validée',
+                      TRANSLATION_DELETED: 'Trad. mot supprimée',
+                      PROPOSAL_ADDED: 'Ref. verset ajoutée',
+                      PROPOSAL_ACCEPTED: 'Ref. verset acceptée',
+                      PROPOSAL_REJECTED: 'Ref. verset rejetée',
+                      PROPOSAL_DELETED: 'Ref. verset supprimée',
+                      COMMENT_ADDED: 'Commentaire ajouté',
+                      COMMENT_DELETED: 'Commentaire supprimé',
                     }
 
                     return Object.entries(grouped).map(([cat, logs]) => {
