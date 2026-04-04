@@ -8,6 +8,7 @@ import { useAuthStore } from '@/store/auth'
 import CommentText from '@/components/bible/CommentText'
 import { getRoleColor, getRoleBackground, getRoleBorder } from '@/lib/roleColors'
 import React from 'react'
+import { BOOK_NAME_TO_SLUG } from '@/lib/bookSlugs'
 
 interface Stats {
   users: number
@@ -86,11 +87,81 @@ export default function AdminPage() {
   const [stats, setStats] = useState<Stats | null>(null)
   const [users, setUsers] = useState<User[]>([])
   const [loading, setLoading] = useState(true)
-  const [activeTab, setActiveTab] = useState<'stats' | 'users' | 'logs'>('stats')
+  const [activeTab, setActiveTab] = useState<'stats' | 'users' | 'contributions' | 'logs'>('stats')
   const [search, setSearch] = useState('')
   const [roleFilter, setRoleFilter] = useState<string>('ALL')
   const [updatingRole, setUpdatingRole] = useState<string | null>(null)
   const [actionLoading, setActionLoading] = useState<string | null>(null)
+
+  // Onglet contributions
+  const [contribTestament, setContribTestament] = useState<'ALL' | 'AT' | 'NT'>('ALL')
+  const [contribBook, setContribBook] = useState('')
+  const [contribChapter, setContribChapter] = useState('')
+  const [contribVerse, setContribVerse] = useState('')
+  const [contribData, setContribData] = useState<{
+    wordTranslations: {
+      id: string
+      translation: string
+      isValidated: boolean
+      voteCount: number
+      createdAt: string
+      creator: { username: string; role: string } | null
+      wordToken: {
+        id: string
+        word: string
+        verseText: {
+          verse: {
+            id: string
+            number: number
+            chapter: { number: number; book: { name: string; slug: string; testament: string } }
+          }
+        }
+      }
+    }[]
+    proposals: {
+      id: string
+      proposedText: string
+      status: string
+      reason: string | null
+      createdAt: string
+      creator: { username: string; role: string } | null
+      reviewer: { username: string; role: string } | null
+      translation: {
+        verse: {
+          id: string
+          number: number
+          chapter: { number: number; book: { name: string; slug: string; testament: string } }
+        }
+      }
+    }[]
+    comments: {
+      id: string
+      text: string
+      createdAt: string
+      creator: { username: string; role: string } | null
+      verse: {
+        id: string
+        number: number
+        chapter: { number: number; book: { name: string; slug: string; testament: string } }
+      } | null
+    }[]
+  } | null>(null)
+  const [contribLoading, setContribLoading] = useState(false)
+
+  async function loadContributions(testament: string, book: string, chapter: string, verse: string) {
+    setContribLoading(true)
+    try {
+      const params = new URLSearchParams()
+      if (testament !== 'ALL') params.set('testament', testament)
+      if (book) params.set('book', BOOK_NAME_TO_SLUG[book])
+      if (chapter) params.set('chapter', chapter)
+      if (verse) params.set('verse', verse)
+      const res = await api.get(`/api/admin/contributions?${params.toString()}`)
+      setContribData(res.data)
+    } catch (e) { console.error(e) }
+    finally { setContribLoading(false) }
+  }
+
   const [logSearch, setLogSearch] = useState('')
   const [logActionFilter, setLogActionFilter] = useState<string>('ADMIN')
   const [logPage, setLogPage] = useState(1)
@@ -259,11 +330,17 @@ export default function AdminPage() {
           {([
             { key: 'stats', label: 'Statistiques' },
             { key: 'users', label: `Utilisateurs (${users.length})` },
+            { key: 'contributions', label: 'Contributions' },
             { key: 'logs', label: 'Logs' },
           ] as const).map(tab => (
             <div
               key={tab.key}
-              onClick={() => setActiveTab(tab.key)}
+              onClick={() => {
+                setActiveTab(tab.key)
+                if (tab.key === 'contributions' && !contribData) {
+                  loadContributions('ALL', '', '', '')
+                }
+              }}
               style={{
                 padding: '12px 20px',
                 fontFamily: 'DM Mono, monospace',
@@ -296,7 +373,7 @@ export default function AdminPage() {
                 { label: 'Livres', value: stats.books },
                 { label: 'Versets', value: stats.verses.toLocaleString('fr-FR') },
                 { label: 'Traductions de mots', value: stats.wordTranslations.toLocaleString('fr-FR') },
-                { label: 'Propositions', value: stats.proposals },
+                { label: 'Reformulations de versets', value: stats.proposals },
                 { label: 'Commentaires', value: stats.comments },
               ].map(stat => (
                 <div key={stat.label} style={{
@@ -460,86 +537,7 @@ export default function AdminPage() {
 							gap: '16px',
 							marginTop: '24px',
 						}}>
-							{/* Dernières propositions */}
-							<div style={{
-								background: 'white',
-								border: '1px solid var(--border)',
-								borderRadius: '10px',
-								padding: '20px',
-							}}>
-								<div style={{
-									fontFamily: 'DM Mono, monospace',
-									fontSize: '10px',
-									letterSpacing: '0.1em',
-									textTransform: 'uppercase' as const,
-									color: 'var(--ink-muted)',
-									marginBottom: '16px',
-								}}>
-									Dernières propositions de reformulation
-								</div>
-								{stats.recentProposals.map(p => {
-									const verse = p.translation.verse
-									const url = `/${verse.chapter.book.testament === 'AT' ? 'at' : 'nt'}/${verse.chapter.book.slug}/${verse.chapter.number}?verse=${verse.id}&tab=verse#v${verse.number}`
-									return (
-										<Link key={p.id} href={url} style={{ textDecoration: 'none', display: 'block' }}>
-											<div style={{
-												padding: '8px 0',
-												borderBottom: '1px solid var(--border)',
-												cursor: 'pointer',
-												transition: 'opacity 0.15s',
-											}}
-											onMouseEnter={e => (e.currentTarget as HTMLElement).style.opacity = '0.6'}
-											onMouseLeave={e => (e.currentTarget as HTMLElement).style.opacity = '1'}
-											>
-												<div style={{
-													display: 'flex',
-													justifyContent: 'space-between',
-													marginBottom: '2px',
-												}}>
-													<span style={{
-														fontFamily: 'DM Mono, monospace',
-														fontSize: '9px',
-														color: 'var(--ink-muted)',
-													}}>
-														{verse.chapter.book.name} {verse.chapter.number}:{verse.number}
-													</span>
-													<span style={{
-														fontFamily: 'DM Mono, monospace',
-														fontSize: '9px',
-														color: p.status === 'ACCEPTED' ? 'var(--green-valid)' : p.status === 'REJECTED' ? 'var(--red-soft)' : 'var(--amber-pending)',
-													}}>
-														{p.status === 'ACCEPTED' ? 'Acceptée' : p.status === 'REJECTED' ? 'Rejetée' : 'En attente'}
-													</span>
-												</div>
-												<div style={{
-													fontFamily: 'Spectral, serif',
-													fontSize: '12px',
-													fontStyle: 'italic',
-													color: 'var(--ink-soft)',
-													overflow: 'hidden',
-													textOverflow: 'ellipsis',
-													whiteSpace: 'nowrap',
-													marginBottom: '2px',
-												}}>
-													{p.proposedText}
-												</div>
-												<div style={{
-													fontFamily: 'DM Mono, monospace',
-													fontSize: '9px',
-													color: 'var(--ink-faint)',
-												}}>
-													<span style={{ color: p.creator ? getRoleColor(p.creator.role) : 'var(--ink-muted)' }}>
-														@{p.creator?.username || 'anonyme'}
-													</span>
-													{' · '}{new Date(p.createdAt).toLocaleDateString('fr-FR')}
-												</div>
-											</div>
-										</Link>
-									)
-								})}
-							</div>
-
-							{/* Dernières traductions de mots */}
+              {/* Dernières traductions de mots */}
 							<div style={{
 								background: 'white',
 								border: '1px solid var(--border)',
@@ -608,6 +606,85 @@ export default function AdminPage() {
 														@{t.creator?.username || 'anonyme'}
 													</span>
 													{' · '}{new Date(t.createdAt).toLocaleDateString('fr-FR')}
+												</div>
+											</div>
+										</Link>
+									)
+								})}
+							</div>
+
+							{/* Dernières propositions */}
+							<div style={{
+								background: 'white',
+								border: '1px solid var(--border)',
+								borderRadius: '10px',
+								padding: '20px',
+							}}>
+								<div style={{
+									fontFamily: 'DM Mono, monospace',
+									fontSize: '10px',
+									letterSpacing: '0.1em',
+									textTransform: 'uppercase' as const,
+									color: 'var(--ink-muted)',
+									marginBottom: '16px',
+								}}>
+									Dernières reformulations de versets
+								</div>
+								{stats.recentProposals.map(p => {
+									const verse = p.translation.verse
+									const url = `/${verse.chapter.book.testament === 'AT' ? 'at' : 'nt'}/${verse.chapter.book.slug}/${verse.chapter.number}?verse=${verse.id}&tab=verse#v${verse.number}`
+									return (
+										<Link key={p.id} href={url} style={{ textDecoration: 'none', display: 'block' }}>
+											<div style={{
+												padding: '8px 0',
+												borderBottom: '1px solid var(--border)',
+												cursor: 'pointer',
+												transition: 'opacity 0.15s',
+											}}
+											onMouseEnter={e => (e.currentTarget as HTMLElement).style.opacity = '0.6'}
+											onMouseLeave={e => (e.currentTarget as HTMLElement).style.opacity = '1'}
+											>
+												<div style={{
+													display: 'flex',
+													justifyContent: 'space-between',
+													marginBottom: '2px',
+												}}>
+													<span style={{
+														fontFamily: 'DM Mono, monospace',
+														fontSize: '9px',
+														color: 'var(--ink-muted)',
+													}}>
+														{verse.chapter.book.name} {verse.chapter.number}:{verse.number}
+													</span>
+													<span style={{
+														fontFamily: 'DM Mono, monospace',
+														fontSize: '9px',
+														color: p.status === 'ACCEPTED' ? 'var(--green-valid)' : p.status === 'REJECTED' ? 'var(--red-soft)' : 'var(--amber-pending)',
+													}}>
+														{p.status === 'ACCEPTED' ? 'Acceptée' : p.status === 'REJECTED' ? 'Rejetée' : 'En attente'}
+													</span>
+												</div>
+												<div style={{
+													fontFamily: 'Spectral, serif',
+													fontSize: '12px',
+													fontStyle: 'italic',
+													color: 'var(--ink-soft)',
+													overflow: 'hidden',
+													textOverflow: 'ellipsis',
+													whiteSpace: 'nowrap',
+													marginBottom: '2px',
+												}}>
+													{p.proposedText}
+												</div>
+												<div style={{
+													fontFamily: 'DM Mono, monospace',
+													fontSize: '9px',
+													color: 'var(--ink-faint)',
+												}}>
+													<span style={{ color: p.creator ? getRoleColor(p.creator.role) : 'var(--ink-muted)' }}>
+														@{p.creator?.username || 'anonyme'}
+													</span>
+													{' · '}{new Date(p.createdAt).toLocaleDateString('fr-FR')}
 												</div>
 											</div>
 										</Link>
@@ -766,8 +843,8 @@ export default function AdminPage() {
                 <span>Utilisateur</span>
                 <span>Email</span>
                 <span>Inscription</span>
-                <span>Trad.</span>
-                <span>Prop.</span>
+                <span>Mots.</span>
+                <span>Vers.</span>
                 <span>Comm.</span>
                 <span>Rôle</span>
                 <span>Actions</span>
@@ -993,6 +1070,211 @@ export default function AdminPage() {
             }}>
               {filteredUsers.length} utilisateur{filteredUsers.length !== 1 ? 's' : ''}
             </div>
+          </div>
+        )}
+        {/* ONGLET CONTRIBUTIONS */}
+        {activeTab === 'contributions' && (
+          <div>
+            {/* Filtres */}
+            <div style={{ display: 'flex', gap: '8px', marginBottom: '24px', flexWrap: 'wrap', alignItems: 'center' }}>
+              {(['ALL', 'AT', 'NT'] as const).map(t => (
+                <button key={t} onClick={() => {
+                  setContribTestament(t)
+                  setContribBook('')
+                  setContribChapter('')
+                  setContribVerse('')
+                  loadContributions(t, '', '', '')
+                }}
+                  style={{ padding: '5px 10px', borderRadius: '20px', border: `1px solid ${contribTestament === t ? 'var(--gold)' : 'var(--border)'}`, background: contribTestament === t ? 'var(--gold-pale)' : 'transparent', fontFamily: 'DM Mono, monospace', fontSize: '9px', color: contribTestament === t ? 'var(--gold)' : 'var(--ink-muted)', cursor: 'pointer' }}>
+                  {t === 'ALL' ? 'Tout' : t}
+                </button>
+              ))}
+
+              <select
+                value={contribBook}
+                onChange={e => {
+                  const val = e.target.value
+                  setContribBook(val)
+                  setContribChapter('')
+                  setContribVerse('')
+                  loadContributions(contribTestament, val, '', '')
+                }}
+                style={{ padding: '5px 10px', border: `1px solid ${contribBook ? 'var(--gold)' : 'var(--border)'}`, borderRadius: '6px', background: contribBook ? 'var(--gold-pale)' : 'white', fontFamily: 'DM Mono, monospace', fontSize: '9px', color: contribBook ? 'var(--gold)' : 'var(--ink-muted)', cursor: 'pointer', outline: 'none' }}
+              >
+                <option value="">Tous les livres</option>
+                {Object.keys(BOOK_NAME_TO_SLUG)
+                  .filter(b => contribTestament === 'ALL' || (contribTestament === 'AT' ? Object.keys(BOOK_NAME_TO_SLUG).indexOf(b) < 46 : Object.keys(BOOK_NAME_TO_SLUG).indexOf(b) >= 46))
+                  .map(b => <option key={b} value={b}>{b}</option>)}
+              </select>
+
+              {contribBook && (
+                <input
+                  type="number"
+                  min={1}
+                  placeholder="Chapitre"
+                  value={contribChapter}
+                  onChange={e => {
+                    setContribChapter(e.target.value)
+                    setContribVerse('')
+                    loadContributions(contribTestament, contribBook, e.target.value, '')
+                  }}
+                  style={{ width: '80px', padding: '5px 10px', border: `1px solid ${contribChapter ? 'var(--gold)' : 'var(--border)'}`, borderRadius: '6px', background: contribChapter ? 'var(--gold-pale)' : 'white', fontFamily: 'DM Mono, monospace', fontSize: '9px', color: 'var(--ink)', outline: 'none' }}
+                />
+              )}
+
+              {contribChapter && (
+                <input
+                  type="number"
+                  min={1}
+                  placeholder="Verset"
+                  value={contribVerse}
+                  onChange={e => {
+                    setContribVerse(e.target.value)
+                    loadContributions(contribTestament, contribBook, contribChapter, e.target.value)
+                  }}
+                  style={{ width: '80px', padding: '5px 10px', border: `1px solid ${contribVerse ? 'var(--gold)' : 'var(--border)'}`, borderRadius: '6px', background: contribVerse ? 'var(--gold-pale)' : 'white', fontFamily: 'DM Mono, monospace', fontSize: '9px', color: 'var(--ink)', outline: 'none' }}
+                />
+              )}
+
+              {(contribTestament !== 'ALL' || contribBook) && (
+                <button onClick={() => {
+                  setContribTestament('ALL')
+                  setContribBook('')
+                  setContribChapter('')
+                  setContribVerse('')
+                  setContribData(null)
+                }}
+                  style={{ padding: '5px 10px', borderRadius: '20px', border: '1px solid rgba(122,42,42,0.2)', background: 'var(--red-light)', fontFamily: 'DM Mono, monospace', fontSize: '9px', color: 'var(--red-soft)', cursor: 'pointer' }}>
+                  ✕ Réinitialiser
+                </button>
+              )}
+            </div>
+
+            {contribLoading && (
+              <div style={{ fontFamily: 'Spectral, serif', fontSize: '14px', color: 'var(--ink-faint)', fontStyle: 'italic', textAlign: 'center', padding: '24px' }}>
+                Chargement...
+              </div>
+            )}
+
+            {!contribLoading && !contribData && (
+              <div style={{ fontFamily: 'Spectral, serif', fontSize: '14px', color: 'var(--ink-faint)', fontStyle: 'italic', textAlign: 'center', padding: '40px' }}>
+                Sélectionnez un filtre pour afficher les contributions.
+              </div>
+            )}
+
+            {contribData && !contribLoading && (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px' }}>
+                {/* Traductions de mots */}
+                <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: '10px', padding: '20px' }}>
+                  <div style={{ fontFamily: 'DM Mono, monospace', fontSize: '10px', letterSpacing: '0.1em', textTransform: 'uppercase' as const, color: 'var(--ink-muted)', marginBottom: '16px' }}>
+                    Traductions de mots ({contribData.wordTranslations.length})
+                  </div>
+                  {contribData.wordTranslations.length === 0 ? (
+                    <div style={{ fontFamily: 'Spectral, serif', fontSize: '13px', color: 'var(--ink-faint)', fontStyle: 'italic' }}>Aucune.</div>
+                  ) : contribData.wordTranslations.map(t => {
+                    const verse = t.wordToken.verseText.verse
+                    const url = `/${verse.chapter.book.testament === 'AT' ? 'at' : 'nt'}/${verse.chapter.book.slug}/${verse.chapter.number}?word=${t.wordToken.id}&tab=word#v${verse.number}`
+                    return (
+                      <Link key={t.id} href={url} style={{ textDecoration: 'none', display: 'block' }}>
+                        <div style={{ padding: '8px 0', borderBottom: '1px solid var(--border)', cursor: 'pointer', transition: 'opacity 0.15s' }}
+                          onMouseEnter={e => (e.currentTarget as HTMLElement).style.opacity = '0.7'}
+                          onMouseLeave={e => (e.currentTarget as HTMLElement).style.opacity = '1'}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '3px' }}>
+                            <span style={{ fontFamily: 'DM Mono, monospace', fontSize: '9px', color: 'var(--ink-muted)' }}>
+                              {verse.chapter.book.name} {verse.chapter.number}:{verse.number} · {t.wordToken.word}
+                            </span>
+                            <span style={{ fontFamily: 'DM Mono, monospace', fontSize: '9px', padding: '1px 6px', borderRadius: '20px', background: t.isValidated ? 'var(--green-light)' : 'var(--amber-light)', color: t.isValidated ? 'var(--green-valid)' : 'var(--amber-pending)' }}>
+                              {t.isValidated ? 'Validée' : 'Proposée'}
+                            </span>
+                          </div>
+                          <div style={{ fontFamily: 'Spectral, serif', fontSize: '13px', fontStyle: 'italic', color: 'var(--ink)', marginBottom: '3px' }}>
+                            {t.translation}
+                          </div>
+                          <div style={{ fontFamily: 'DM Mono, monospace', fontSize: '9px', color: 'var(--ink-faint)' }}>
+                            <span style={{ color: t.creator ? getRoleColor(t.creator.role) : 'var(--ink-muted)' }}>
+                              @{t.creator?.username || 'anonyme'}
+                            </span>
+                            {' · '}{new Date(t.createdAt).toLocaleDateString('fr-FR')}
+                          </div>
+                        </div>
+                      </Link>
+                    )
+                  })}
+                </div>
+
+                {/* Propositions */}
+                <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: '10px', padding: '20px' }}>
+                  <div style={{ fontFamily: 'DM Mono, monospace', fontSize: '10px', letterSpacing: '0.1em', textTransform: 'uppercase' as const, color: 'var(--ink-muted)', marginBottom: '16px' }}>
+                    Reformulations de versets ({contribData.proposals.length})
+                  </div>
+                  {contribData.proposals.length === 0 ? (
+                    <div style={{ fontFamily: 'Spectral, serif', fontSize: '13px', color: 'var(--ink-faint)', fontStyle: 'italic' }}>Aucune.</div>
+                  ) : contribData.proposals.map(p => {
+                    const verse = p.translation.verse
+                    const url = `/${verse.chapter.book.testament === 'AT' ? 'at' : 'nt'}/${verse.chapter.book.slug}/${verse.chapter.number}?verse=${verse.id}&tab=verse#v${verse.number}`
+                    return (
+                      <Link key={p.id} href={url} style={{ textDecoration: 'none', display: 'block' }}>
+                        <div style={{ padding: '8px 0', borderBottom: '1px solid var(--border)', cursor: 'pointer', transition: 'opacity 0.15s' }}
+                          onMouseEnter={e => (e.currentTarget as HTMLElement).style.opacity = '0.7'}
+                          onMouseLeave={e => (e.currentTarget as HTMLElement).style.opacity = '1'}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '3px' }}>
+                            <span style={{ fontFamily: 'DM Mono, monospace', fontSize: '9px', color: 'var(--ink-muted)' }}>
+                              {verse.chapter.book.name} {verse.chapter.number}:{verse.number}
+                            </span>
+                            <span style={{ fontFamily: 'DM Mono, monospace', fontSize: '9px', padding: '1px 6px', borderRadius: '20px', background: p.status === 'ACCEPTED' ? 'var(--green-light)' : p.status === 'REJECTED' ? 'var(--red-light)' : 'var(--amber-light)', color: p.status === 'ACCEPTED' ? 'var(--green-valid)' : p.status === 'REJECTED' ? 'var(--red-soft)' : 'var(--amber-pending)' }}>
+                              {p.status === 'ACCEPTED' ? 'Acceptée' : p.status === 'REJECTED' ? 'Rejetée' : 'En attente'}
+                            </span>
+                          </div>
+                          <div style={{ fontFamily: 'Spectral, serif', fontSize: '12px', fontStyle: 'italic', color: 'var(--ink-soft)', lineHeight: '1.5', marginBottom: '3px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' as const }}>
+                            {p.proposedText}
+                          </div>
+                          <div style={{ fontFamily: 'DM Mono, monospace', fontSize: '9px', color: 'var(--ink-faint)' }}>
+                            <span style={{ color: p.creator ? getRoleColor(p.creator.role) : 'var(--ink-muted)' }}>
+                              @{p.creator?.username || 'anonyme'}
+                            </span>
+                            {' · '}{new Date(p.createdAt).toLocaleDateString('fr-FR')}
+                          </div>
+                        </div>
+                      </Link>
+                    )
+                  })}
+                </div>
+
+                {/* Commentaires */}
+                <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: '10px', padding: '20px' }}>
+                  <div style={{ fontFamily: 'DM Mono, monospace', fontSize: '10px', letterSpacing: '0.1em', textTransform: 'uppercase' as const, color: 'var(--ink-muted)', marginBottom: '16px' }}>
+                    Commentaires ({contribData.comments.length})
+                  </div>
+                  {contribData.comments.length === 0 ? (
+                    <div style={{ fontFamily: 'Spectral, serif', fontSize: '13px', color: 'var(--ink-faint)', fontStyle: 'italic' }}>Aucun.</div>
+                  ) : contribData.comments.map(c => {
+                    const url = c.verse ? `/${c.verse.chapter.book.testament === 'AT' ? 'at' : 'nt'}/${c.verse.chapter.book.slug}/${c.verse.chapter.number}?verse=${c.verse.id}&tab=comments#v${c.verse.number}` : null
+                    return url ? (
+                      <Link key={c.id} href={url} style={{ textDecoration: 'none', display: 'block' }}>
+                        <div style={{ padding: '8px 0', borderBottom: '1px solid var(--border)', cursor: 'pointer', transition: 'opacity 0.15s' }}
+                          onMouseEnter={e => (e.currentTarget as HTMLElement).style.opacity = '0.7'}
+                          onMouseLeave={e => (e.currentTarget as HTMLElement).style.opacity = '1'}>
+                          {c.verse && (
+                            <div style={{ fontFamily: 'DM Mono, monospace', fontSize: '9px', color: 'var(--ink-muted)', marginBottom: '3px' }}>
+                              {c.verse.chapter.book.name} {c.verse.chapter.number}:{c.verse.number}
+                            </div>
+                          )}
+                          <div style={{ fontFamily: 'Spectral, serif', fontSize: '12px', color: 'var(--ink-soft)', lineHeight: '1.5', marginBottom: '3px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' as const, pointerEvents: 'none' }}>
+                            <CommentText text={c.text} disableLinks />
+                          </div>
+                          <div style={{ fontFamily: 'DM Mono, monospace', fontSize: '9px', color: 'var(--ink-faint)' }}>
+                            <span style={{ color: c.creator ? getRoleColor(c.creator.role) : 'var(--ink-muted)' }}>
+                              @{c.creator?.username || 'anonyme'}
+                            </span>
+                            {' · '}{new Date(c.createdAt).toLocaleDateString('fr-FR')}
+                          </div>
+                        </div>
+                      </Link>
+                    ) : <div key={c.id} />
+                  })}
+                </div>
+              </div>
+            )}
           </div>
         )}
         {/* ONGLET LOGS */}

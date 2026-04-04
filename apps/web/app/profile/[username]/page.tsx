@@ -771,7 +771,7 @@ export default function UserProfilePage() {
             <div style={{ marginBottom: '32px' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
                 <div style={{ fontFamily: 'DM Mono, monospace', fontSize: '10px', letterSpacing: '0.1em', textTransform: 'uppercase' as const, color: 'var(--ink-muted)' }}>
-                  Propositions ({profile?._count.proposals || 0})
+                  Reformulations de versets ({profile?._count.proposals || 0})
                 </div>
                 <div style={{ display: 'flex', gap: '4px' }}>
                   {(['ALL', 'PENDING', 'ACCEPTED', 'REJECTED'] as const).map(f => (

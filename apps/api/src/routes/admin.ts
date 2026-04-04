@@ -273,4 +273,106 @@ router.get('/logs', async (req: AuthRequest, res: Response) => {
   }
 })
 
+// GET /api/admin/contributions
+router.get('/contributions', async (req: AuthRequest, res: Response) => {
+  try {
+    const { testament, book, chapter, verse } = req.query
+
+    const bookFilter = book ? { slug: book as string } : testament ? { testament: testament as string } : undefined
+    const chapterFilter = chapter ? { number: Number(chapter) } : undefined
+    const verseFilter = verse ? { number: Number(verse) } : undefined
+
+    const whereVerse = {
+      ...(verseFilter && chapterFilter && bookFilter ? {
+        number: verseFilter.number,
+        chapter: { number: chapterFilter.number, book: bookFilter }
+      } : chapterFilter && bookFilter ? {
+        chapter: { number: chapterFilter.number, book: bookFilter }
+      } : bookFilter ? {
+        chapter: { book: bookFilter }
+      } : {})
+    }
+
+    const [wordTranslations, proposals, comments] = await Promise.all([
+      prisma.wordTranslation.findMany({
+        where: {
+          wordToken: {
+            verseText: {
+              verse: whereVerse
+            }
+          }
+        },
+        orderBy: { createdAt: 'desc' },
+        take: 50,
+        include: {
+          creator: { select: { username: true, role: true } },
+          wordToken: {
+            select: {
+              id: true,
+              word: true,
+              verseText: {
+                include: {
+                  verse: {
+                    select: {
+                      id: true,
+                      number: true,
+                      chapter: { include: { book: true } }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }),
+      prisma.proposal.findMany({
+        where: {
+          translation: {
+            verse: whereVerse
+          }
+        },
+        orderBy: { createdAt: 'desc' },
+        take: 50,
+        include: {
+          creator: { select: { username: true, role: true } },
+          reviewer: { select: { username: true, role: true } },
+          translation: {
+            include: {
+              verse: {
+                select: {
+                  id: true,
+                  number: true,
+                  chapter: { include: { book: true } }
+                }
+              }
+            }
+          }
+        }
+      }),
+      prisma.comment.findMany({
+        where: {
+          verse: whereVerse
+        },
+        orderBy: { createdAt: 'desc' },
+        take: 50,
+        include: {
+          creator: { select: { username: true, role: true } },
+          verse: {
+            select: {
+              id: true,
+              number: true,
+              chapter: { include: { book: true } }
+            }
+          }
+        }
+      }),
+    ])
+
+    res.json({ wordTranslations, proposals, comments })
+  } catch (error) {
+    console.error(error)
+    res.status(500).json({ error: 'Erreur serveur' })
+  }
+})
+
 export default router
