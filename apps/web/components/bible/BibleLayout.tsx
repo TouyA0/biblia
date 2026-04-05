@@ -305,7 +305,14 @@ export default function BibleLayout({ testament }: BibleLayoutProps) {
 
         <RightPanel
           activeTab={activeTab}
-          setActiveTab={setActiveTab}
+          setActiveTab={(tab) => {
+            setActiveTab(tab)
+            if (activeVerse) {
+              window.history.replaceState(null, '', `?verse=${activeVerse.id}&tab=${tab}#v${activeVerse.number}`)
+            } else if (activeWord) {
+              window.history.replaceState(null, '', `?word=${activeWord.id}&tab=${tab}`)
+            }
+          }}
           activeVerse={activeVerse}
           activeWord={activeWord}
           wordTranslations={wordTranslations}
