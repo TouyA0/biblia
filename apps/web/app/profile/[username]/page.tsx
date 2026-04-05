@@ -437,21 +437,6 @@ export default function UserProfilePage() {
     }
   }
 
-  async function handleUpdateProfile() {
-    setProfileError('')
-    setProfileSuccess('')
-    try {
-      const res = await api.patch('/api/profile', { username: editUsername, email: editEmail })
-      setUser(res.data)
-      localStorage.setItem('user', JSON.stringify(res.data))
-      setProfileSuccess('Profil mis à jour')
-      if (editUsername !== username) router.push(`/profile/${editUsername}`)
-    } catch (err: unknown) {
-      const error = err as { response?: { data?: { error?: string } } }
-      setProfileError(error.response?.data?.error || 'Erreur')
-    }
-  }
-
   async function handleChangePassword() {
     setPasswordError('')
     setPasswordSuccess('')
@@ -840,7 +825,7 @@ export default function UserProfilePage() {
                         <div style={{ padding: '10px 14px', border: '1px solid var(--border)', borderRadius: '8px', background: 'white', marginBottom: '8px', transition: 'opacity 0.15s' }}
                           onMouseEnter={e => (e.currentTarget as HTMLElement).style.opacity = '0.8'}
                           onMouseLeave={e => (e.currentTarget as HTMLElement).style.opacity = '1'}>
-                          {c.verse && (
+                          {verse && (
                             <div style={{ display: 'flex', justifyContent: 'space-between', fontFamily: 'DM Mono, monospace', fontSize: '9px', color: 'var(--ink-muted)', marginBottom: '4px' }}>
                               <span>
                                 {verse.chapter.book.name} {verse.chapter.number}:{verse.number}

@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import Link from 'next/link'
 import api from '@/lib/api'
 import { useAuthStore } from '@/store/auth'
 import { getRoleColor } from '@/lib/roleColors'
@@ -224,7 +223,7 @@ export default function NotificationBell() {
 																@{p.creator?.username || 'anonyme'}
 															</div>
 															<button
-																onClick={e => { e.stopPropagation(); dismissed.has(`p-${p.id}`) ? setDismissed(prev => { const next = new Set(prev); next.delete(`p-${p.id}`); localStorage.setItem('notif_dismissed', JSON.stringify([...next])); return next }) : dismiss(`p-${p.id}`) }}
+																onClick={e => { e.stopPropagation(); if (dismissed.has(`p-${p.id}`)) { setDismissed(prev => { const next = new Set(prev); next.delete(`p-${p.id}`); localStorage.setItem('notif_dismissed', JSON.stringify([...next])); return next }) } else { dismiss(`p-${p.id}`) } }}
 																style={{ padding: '1px 6px', borderRadius: '4px', border: `1px solid ${dismissed.has(`p-${p.id}`) ? 'var(--green-valid)' : 'var(--border)'}`, background: dismissed.has(`p-${p.id}`) ? 'var(--green-light)' : 'transparent', fontFamily: 'DM Mono, monospace', fontSize: '8px', color: dismissed.has(`p-${p.id}`) ? 'var(--green-valid)' : 'var(--ink-faint)', cursor: 'pointer' }}
 															>
 																{dismissed.has(`p-${p.id}`) ? '✓ Lu' : 'Marquer lu'}
@@ -267,7 +266,7 @@ export default function NotificationBell() {
 																@{t.creator?.username || 'anonyme'}
 															</div>
 															<button
-																onClick={e => { e.stopPropagation(); dismissed.has(`w-${t.id}`) ? setDismissed(prev => { const next = new Set(prev); next.delete(`w-${t.id}`); localStorage.setItem('notif_dismissed', JSON.stringify([...next])); return next }) : dismiss(`w-${t.id}`) }}
+																onClick={e => { e.stopPropagation(); if (dismissed.has(`w-${t.id}`)) { setDismissed(prev => { const next = new Set(prev); next.delete(`w-${t.id}`); localStorage.setItem('notif_dismissed', JSON.stringify([...next])); return next }) } else { dismiss(`w-${t.id}`) } }}
 																style={{ padding: '1px 6px', borderRadius: '4px', border: `1px solid ${dismissed.has(`w-${t.id}`) ? 'var(--green-valid)' : 'var(--border)'}`, background: dismissed.has(`w-${t.id}`) ? 'var(--green-light)' : 'transparent', fontFamily: 'DM Mono, monospace', fontSize: '8px', color: dismissed.has(`w-${t.id}`) ? 'var(--green-valid)' : 'var(--ink-faint)', cursor: 'pointer' }}
 															>
 																{dismissed.has(`w-${t.id}`) ? '✓ Lu' : 'Marquer lu'}

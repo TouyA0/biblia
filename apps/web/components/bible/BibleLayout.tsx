@@ -273,6 +273,7 @@ export default function BibleLayout({ testament }: BibleLayoutProps) {
             onVerseClick={async (verse) => {
               setActiveVerse(verse)
               setActiveTab('verse')
+              window.history.replaceState(null, '', `?verse=${verse.id}&tab=verse#v${verse.number}`)
               try {
                 const [commentsRes, proposalsRes] = await Promise.all([
                   api.get(`/api/verses/${verse.id}/comments`),
@@ -290,6 +291,7 @@ export default function BibleLayout({ testament }: BibleLayoutProps) {
             onWordClick={async (token, x, y) => {
               setActiveWord(token)
               setPopoverPos({ x, y })
+              window.history.replaceState(null, '', `?word=${token.id}&tab=word`)
               try {
                 const res = await api.get(`/api/words/${token.id}/translations`)
                 setWordTranslations(res.data)
