@@ -7,6 +7,7 @@ import api from '@/lib/api'
 import { useAuthStore } from '@/store/auth'
 import CommentText from '@/components/bible/CommentText'
 import { getRoleColor, getRoleBackground, getRoleBorder } from '@/lib/roleColors'
+import NotificationBell from '@/components/bible/NotificationBell'
 import React from 'react'
 import { BOOK_NAME_TO_SLUG } from '@/lib/bookSlugs'
 
@@ -281,6 +282,7 @@ export default function AdminPage() {
           Administration
         </span>
         <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '16px' }}>
+          <NotificationBell />
           <Link href="/profile" style={{
             fontFamily: 'DM Mono, monospace',
             fontSize: '10px',
