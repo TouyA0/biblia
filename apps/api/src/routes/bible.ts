@@ -729,4 +729,65 @@ router.delete('/proposals/:id', authenticateJWT, async (req: AuthRequest, res: R
   }
 })
 
+// GET /api/bible/pending — éléments en attente pour experts/admins
+router.get('/pending', authenticateJWT, async (req: AuthRequest, res: Response) => {
+  try {
+    if (!['EXPERT', 'ADMIN'].includes(req.user!.role)) {
+      res.status(403).json({ error: 'Accès refusé' }); return
+    }
+
+    const [proposals, wordTranslations] = await Promise.all([
+      prisma.proposal.findMany({
+        where: { status: 'PENDING' },
+        orderBy: { createdAt: 'desc' },
+        take: 20,
+        include: {
+          creator: { select: { username: true, role: true } },
+          translation: {
+            include: {
+              verse: {
+                select: {
+                  id: true,
+                  number: true,
+                  chapter: { include: { book: true } }
+                }
+              }
+            }
+          }
+        }
+      }),
+      prisma.wordTranslation.findMany({
+        where: { isValidated: false },
+        orderBy: { createdAt: 'desc' },
+        take: 20,
+        include: {
+          creator: { select: { username: true, role: true } },
+          wordToken: {
+            select: {
+              id: true,
+              word: true,
+              verseText: {
+                include: {
+                  verse: {
+                    select: {
+                      id: true,
+                      number: true,
+                      chapter: { include: { book: true } }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      })
+    ])
+
+    res.json({ proposals, wordTranslations })
+  } catch (error) {
+    console.error(error)
+    res.status(500).json({ error: 'Erreur serveur' })
+  }
+})
+
 export default router

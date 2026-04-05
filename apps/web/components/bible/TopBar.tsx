@@ -9,6 +9,8 @@ interface TopBarProps {
 import { useAuthStore } from '@/store/auth'
 import { useEffect } from 'react'
 import { getRoleColor, getRoleBackground, getRoleBorder } from '@/lib/roleColors'
+import NotificationBell from './NotificationBell'
+import Link from 'next/link'
 
 export default function TopBar({ testament, book, chapter }: TopBarProps) {
   const { user, setUser, setToken } = useAuthStore()
@@ -89,7 +91,7 @@ export default function TopBar({ testament, book, chapter }: TopBarProps) {
               {user.role}
             </span>
             {user.role === 'ADMIN' && (
-              <a href="/admin" style={{
+              <Link href="/admin" style={{
                 fontFamily: 'DM Mono, monospace',
                 fontSize: '10px',
                 color: '#e88',
@@ -101,9 +103,10 @@ export default function TopBar({ testament, book, chapter }: TopBarProps) {
                 background: 'rgba(122,42,42,0.15)',
               }}>
                 Administration
-              </a>
+              </Link>
             )}
-            <a href="/profile" style={{
+            <NotificationBell />
+            <Link href="/profile" style={{
               fontFamily: 'DM Mono, monospace',
               fontSize: '10px',
               color: 'rgba(255,255,255,0.6)',
@@ -111,7 +114,7 @@ export default function TopBar({ testament, book, chapter }: TopBarProps) {
               textDecoration: 'none',
             }}>
               {user.username}
-            </a>
+            </Link>
             <button
               onClick={() => {
                 localStorage.removeItem('token')
