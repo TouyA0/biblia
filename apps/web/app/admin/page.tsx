@@ -149,6 +149,70 @@ export default function AdminPage() {
   } | null>(null)
   const [contribLoading, setContribLoading] = useState(false)
 
+  function exportCSV() {
+    if (!contribData) return
+
+    const rows: string[] = []
+    
+    // Header
+    rows.push('Type,Livre,Chapitre,Verset,Contenu,Statut,Auteur,Date')
+
+    // Traductions de mots
+    contribData.wordTranslations.forEach(t => {
+      const verse = t.wordToken.verseText.verse
+      rows.push([
+        'Traduction de mot',
+        verse.chapter.book.name,
+        verse.chapter.number,
+        verse.number,
+        `${t.wordToken.word} → ${t.translation}`,
+        t.isValidated ? 'Validée' : 'Proposée',
+        t.creator?.username || 'anonyme',
+        new Date(t.createdAt).toLocaleDateString('fr-FR'),
+      ].map(v => `"${String(v).replace(/"/g, '""')}"`).join(','))
+    })
+
+    // Propositions
+    contribData.proposals.forEach(p => {
+      const verse = p.translation.verse
+      rows.push([
+        'Reformulation de verset',
+        verse.chapter.book.name,
+        verse.chapter.number,
+        verse.number,
+        p.proposedText,
+        p.status === 'ACCEPTED' ? 'Acceptée' : p.status === 'REJECTED' ? 'Rejetée' : 'En attente',
+        p.creator?.username || 'anonyme',
+        new Date(p.createdAt).toLocaleDateString('fr-FR'),
+      ].map(v => `"${String(v).replace(/"/g, '""')}"`).join(','))
+    })
+
+    // Commentaires
+    contribData.comments.forEach(c => {
+      const verse = c.verse
+      rows.push([
+        'Commentaire',
+        verse?.chapter.book.name || '',
+        verse?.chapter.number || '',
+        verse?.number || '',
+        c.text,
+        '',
+        c.creator?.username || 'anonyme',
+        new Date(c.createdAt).toLocaleDateString('fr-FR'),
+      ].map(v => `"${String(v).replace(/"/g, '""')}"`).join(','))
+    })
+
+    const csv = rows.join('\n')
+    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    const filterLabel = contribBook ? `${contribBook}-ch${contribChapter || 'all'}` : contribTestament !== 'ALL' ? contribTestament : 'all'
+    a.download = `biblia-contributions-${filterLabel}-${new Date().toISOString().slice(0, 10)}.csv`
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
   async function loadContributions(testament: string, book: string, chapter: string, verse: string) {
     setContribLoading(true)
     try {
@@ -1165,7 +1229,28 @@ export default function AdminPage() {
             )}
 
             {contribData && !contribLoading && (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px' }}>
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '12px' }}>
+                  <button
+                    onClick={exportCSV}
+                    style={{
+                      padding: '6px 14px',
+                      borderRadius: '6px',
+                      border: '1px solid var(--border)',
+                      background: 'white',
+                      fontFamily: 'DM Mono, monospace',
+                      fontSize: '9px',
+                      color: 'var(--ink-muted)',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                    }}
+                  >
+                    ↓ Exporter CSV ({(contribData.wordTranslations.length + contribData.proposals.length + contribData.comments.length)} entrées)
+                  </button>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px' }}>
                 {/* Traductions de mots */}
                 <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: '10px', padding: '20px' }}>
                   <div style={{ fontFamily: 'DM Mono, monospace', fontSize: '10px', letterSpacing: '0.1em', textTransform: 'uppercase' as const, color: 'var(--ink-muted)', marginBottom: '16px' }}>
@@ -1276,7 +1361,8 @@ export default function AdminPage() {
                   })}
                 </div>
               </div>
-            )}
+            </div>
+          )}
           </div>
         )}
         {/* ONGLET LOGS */}
