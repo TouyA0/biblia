@@ -479,7 +479,6 @@ router.post('/verses/:id/proposals', authenticateJWT, async (req: AuthRequest, r
 })
 
 // PATCH /api/proposals/:id/accept
-// PATCH /api/proposals/:id/accept
 router.patch('/proposals/:id/accept', authenticateJWT, async (req: AuthRequest, res: Response) => {
   try {
     if (!['EXPERT', 'ADMIN'].includes(req.user!.role)) {
@@ -704,9 +703,11 @@ router.delete('/proposals/:id', authenticateJWT, async (req: AuthRequest, res: R
           reviewedBy: req.user!.id
         }
       })
+      await logAction('PROPOSAL_REJECTED', req.user!.id, { proposalId: id, reason: 'Supprimée par un expert' }, req.ip)
     } else {
       // Créateur → suppression définitive
       await prisma.proposal.delete({ where: { id } })
+      await logAction('PROPOSAL_DELETED', req.user!.id, { proposalId: id }, req.ip)
     }
 
     // Si c'était la proposition active, remettre la Crampon

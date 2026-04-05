@@ -1127,8 +1127,21 @@ export default function UserProfilePage() {
             </div>
             {/* Logs */}
             <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: '10px', padding: '20px' }}>
-              <div style={{ fontFamily: 'DM Mono, monospace', fontSize: '10px', letterSpacing: '0.1em', textTransform: 'uppercase' as const, color: 'var(--ink-muted)', marginBottom: '16px' }}>
-                Historique d&apos;activité
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+                <div style={{ fontFamily: 'DM Mono, monospace', fontSize: '10px', letterSpacing: '0.1em', textTransform: 'uppercase' as const, color: 'var(--ink-muted)' }}>
+                  Historique d&apos;activité
+                </div>
+                <button
+                  onClick={async () => {
+                    try {
+                      const adminRes = await api.get(`/api/users/${username}/admin`)
+                      setAdminInfo(adminRes.data)
+                    } catch (e) { console.error(e) }
+                  }}
+                  style={{ padding: '3px 8px', borderRadius: '4px', border: '1px solid var(--border)', background: 'transparent', fontFamily: 'DM Mono, monospace', fontSize: '9px', color: 'var(--ink-muted)', cursor: 'pointer' }}
+                >
+                  ↻ Rafraîchir
+                </button>
               </div>
               {adminInfo.logs.length === 0 ? (
                 <div style={{ fontFamily: 'Spectral, serif', fontSize: '14px', color: 'var(--ink-faint)', fontStyle: 'italic' }}>Aucun log.</div>

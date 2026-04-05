@@ -1336,9 +1336,22 @@ export default function AdminPage() {
                       <span style={{ fontFamily: 'DM Mono, monospace', fontSize: '10px', letterSpacing: '0.1em', textTransform: 'uppercase' as const, color: 'var(--ink-muted)' }}>
                         {filtered.length} entrée{filtered.length !== 1 ? 's' : ''}
                       </span>
-                      <span style={{ fontFamily: 'DM Mono, monospace', fontSize: '9px', color: 'var(--ink-faint)' }}>
-                        Page {logPage} / {Math.max(totalPages, 1)}
-                      </span>
+                      <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                        <span style={{ fontFamily: 'DM Mono, monospace', fontSize: '9px', color: 'var(--ink-faint)' }}>
+                          Page {logPage} / {Math.max(totalPages, 1)}
+                        </span>
+                        <button
+                          onClick={async () => {
+                            try {
+                              const logsRes = await api.get('/api/admin/logs')
+                              setAdminLogs(logsRes.data)
+                            } catch (e) { console.error(e) }
+                          }}
+                          style={{ padding: '3px 8px', borderRadius: '4px', border: '1px solid var(--border)', background: 'transparent', fontFamily: 'DM Mono, monospace', fontSize: '9px', color: 'var(--ink-muted)', cursor: 'pointer' }}
+                        >
+                          ↻ Rafraîchir
+                        </button>
+                      </div>
                     </div>
 
                     {paged.length === 0 ? (
