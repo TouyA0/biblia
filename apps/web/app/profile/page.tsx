@@ -9,11 +9,11 @@ export default function ProfileRedirect() {
   useEffect(() => {
     const savedUser = localStorage.getItem('user')
     if (!savedUser) {
-      router.push('/login')
+      router.replace('/login')
       return
     }
     const user = JSON.parse(savedUser)
-    router.push(`/profile/${user.username}`)
+    router.replace(`/profile/${user.username}`)
   }, [])
 
   return (
