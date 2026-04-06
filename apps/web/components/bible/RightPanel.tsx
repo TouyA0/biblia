@@ -86,6 +86,8 @@ interface RightPanelProps {
   activeTab: 'verse' | 'word' | 'comments'
   setActiveTab: (tab: 'verse' | 'word' | 'comments') => void
   activeVerse: Verse | null
+  bookName?: string
+  chapterNumber?: number
   activeWord: WordToken | null
   wordTranslations: WordTranslation[]
   comments: Comment[]
@@ -170,6 +172,8 @@ export default function RightPanel({
   setActiveTab,
   activeVerse,
   activeWord,
+  bookName,
+  chapterNumber,
   wordTranslations,
   comments,
   proposals,
@@ -323,6 +327,29 @@ export default function RightPanel({
         {activeTab === 'verse' && (
           activeVerse ? (
             <div>
+
+              {/* Référence du verset */}
+              {bookName && chapterNumber && (
+                <div
+                  onClick={() => navigator.clipboard.writeText(`${bookName} ${chapterNumber}:${activeVerse.number}`)}
+                  title="Cliquer pour copier"
+                  style={{
+                    display: 'inline-block',
+                    marginBottom: '14px',
+                    fontFamily: 'DM Mono, monospace',
+                    fontSize: '10px',
+                    color: 'var(--ink-muted)',
+                    letterSpacing: '0.08em',
+                    cursor: 'pointer',
+                    borderBottom: '1px dashed var(--border)',
+                    paddingBottom: '1px',
+                  }}
+                  onMouseEnter={e => (e.currentTarget as HTMLElement).style.color = 'var(--gold)'}
+                  onMouseLeave={e => (e.currentTarget as HTMLElement).style.color = 'var(--ink-muted)'}
+                >
+                  {bookName} {chapterNumber}:{activeVerse.number}
+                </div>
+              )}
 
               {/* Texte original */}
               <div style={{

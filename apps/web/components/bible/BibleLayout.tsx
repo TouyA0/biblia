@@ -305,6 +305,8 @@ export default function BibleLayout({ testament }: BibleLayoutProps) {
 
         <RightPanel
           activeTab={activeTab}
+          bookName={bookData?.name}
+          chapterNumber={chapterData?.number}
           setActiveTab={(tab) => {
             setActiveTab(tab)
             if (activeVerse) {
