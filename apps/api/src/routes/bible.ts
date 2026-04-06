@@ -790,4 +790,60 @@ router.get('/pending', authenticateJWT, async (req: AuthRequest, res: Response) 
   }
 })
 
+// GET /api/search?q=...
+router.get('/search', async (req: AuthRequest, res: Response) => {
+  try {
+    const q = (req.query.q as string)?.trim()
+    if (!q || q.length < 2) { res.json([]); return }
+
+    const results = await prisma.verse.findMany({
+      where: {
+        OR: [
+          // Texte original
+          {
+            texts: {
+              some: {
+                text: { contains: q, mode: 'insensitive' }
+              }
+            }
+          },
+          // Traduction active
+          {
+            translations: {
+              some: {
+                isActive: true,
+                textFr: { contains: q, mode: 'insensitive' }
+              }
+            }
+          },
+          // Traductions acceptées
+          {
+            translations: {
+              some: {
+                proposals: {
+                  some: {
+                    status: 'ACCEPTED',
+                    proposedText: { contains: q, mode: 'insensitive' }
+                  }
+                }
+              }
+            }
+          },
+        ]
+      },
+      take: 20,
+      include: {
+        texts: { where: { language: { in: ['HEB', 'GRK'] } }, take: 1 },
+        translations: { where: { isActive: true }, take: 1 },
+        chapter: { include: { book: true } }
+      }
+    })
+
+    res.json(results)
+  } catch (error) {
+    console.error(error)
+    res.status(500).json({ error: 'Erreur serveur' })
+  }
+})
+
 export default router

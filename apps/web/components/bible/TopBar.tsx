@@ -10,6 +10,7 @@ import { useAuthStore } from '@/store/auth'
 import { useEffect } from 'react'
 import { getRoleColor, getRoleBackground, getRoleBorder } from '@/lib/roleColors'
 import NotificationBell from './NotificationBell'
+import SearchBar from './SearchBar'
 import Link from 'next/link'
 
 export default function TopBar({ testament, book, chapter }: TopBarProps) {
@@ -74,6 +75,7 @@ export default function TopBar({ testament, book, chapter }: TopBarProps) {
           </a>
         ))}
       </div>
+      <SearchBar />
       <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '16px' }}>
         {user ? (
           <>
