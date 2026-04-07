@@ -149,6 +149,31 @@ export default function AdminPage() {
   } | null>(null)
   const [contribLoading, setContribLoading] = useState(false)
 
+  function exportUsersCSV() {
+    const rows: string[] = []
+    rows.push('Username,Email,Rôle,Inscription,Traductions,Propositions,Commentaires,Actif')
+    filteredUsers.forEach(u => {
+      rows.push([
+        u.username,
+        u.email,
+        u.role,
+        new Date(u.createdAt).toLocaleDateString('fr-FR'),
+        u._count.wordTranslations,
+        u._count.proposals,
+        u._count.comments,
+        u.isActive ? 'Oui' : 'Non',
+      ].map(v => `"${String(v).replace(/"/g, '""')}"`).join(','))
+    })
+    const csv = rows.join('\n')
+    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `biblia-utilisateurs-${new Date().toISOString().slice(0, 10)}.csv`
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
   function exportCSV() {
     if (!contribData) return
 
@@ -884,6 +909,12 @@ export default function AdminPage() {
                   </button>
                 ))}
               </div>
+              <button
+                onClick={exportUsersCSV}
+                style={{ padding: '5px 12px', borderRadius: '6px', border: '1px solid var(--border)', background: 'white', fontFamily: 'DM Mono, monospace', fontSize: '9px', color: 'var(--ink-muted)', cursor: 'pointer', marginLeft: 'auto', flexShrink: 0 }}
+              >
+                ↓ Exporter CSV ({filteredUsers.length})
+              </button>
             </div>
 
             {/* Liste utilisateurs */}
@@ -1214,6 +1245,14 @@ export default function AdminPage() {
                   ✕ Réinitialiser
                 </button>
               )}
+              {contribData && (
+                <button
+                  onClick={exportCSV}
+                  style={{ marginLeft: 'auto', padding: '5px 12px', borderRadius: '6px', border: '1px solid var(--border)', background: 'white', fontFamily: 'DM Mono, monospace', fontSize: '9px', color: 'var(--ink-muted)', cursor: 'pointer' }}
+                >
+                  ↓ Exporter CSV ({contribData.wordTranslations.length + contribData.proposals.length + contribData.comments.length})
+                </button>
+              )}
             </div>
 
             {contribLoading && (
@@ -1230,26 +1269,6 @@ export default function AdminPage() {
 
             {contribData && !contribLoading && (
               <div>
-                <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '12px' }}>
-                  <button
-                    onClick={exportCSV}
-                    style={{
-                      padding: '6px 14px',
-                      borderRadius: '6px',
-                      border: '1px solid var(--border)',
-                      background: 'white',
-                      fontFamily: 'DM Mono, monospace',
-                      fontSize: '9px',
-                      color: 'var(--ink-muted)',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '6px',
-                    }}
-                  >
-                    ↓ Exporter CSV ({(contribData.wordTranslations.length + contribData.proposals.length + contribData.comments.length)} entrées)
-                  </button>
-                </div>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px' }}>
                 {/* Traductions de mots */}
                 <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: '10px', padding: '20px' }}>
