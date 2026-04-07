@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import api from '@/lib/api'
@@ -90,6 +90,8 @@ export default function AdminPage() {
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState<'stats' | 'users' | 'contributions' | 'logs'>('stats')
   const [search, setSearch] = useState('')
+  const [showSuggestions, setShowSuggestions] = useState(false)
+  const searchRef = useRef<HTMLDivElement>(null)
   const [roleFilter, setRoleFilter] = useState<string>('ALL')
   const [updatingRole, setUpdatingRole] = useState<string | null>(null)
   const [actionLoading, setActionLoading] = useState<string | null>(null)
@@ -277,6 +279,16 @@ export default function AdminPage() {
     setToken(token)
     setUser(u)
     loadData()
+  }, [])
+
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (searchRef.current && !searchRef.current.contains(e.target as Node)) {
+        setShowSuggestions(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
   }, [])
 
   async function loadData() {
@@ -870,24 +882,78 @@ export default function AdminPage() {
               flexWrap: 'wrap',
               alignItems: 'center',
             }}>
-              <input
-                type="text"
-                placeholder="Rechercher un utilisateur..."
-                value={search}
-                onChange={e => setSearch(e.target.value)}
-                style={{
-                  flex: 1,
-                  minWidth: '200px',
-                  padding: '8px 12px',
-                  border: '1px solid var(--border)',
-                  borderRadius: '6px',
-                  background: 'white',
-                  fontFamily: 'Spectral, serif',
-                  fontSize: '14px',
-                  color: 'var(--ink)',
-                  outline: 'none',
-                }}
-              />
+              <div ref={searchRef} style={{ flex: 1, minWidth: '200px', position: 'relative' }}>
+                <input
+                  type="text"
+                  placeholder="Rechercher un utilisateur..."
+                  value={search}
+                  onChange={e => { setSearch(e.target.value); setShowSuggestions(true) }}
+                  onFocus={() => setShowSuggestions(true)}
+                  style={{
+                    width: '100%',
+                    padding: '8px 12px',
+                    border: '1px solid var(--border)',
+                    borderRadius: '6px',
+                    background: 'white',
+                    fontFamily: 'Spectral, serif',
+                    fontSize: '14px',
+                    color: 'var(--ink)',
+                    outline: 'none',
+                  }}
+                />
+                {showSuggestions && search.length >= 1 && (
+                  <div style={{
+                    position: 'absolute',
+                    top: '38px',
+                    left: 0,
+                    right: 0,
+                    background: 'white',
+                    border: '1px solid var(--border)',
+                    borderRadius: '8px',
+                    boxShadow: '0 8px 24px rgba(26,22,18,0.1)',
+                    zIndex: 100,
+                    maxHeight: '200px',
+                    overflowY: 'auto',
+                  }}>
+                    {users
+                      .filter(u => u.username.toLowerCase().includes(search.toLowerCase()) || u.email.toLowerCase().includes(search.toLowerCase()))
+                      .slice(0, 8)
+                      .map(u => (
+                        <div
+                          key={u.id}
+                          onClick={() => { setSearch(u.username); setShowSuggestions(false) }}
+                          style={{
+                            padding: '8px 12px',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '10px',
+                            borderBottom: '1px solid var(--border)',
+                            transition: 'background 0.1s',
+                          }}
+                          onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = 'var(--parchment)'}
+                          onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = 'transparent'}
+                        >
+                          <div style={{ width: '24px', height: '24px', borderRadius: '50%', background: 'var(--parchment-deep)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'DM Mono, monospace', fontSize: '9px', color: 'var(--ink-muted)', flexShrink: 0 }}>
+                            {u.username.substring(0, 2).toUpperCase()}
+                          </div>
+                          <div>
+                            <div style={{ fontFamily: 'Spectral, serif', fontSize: '13px', color: 'var(--ink)' }}>{u.username}</div>
+                            <div style={{ fontFamily: 'DM Mono, monospace', fontSize: '9px', color: 'var(--ink-faint)' }}>{u.email}</div>
+                          </div>
+                          <span style={{ marginLeft: 'auto', fontFamily: 'DM Mono, monospace', fontSize: '9px', padding: '2px 6px', borderRadius: '20px', background: getRoleBackground(u.role), color: getRoleColor(u.role), border: `1px solid ${getRoleBorder(u.role)}` }}>
+                            {u.role}
+                          </span>
+                        </div>
+                      ))}
+                    {users.filter(u => u.username.toLowerCase().includes(search.toLowerCase()) || u.email.toLowerCase().includes(search.toLowerCase())).length === 0 && (
+                      <div style={{ padding: '12px', fontFamily: 'Spectral, serif', fontSize: '13px', color: 'var(--ink-faint)', fontStyle: 'italic', textAlign: 'center' }}>
+                        Aucun utilisateur trouvé
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
               <div style={{ display: 'flex', gap: '4px' }}>
                 {(['ALL', ...ROLES, 'DISABLED'] as const).map(r => (
                   <button
