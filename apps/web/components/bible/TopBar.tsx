@@ -10,6 +10,7 @@ import { useAuthStore } from '@/store/auth'
 import { useEffect } from 'react'
 import { getRoleColor, getRoleBackground, getRoleBorder } from '@/lib/roleColors'
 import NotificationBell from './NotificationBell'
+import UserSearch from './UserSearch'
 import SearchBar from './SearchBar'
 import Link from 'next/link'
 
@@ -108,6 +109,7 @@ export default function TopBar({ testament, book, chapter }: TopBarProps) {
               </Link>
             )}
             <NotificationBell />
+            <UserSearch />
             <Link href="/profile" style={{
               fontFamily: 'DM Mono, monospace',
               fontSize: '10px',

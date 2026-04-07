@@ -9,6 +9,7 @@ import { getRoleColor, getRoleBackground, getRoleBorder } from '@/lib/roleColors
 import ConfirmModal from '@/components/bible/ConfirmModal'
 import CommentText from '@/components/bible/CommentText'
 import NotificationBell from '@/components/bible/NotificationBell'
+import UserSearch from '@/components/bible/UserSearch'
 
 
 interface UserProfile {
@@ -570,7 +571,7 @@ export default function UserProfilePage() {
               Administration
             </Link>
           )}
-          {currentUser && ['EXPERT', 'ADMIN'].includes(currentUser.role) && <NotificationBell />}
+          {currentUser && ['EXPERT', 'ADMIN'].includes(currentUser.role) && <NotificationBell /> && <UserSearch />}
           {currentUser && (
             <Link href={`/profile/${currentUser.username}`} style={{ fontFamily: 'DM Mono, monospace', fontSize: '10px', color: 'rgba(255,255,255,0.6)', textDecoration: 'none' }}>
               {currentUser.username}

@@ -4,6 +4,28 @@ import { authenticateJWT, AuthRequest, checkRole } from '../middlewares/auth'
 
 const router = Router()
 
+// GET /api/users/search?q=...
+router.get('/search', async (req, res) => {
+  try {
+    const q = (req.query.q as string)?.trim()
+    if (!q || q.length < 2) { res.json([]); return }
+    const users = await prisma.user.findMany({
+      where: {
+        OR: [
+          { username: { contains: q, mode: 'insensitive' } },
+        ],
+        isActive: true,
+      },
+      take: 8,
+      select: { id: true, username: true, role: true }
+    })
+    res.json(users)
+  } catch (error) {
+    console.error(error)
+    res.status(500).json({ error: 'Erreur serveur' })
+  }
+})
+
 // GET /api/users/:username — profil public
 router.get('/:username', async (req: Request, res: Response) => {
   try {
