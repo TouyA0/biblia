@@ -1,5 +1,7 @@
 'use client'
 
+import { useState } from 'react'
+
 interface WordToken {
   id: string
   position: number
@@ -42,6 +44,7 @@ interface VerseListProps {
 }
 
 export default function VerseList({ verses, bookName, chapter, activeVerseId, activeWordId, onVerseClick, onWordClick }: VerseListProps) {
+  const [copiedId, setCopiedId] = useState<string | null>(null)
   return (
     <div style={{ overflowY: 'auto', padding: '40px 48px' }}>
       <div style={{ marginBottom: '36px' }}>
@@ -88,8 +91,47 @@ export default function VerseList({ verses, bookName, chapter, activeVerseId, ac
               paddingTop: '4px',
               textAlign: 'right',
               fontWeight: '300',
-            }}>
+              position: 'relative',
+            }}
+              onMouseEnter={e => { const btn = e.currentTarget.querySelector('.copy-btn') as HTMLElement; if (btn) btn.style.opacity = '1' }}
+              onMouseLeave={e => { const btn = e.currentTarget.querySelector('.copy-btn') as HTMLElement; if (btn) btn.style.opacity = '0' }}
+            >
               {verse.number}
+              <button
+                className="copy-btn"
+                onClick={e => {
+                  e.stopPropagation()
+                  const ref = `${bookName} ${chapter}:${verse.number}`
+                  const text = translation ? `${ref}\n« ${translation.textFr} »` : ref
+                  navigator.clipboard.writeText(text)
+                  setCopiedId(verse.id)
+                  setTimeout(() => setCopiedId(null), 2000)
+                }}
+                style={{
+                  position: 'absolute',
+                  top: '2px',
+                  right: '18px',
+                  opacity: 0,
+                  background: 'transparent',
+                  border: 'none',
+                  cursor: 'pointer',
+                  padding: '2px',
+                  color: 'var(--gold)',
+                  transition: 'opacity 0.15s',
+                }}
+                title="Copier la référence et le texte"
+              >
+                {copiedId === verse.id ? (
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="var(--green-valid)" strokeWidth="2.5">
+                    <polyline points="20 6 9 17 4 12"/>
+                  </svg>
+                ) : (
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                  </svg>
+                )}
+              </button>
             </div>
             <div>
               {originalText && (
