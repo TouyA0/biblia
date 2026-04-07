@@ -119,6 +119,7 @@ export default function BibleLayout({ testament }: BibleLayoutProps) {
   const [activeTab, setActiveTab] = useState<'verse' | 'word' | 'comments'>('verse')
   const [loading, setLoading] = useState(true)
   const [popoverPos, setPopoverPos] = useState<{ x: number; y: number } | null>(null)
+  const [fullscreen, setFullscreen] = useState(false)
   const [wordTranslations, setWordTranslations] = useState<WordTranslation[]>([])
   const [comments, setComments] = useState<Comment[]>([])
   const [proposals, setProposals] = useState<Proposal[]>([])
@@ -246,7 +247,7 @@ export default function BibleLayout({ testament }: BibleLayoutProps) {
       onClick={() => setPopoverPos(null)}
       style={{
         display: 'grid',
-        gridTemplateColumns: '220px 1fr',
+        gridTemplateColumns: fullscreen ? '0px 1fr' : '220px 1fr',
         gridTemplateRows: '52px 1fr',
         height: '100vh',
         overflow: 'hidden',
@@ -262,7 +263,7 @@ export default function BibleLayout({ testament }: BibleLayoutProps) {
         allBooks={allBooks}
       />
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 360px', overflow: 'hidden' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: fullscreen ? '1fr 0px' : '1fr 360px', overflow: 'hidden', position: 'relative' }}>
         {chapterData && bookData && (
           <VerseList
             verses={chapterData.verses}
@@ -302,6 +303,50 @@ export default function BibleLayout({ testament }: BibleLayoutProps) {
             }}
           />
         )}
+
+        <button
+          onClick={() => setFullscreen(f => !f)}
+          title={fullscreen ? 'Quitter le mode lecture' : 'Mode lecture'}
+          style={{
+            position: 'fixed',
+            bottom: '24px',
+            right: fullscreen ? '24px' : '384px',
+            zIndex: 100,
+            width: '32px',
+            height: '32px',
+            borderRadius: '6px',
+            border: '1px solid var(--border)',
+            background: 'var(--parchment-dark)',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: 'var(--ink-muted)',
+            fontSize: '11px',
+            fontFamily: 'DM Mono, monospace',
+            letterSpacing: '-0.05em',
+            boxShadow: '0 2px 8px rgba(26,22,18,0.12)',
+            transition: 'right 0.3s ease',
+          }}
+          onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = 'var(--gold-pale)'}
+          onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = 'var(--parchment-dark)'}
+        >
+          {fullscreen ? (
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <polyline points="4 14 10 14 10 20"/>
+              <polyline points="20 10 14 10 14 4"/>
+              <line x1="10" y1="14" x2="3" y2="21"/>
+              <line x1="21" y1="3" x2="14" y2="10"/>
+            </svg>
+          ) : (
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <polyline points="15 3 21 3 21 9"/>
+              <polyline points="9 21 3 21 3 15"/>
+              <line x1="21" y1="3" x2="14" y2="10"/>
+              <line x1="3" y1="21" x2="10" y2="14"/>
+            </svg>
+          )}
+        </button>
 
         <RightPanel
           activeTab={activeTab}
