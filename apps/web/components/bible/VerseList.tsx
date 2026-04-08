@@ -31,6 +31,11 @@ interface Verse {
   reference: string
   texts: VerseText[]
   translations: Translation[]
+  _count?: {
+    comments: number
+    translations: number
+  }
+  hasContributions?: boolean
 }
 
 interface VerseListProps {
@@ -82,6 +87,9 @@ export default function VerseList({ verses, bookName, chapter, activeVerseId, ac
               background: activeVerseId === verse.id ? 'var(--gold-pale)' : 'transparent',
               outline: activeVerseId === verse.id ? '1.5px solid var(--gold)' : 'none',
               transition: 'background 0.2s',
+              borderLeft: verse.hasContributions
+                ? '3px solid rgba(184,132,58,0.4)'
+                : '3px solid transparent',
             }}
           >
             <div style={{

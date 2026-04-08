@@ -48,14 +48,40 @@ router.get('/books/:slug/chapters/:number', async (req: Request, res: Response) 
         verses: {
           orderBy: { number: 'asc' },
           include: {
-            texts: { include: { wordTokens: { orderBy: { position: 'asc' } } } },
-            translations: { where: { isActive: true }, take: 1 }
+            texts: { include: { wordTokens: true } },
+            translations: { where: { isActive: true }, take: 1 },
+            _count: {
+              select: {
+                comments: true,
+                translations: true,
+              }
+            }
           }
         }
       }
     })
     if (!chapter) { res.status(404).json({ error: 'Chapitre non trouvé' }); return }
-    res.json(chapter)
+
+    // Enrichir avec les propositions en attente
+    const verseIds = chapter.verses.map((v: { id: string }) => v.id)
+    const translationsWithProposals = await prisma.translation.findMany({
+      where: {
+        verseId: { in: verseIds },
+        proposals: { some: { status: { in: ['PENDING', 'ACCEPTED'] } } }
+      },
+      select: { verseId: true }
+    })
+    const versesWithProposals = new Set(translationsWithProposals.map((t: { verseId: string }) => t.verseId))
+
+    const enriched = {
+      ...chapter,
+      verses: chapter.verses.map((v: { id: string; _count: { comments: number; translations: number } }) => ({
+        ...v,
+        hasContributions: versesWithProposals.has(v.id) || v._count.comments > 0
+      }))
+    }
+
+    res.json(enriched)
   } catch (error) {
     console.error(error)
     res.status(500).json({ error: 'Erreur serveur' })
