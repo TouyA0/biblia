@@ -48,7 +48,15 @@ router.get('/books/:slug/chapters/:number', async (req: Request, res: Response) 
         verses: {
           orderBy: { number: 'asc' },
           include: {
-            texts: { include: { wordTokens: true } },
+            texts: {
+              include: {
+                wordTokens: {
+                  include: {
+                    translations: { where: { isValidated: true }, take: 1, select: { id: true } }
+                  }
+                }
+              }
+            },
             translations: { where: { isActive: true }, take: 1 },
             _count: {
               select: {

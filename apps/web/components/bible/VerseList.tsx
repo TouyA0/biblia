@@ -10,6 +10,7 @@ interface WordToken {
   translit: string | null
   strongNumber: string | null
   morphology: string | null
+  translations?: { id: string }[]
 }
 
 interface VerseText {
@@ -168,6 +169,9 @@ export default function VerseList({ verses, bookName, chapter, activeVerseId, ac
                         color: activeWordId === token.id ? 'white' : 'inherit',
                         display: 'inline-block',
                         transition: 'all 0.15s',
+                        borderBottom: token.translations && token.translations.length > 0
+                          ? '1px dotted rgba(26,22,18,0.35)'
+                          : 'none',
                       }}
                     >
                       {token.word}{i < originalText.wordTokens.length - 1 ? '\u00A0' : ''}
