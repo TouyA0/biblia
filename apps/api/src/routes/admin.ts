@@ -429,4 +429,40 @@ router.get('/stats/evolution', async (req: AuthRequest, res: Response) => {
   }
 })
 
+// GET /api/admin/verse-history?book=genese&chapter=1&verse=1
+router.get('/verse-history', async (req: AuthRequest, res: Response) => {
+  try {
+    const { book, chapter, verse } = req.query
+
+    const chapterData = await prisma.chapter.findFirst({
+      where: { number: Number(chapter), book: { slug: book as string } },
+    })
+    if (!chapterData) { res.status(404).json({ error: 'Chapitre non trouvé' }); return }
+
+    const verseData = await prisma.verse.findFirst({
+      where: { number: Number(verse), chapterId: chapterData.id },
+    })
+    if (!verseData) { res.status(404).json({ error: 'Verset non trouvé' }); return }
+
+    const translations = await prisma.translation.findMany({
+      where: { verseId: verseData.id },
+      orderBy: { createdAt: 'asc' },
+      include: {
+        proposals: {
+          orderBy: { createdAt: 'asc' },
+          include: {
+            creator: { select: { username: true, role: true } },
+            reviewer: { select: { username: true, role: true } },
+          }
+        }
+      }
+    })
+
+    res.json(translations)
+  } catch (error) {
+    console.error(error)
+    res.status(500).json({ error: 'Erreur serveur' })
+  }
+})
+
 export default router

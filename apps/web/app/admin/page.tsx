@@ -151,6 +151,25 @@ export default function AdminPage() {
   } | null>(null)
   const [contribLoading, setContribLoading] = useState(false)
 
+  const [verseHistory, setVerseHistory] = useState<{
+    id: string
+    textFr: string
+    isActive: boolean
+    isReference: boolean
+    source: string | null
+    createdAt: string
+    proposals: {
+      id: string
+      proposedText: string
+      status: string
+      reason: string | null
+      createdAt: string
+      creator: { username: string; role: string } | null
+      reviewer: { username: string; role: string } | null
+    }[]
+  }[]>([])
+  const [verseHistoryLoading, setVerseHistoryLoading] = useState(false)
+
   function exportUsersCSV() {
     const rows: string[] = []
     rows.push('Username,Email,Rôle,Inscription,Traductions,Propositions,Commentaires,Actif')
@@ -250,6 +269,16 @@ export default function AdminPage() {
       if (verse) params.set('verse', verse)
       const res = await api.get(`/api/admin/contributions?${params.toString()}`)
       setContribData(res.data)
+      if (verse && chapter && book) {
+        setVerseHistoryLoading(true)
+        try {
+          const histRes = await api.get(`/api/admin/verse-history?book=${BOOK_NAME_TO_SLUG[book]}&chapter=${chapter}&verse=${verse}`)
+          setVerseHistory(histRes.data)
+        } catch (e) { console.error(e) }
+        finally { setVerseHistoryLoading(false) }
+      } else {
+        setVerseHistory([])
+      }
     } catch (e) { console.error(e) }
     finally { setContribLoading(false) }
   }
@@ -1508,9 +1537,75 @@ export default function AdminPage() {
                   })}
                 </div>
               </div>
+              {/* Historique des traductions */}
+              {contribVerse && (
+                <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: '10px', padding: '20px', marginTop: '16px' }}>
+                  <div style={{ fontFamily: 'DM Mono, monospace', fontSize: '10px', letterSpacing: '0.1em', textTransform: 'uppercase' as const, color: 'var(--ink-muted)', marginBottom: '16px' }}>
+                    Historique des traductions — {contribBook} {contribChapter}:{contribVerse}
+                  </div>
+                  {verseHistoryLoading ? (
+                    <div style={{ fontFamily: 'Spectral, serif', fontSize: '13px', color: 'var(--ink-faint)', fontStyle: 'italic' }}>Chargement...</div>
+                  ) : verseHistory.length === 0 ? (
+                    <div style={{ fontFamily: 'Spectral, serif', fontSize: '13px', color: 'var(--ink-faint)', fontStyle: 'italic' }}>Aucun historique.</div>
+                  ) : verseHistory.map(t => (
+                    <div key={t.id} style={{ marginBottom: '16px', borderBottom: '1px solid var(--border)', paddingBottom: '16px' }}>
+                      {/* Traduction */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                        <span style={{ fontFamily: 'DM Mono, monospace', fontSize: '9px', padding: '2px 8px', borderRadius: '20px', background: t.isActive ? 'var(--green-light)' : t.isReference ? 'var(--blue-light)' : 'var(--parchment-deep)', color: t.isActive ? 'var(--green-valid)' : t.isReference ? 'var(--blue-sacred)' : 'var(--ink-muted)' }}>
+                          {t.isActive ? 'Active' : t.isReference ? 'Référence' : 'Inactive'}
+                        </span>
+                        {t.source && (
+                          <span style={{ fontFamily: 'DM Mono, monospace', fontSize: '9px', color: 'var(--ink-faint)' }}>{t.source}</span>
+                        )}
+                        <span style={{ fontFamily: 'DM Mono, monospace', fontSize: '9px', color: 'var(--ink-faint)', marginLeft: 'auto' }}>
+                          {new Date(t.createdAt).toLocaleDateString('fr-FR')}
+                        </span>
+                      </div>
+                      <div style={{ fontFamily: 'Spectral, serif', fontSize: '13px', fontStyle: 'italic', color: 'var(--ink)', lineHeight: '1.6', marginBottom: t.proposals.length > 0 ? '10px' : '0' }}>
+                        {t.textFr}
+                      </div>
+                      {/* Propositions liées */}
+                      {t.proposals.length > 0 && (
+                        <div style={{ paddingLeft: '16px', borderLeft: '2px solid var(--border)' }}>
+                          {t.proposals.map(p => (
+                            <div key={p.id} style={{ padding: '6px 0', borderBottom: '1px solid var(--border)' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                                <span style={{ fontFamily: 'DM Mono, monospace', fontSize: '9px', padding: '1px 6px', borderRadius: '20px', background: p.status === 'ACCEPTED' ? 'var(--green-light)' : p.status === 'REJECTED' ? 'var(--red-light)' : 'var(--amber-light)', color: p.status === 'ACCEPTED' ? 'var(--green-valid)' : p.status === 'REJECTED' ? 'var(--red-soft)' : 'var(--amber-pending)' }}>
+                                  {p.status === 'ACCEPTED' ? 'Acceptée' : p.status === 'REJECTED' ? 'Rejetée' : 'En attente'}
+                                </span>
+                                {p.creator && (
+                                  <Link href={`/profile/${p.creator.username}`} style={{ fontFamily: 'DM Mono, monospace', fontSize: '9px', color: getRoleColor(p.creator.role), textDecoration: 'none' }}>
+                                    @{p.creator.username}
+                                  </Link>
+                                )}
+                                {p.reviewer && (
+                                  <span style={{ fontFamily: 'DM Mono, monospace', fontSize: '9px', color: 'var(--ink-faint)' }}>
+                                    → revu par <Link href={`/profile/${p.reviewer.username}`} style={{ color: getRoleColor(p.reviewer.role), textDecoration: 'none' }}>@{p.reviewer.username}</Link>
+                                  </span>
+                                )}
+                                <span style={{ fontFamily: 'DM Mono, monospace', fontSize: '9px', color: 'var(--ink-faint)', marginLeft: 'auto' }}>
+                                  {new Date(p.createdAt).toLocaleDateString('fr-FR')}
+                                </span>
+                              </div>
+                              <div style={{ fontFamily: 'Spectral, serif', fontSize: '12px', fontStyle: 'italic', color: 'var(--ink-soft)', lineHeight: '1.5' }}>
+                                {p.proposedText}
+                              </div>
+                              {p.reason && (
+                                <div style={{ fontFamily: 'DM Mono, monospace', fontSize: '9px', color: 'var(--red-soft)', marginTop: '3px' }}>
+                                  Raison : {p.reason}
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
-          </div>
+        </div>
         )}
         {/* ONGLET LOGS */}
         {activeTab === 'logs' && (
