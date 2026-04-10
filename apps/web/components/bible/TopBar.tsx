@@ -1,20 +1,23 @@
 'use client'
 
 interface TopBarProps {
-  testament: 'AT' | 'NT'
-  book: string
-  chapter: string
+  testament?: 'AT' | 'NT'
+  book?: string
+  chapter?: string
+  fullscreen?: boolean
+  onToggleFullscreen?: () => void
+  showSearch?: boolean
+  showTestaments?: boolean
 }
 
 import { useAuthStore } from '@/store/auth'
 import { useEffect } from 'react'
 import { getRoleColor, getRoleBackground, getRoleBorder } from '@/lib/roleColors'
 import NotificationBell from './NotificationBell'
-import UserSearch from './UserSearch'
 import SearchBar from './SearchBar'
 import Link from 'next/link'
 
-export default function TopBar({ testament, book, chapter }: TopBarProps) {
+export default function TopBar({ testament, book, chapter, fullscreen, onToggleFullscreen, showSearch = true, showTestaments = true }: TopBarProps) {
   const { user, setUser, setToken } = useAuthStore()
 
   useEffect(() => {
@@ -28,55 +31,61 @@ export default function TopBar({ testament, book, chapter }: TopBarProps) {
   return (
     <div style={{
       gridColumn: '1 / -1',
+      width: '100%',
+      height: '52px',
       background: 'var(--ink)',
       display: 'flex',
       alignItems: 'center',
       padding: '0 24px',
       gap: '32px',
       borderBottom: '1px solid rgba(255,255,255,0.06)',
+      boxSizing: 'border-box' as const,
     }}>
-      <div style={{
+      <Link href="/" style={{
         fontFamily: 'Crimson Pro, serif',
         fontSize: '22px',
         fontWeight: '300',
         color: 'var(--gold-light)',
         letterSpacing: '0.06em',
+        textDecoration: 'none',
         display: 'flex',
         alignItems: 'center',
         gap: '10px',
       }}>
         <span style={{ opacity: 0.7, fontStyle: 'italic' }}>בּ</span>
         Biblia
-      </div>
-      <div style={{ display: 'flex', gap: '2px', marginLeft: '8px' }}>
-        {[
-          {
-            label: 'Ancien Testament',
-            href: testament === 'AT' ? `/at/${book}/${chapter}` : `/at/genese/1`,
-            active: testament === 'AT',
-          },
-          {
-            label: 'Nouveau Testament',
-            href: testament === 'NT' ? `/nt/${book}/${chapter}` : `/nt/matthieu/1`,
-            active: testament === 'NT',
-          },
-        ].map(tab => (
-          <a key={tab.label} href={tab.href} style={{
-            padding: '6px 16px',
-            fontFamily: 'DM Mono, monospace',
-            fontSize: '11px',
-            letterSpacing: '0.08em',
-            color: tab.active ? 'var(--gold-light)' : 'rgba(255,255,255,0.45)',
-            borderRadius: '4px',
-            background: tab.active ? 'rgba(184,132,58,0.2)' : 'transparent',
-            textDecoration: 'none',
-            textTransform: 'uppercase' as const,
-          }}>
-            {tab.label}
-          </a>
-        ))}
-      </div>
-      <SearchBar />
+      </Link>
+      {showTestaments && (
+        <div style={{ display: 'flex', gap: '2px', marginLeft: '8px' }}>
+          {[
+            {
+              label: 'Ancien Testament',
+              href: testament === 'AT' ? `/at/${book}/${chapter}` : `/at/genese/1`,
+              active: testament === 'AT',
+            },
+            {
+              label: 'Nouveau Testament',
+              href: testament === 'NT' ? `/nt/${book}/${chapter}` : `/nt/matthieu/1`,
+              active: testament === 'NT',
+            },
+          ].map(tab => (
+            <a key={tab.label} href={tab.href} style={{
+              padding: '6px 16px',
+              fontFamily: 'DM Mono, monospace',
+              fontSize: '11px',
+              letterSpacing: '0.08em',
+              color: tab.active ? 'var(--gold-light)' : 'rgba(255,255,255,0.45)',
+              borderRadius: '4px',
+              background: tab.active ? 'rgba(184,132,58,0.2)' : 'transparent',
+              textDecoration: 'none',
+              textTransform: 'uppercase' as const,
+            }}>
+              {tab.label}
+            </a>
+          ))}
+        </div>
+      )}
+      {showSearch && <SearchBar />}
       <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '16px' }}>
         {user ? (
           <>
@@ -108,8 +117,10 @@ export default function TopBar({ testament, book, chapter }: TopBarProps) {
                 Administration
               </Link>
             )}
+            <Link href="/contributeurs" style={{ fontFamily: 'DM Mono, monospace', fontSize: '10px', color: 'rgba(255,255,255,0.5)', textDecoration: 'none', letterSpacing: '0.08em' }}>
+              Contributeurs
+            </Link>
             <NotificationBell />
-            <UserSearch />
             <Link href="/profile" style={{
               fontFamily: 'DM Mono, monospace',
               fontSize: '10px',

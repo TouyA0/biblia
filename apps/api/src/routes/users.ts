@@ -26,6 +26,33 @@ router.get('/search', async (req, res) => {
   }
 })
 
+// GET /api/users/contributors
+router.get('/contributors', async (req, res) => {
+  try {
+    const users = await prisma.user.findMany({
+      where: { isActive: true },
+      select: {
+        id: true,
+        username: true,
+        role: true,
+        createdAt: true,
+        _count: {
+          select: {
+            wordTranslations: true,
+            proposals: true,
+            comments: true,
+          }
+        }
+      },
+      orderBy: { wordTranslations: { _count: 'desc' } }
+    })
+    res.json(users)
+  } catch (error) {
+    console.error(error)
+    res.status(500).json({ error: 'Erreur serveur' })
+  }
+})
+
 // GET /api/users/:username — profil public
 router.get('/:username', async (req: Request, res: Response) => {
   try {
