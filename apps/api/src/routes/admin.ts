@@ -375,4 +375,58 @@ router.get('/contributions', async (req: AuthRequest, res: Response) => {
   }
 })
 
+// GET /api/admin/stats/evolution
+router.get('/stats/evolution', async (req: AuthRequest, res: Response) => {
+  try {
+    const months = 12
+    const since = new Date()
+    since.setMonth(since.getMonth() - months)
+
+    const [wordTranslations, proposals, comments] = await Promise.all([
+      prisma.wordTranslation.findMany({
+        where: { createdAt: { gte: since } },
+        select: { createdAt: true }
+      }),
+      prisma.proposal.findMany({
+        where: { createdAt: { gte: since } },
+        select: { createdAt: true }
+      }),
+      prisma.comment.findMany({
+        where: { createdAt: { gte: since } },
+        select: { createdAt: true }
+      }),
+    ])
+
+    // Grouper par mois
+    const monthLabels = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Jun', 'Jul', 'Aoû', 'Sep', 'Oct', 'Nov', 'Déc']
+    const result = []
+    for (let i = months - 1; i >= 0; i--) {
+      const d = new Date()
+      d.setMonth(d.getMonth() - i)
+      const year = d.getFullYear()
+      const month = d.getMonth()
+      const label = `${monthLabels[month]} ${year}`
+
+      const inMonth = (items: { createdAt: Date }[]) =>
+        items.filter(x => {
+          const xd = new Date(x.createdAt)
+          return xd.getFullYear() === year && xd.getMonth() === month
+        }).length
+
+      result.push({
+        label,
+        wordTranslations: inMonth(wordTranslations),
+        proposals: inMonth(proposals),
+        comments: inMonth(comments),
+        total: inMonth(wordTranslations) + inMonth(proposals) + inMonth(comments),
+      })
+    }
+
+    res.json(result)
+  } catch (error) {
+    console.error(error)
+    res.status(500).json({ error: 'Erreur serveur' })
+  }
+})
+
 export default router

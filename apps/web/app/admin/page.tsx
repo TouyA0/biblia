@@ -259,6 +259,13 @@ export default function AdminPage() {
   const [logPage, setLogPage] = useState(1)
   const LOG_PAGE_SIZE = 20
   
+  const [evolution, setEvolution] = useState<{
+    label: string
+    wordTranslations: number
+    proposals: number
+    comments: number
+    total: number
+  }[]>([])
   
   const [adminLogs, setAdminLogs] = useState<{
     id: string
@@ -298,6 +305,8 @@ export default function AdminPage() {
         api.get('/api/admin/users'),
         api.get('/api/admin/logs'),
       ])
+      const evolutionRes = await api.get('/api/admin/stats/evolution')
+      setEvolution(evolutionRes.data)
       setStats(statsRes.data)
       setUsers(usersRes.data)
       setAdminLogs(logsRes.data)
@@ -632,6 +641,59 @@ export default function AdminPage() {
                   </div>
                 )
               })}
+            </div>
+            {/* Graphique évolution */}
+            <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: '10px', padding: '20px', marginTop: '24px', marginBottom: '0' }}>
+              <div style={{ fontFamily: 'DM Mono, monospace', fontSize: '10px', letterSpacing: '0.1em', textTransform: 'uppercase' as const, color: 'var(--ink-muted)', marginBottom: '20px' }}>
+                Contributions par mois
+              </div>
+              {(() => {
+                const max = Math.max(...evolution.map(e => e.total), 1)
+                return (
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'flex-end', gap: '6px', height: '120px', marginBottom: '8px' }}>
+                      {evolution.map((e, i) => (
+                        <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', height: '100%', justifyContent: 'flex-end' }}>
+                          {e.total > 0 && (
+                            <div style={{ fontFamily: 'DM Mono, monospace', fontSize: '8px', color: 'var(--ink-muted)' }}>
+                              {e.total}
+                            </div>
+                          )}
+                          <div style={{ width: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end' }}>
+                            {/* Commentaires */}
+                            <div title={`Commentaires: ${e.comments}`} style={{ width: '100%', height: `${(e.comments / max) * 100}px`, background: 'rgba(42,74,122,0.4)', minHeight: e.comments > 0 ? '2px' : '0' }} />
+                            {/* Propositions */}
+                            <div title={`Propositions: ${e.proposals}`} style={{ width: '100%', height: `${(e.proposals / max) * 100}px`, background: 'rgba(122,90,26,0.5)', minHeight: e.proposals > 0 ? '2px' : '0' }} />
+                            {/* Traductions */}
+                            <div title={`Traductions: ${e.wordTranslations}`} style={{ width: '100%', height: `${(e.wordTranslations / max) * 100}px`, background: 'var(--gold)', minHeight: e.wordTranslations > 0 ? '2px' : '0' }} />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    {/* Labels */}
+                    <div style={{ display: 'flex', gap: '6px' }}>
+                      {evolution.map((e, i) => (
+                        <div key={i} style={{ flex: 1, textAlign: 'center', fontFamily: 'DM Mono, monospace', fontSize: '7px', color: 'var(--ink-faint)', overflow: 'hidden' }}>
+                          {e.label.split(' ')[0]}
+                        </div>
+                      ))}
+                    </div>
+                    {/* Légende */}
+                    <div style={{ display: 'flex', gap: '16px', marginTop: '12px', justifyContent: 'center' }}>
+                      {[
+                        { color: 'var(--gold)', label: 'Traductions' },
+                        { color: 'rgba(122,90,26,0.5)', label: 'Reformulations' },
+                        { color: 'rgba(42,74,122,0.4)', label: 'Commentaires' },
+                      ].map(l => (
+                        <div key={l.label} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <div style={{ width: '10px', height: '10px', background: l.color, borderRadius: '2px' }} />
+                          <span style={{ fontFamily: 'DM Mono, monospace', fontSize: '9px', color: 'var(--ink-muted)' }}>{l.label}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )
+              })()}
             </div>
             {/* Dernières activités */}
 						<div style={{
