@@ -52,18 +52,28 @@ interface VerseListProps {
 export default function VerseList({ verses, bookName, chapter, activeVerseId, activeWordId, onVerseClick, onWordClick }: VerseListProps) {
   const [copiedId, setCopiedId] = useState<string | null>(null)
   return (
-    <div style={{ overflowY: 'auto', padding: '40px 48px' }}>
-      <div style={{ marginBottom: '36px' }}>
+    <div style={{ overflowY: 'auto', padding: '48px 56px' }}>
+      <div style={{ marginBottom: '48px' }}>
         <div style={{
-          fontFamily: 'DM Mono, monospace',
-          fontSize: '13px',
+          fontFamily: 'var(--font-mono)',
+          fontSize: 'var(--text-xs)',
           fontWeight: '400',
-          letterSpacing: '0.12em',
+          letterSpacing: '0.14em',
           textTransform: 'uppercase' as const,
           color: 'var(--gold)',
-          marginBottom: '6px',
+          marginBottom: '16px',
         }}>
           {bookName} · Chapitre {chapter}
+        </div>
+        <div style={{
+          fontFamily: 'var(--font-title)',
+          fontSize: '48px',
+          fontWeight: '300',
+          color: 'var(--ink)',
+          lineHeight: '1.1',
+          marginBottom: '8px',
+        }}>
+          {verses[0]?.texts?.find(t => t.language === 'HEB' || t.language === 'GRK')?.text?.split(' ').slice(0, 1).join('')}
         </div>
       </div>
 
@@ -76,18 +86,8 @@ export default function VerseList({ verses, bookName, chapter, activeVerseId, ac
             key={verse.id}
             id={`v${verse.number}`}
             onClick={() => onVerseClick(verse)}
+            className={`verse-block ${activeVerseId === verse.id ? 'active' : ''}`}
             style={{
-              display: 'grid',
-              gridTemplateColumns: '32px 1fr',
-              gap: '0 16px',
-              marginBottom: '20px',
-              cursor: 'pointer',
-              borderRadius: '8px',
-              padding: '8px',
-              marginLeft: '-8px',
-              background: activeVerseId === verse.id ? 'var(--gold-pale)' : 'transparent',
-              outline: activeVerseId === verse.id ? '1.5px solid var(--gold)' : 'none',
-              transition: 'background 0.2s',
               borderLeft: verse.hasContributions
                 ? '3px solid rgba(184,132,58,0.4)'
                 : '3px solid transparent',
@@ -145,13 +145,14 @@ export default function VerseList({ verses, bookName, chapter, activeVerseId, ac
             <div>
               {originalText && (
                 <div style={{
-                  fontSize: '18px',
-                  lineHeight: '2',
+                  fontSize: '19px',
+                  lineHeight: '2.1',
                   direction: originalText.language === 'HEB' ? 'rtl' : 'ltr',
                   textAlign: originalText.language === 'HEB' ? 'right' : 'left',
                   color: 'var(--ink)',
-                  marginBottom: '6px',
+                  marginBottom: '10px',
                   fontWeight: '300',
+                  letterSpacing: '0.02em',
                 }}>
                   {(originalText.wordTokens || []).map((token, i) => (
                     <span
@@ -161,14 +162,8 @@ export default function VerseList({ verses, bookName, chapter, activeVerseId, ac
                         const rect = (e.target as HTMLElement).getBoundingClientRect()
                         onWordClick(token, rect.left + rect.width / 2, rect.bottom + window.scrollY)
                       }}
+                      className={`word-token ${activeWordId === token.id ? 'active' : ''}`}
                       style={{
-                        cursor: 'pointer',
-                        borderRadius: '3px',
-                        padding: '0 2px',
-                        background: activeWordId === token.id ? 'var(--gold)' : 'transparent',
-                        color: activeWordId === token.id ? 'white' : 'inherit',
-                        display: 'inline-block',
-                        transition: 'all 0.15s',
                         borderBottom: token.translations && token.translations.length > 0
                           ? '1px dotted rgba(26,22,18,0.35)'
                           : 'none',
@@ -181,11 +176,13 @@ export default function VerseList({ verses, bookName, chapter, activeVerseId, ac
               )}
               {translation && (
                 <div style={{
-                  fontFamily: 'Spectral, serif',
+                  fontFamily: 'var(--font-serif)',
                   fontSize: '15px',
                   color: 'var(--ink-soft)',
                   fontStyle: 'italic',
-                  lineHeight: '1.7',
+                  lineHeight: '1.75',
+                  letterSpacing: '0.01em',
+                  fontWeight: '300',
                 }}>
                   {translation.textFr}
                 </div>

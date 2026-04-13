@@ -4,37 +4,238 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ═══════════════════════════════════════
+   BIBLIA — Design Tokens
+   ═══════════════════════════════════════ */
+
 :root {
-  --ink: #1a1612;
-  --ink-soft: #4a3f35;
-  --ink-muted: #8a7a6e;
-  --ink-faint: #c8b8a8;
-  --parchment: #f7f3ed;
+
+  /* ── Couleurs d'encre ── */
+  --ink:          #1a1612;   /* Texte principal */
+  --ink-soft:     #3d3028;   /* Texte secondaire important */
+  --ink-muted:    #6b5d52;   /* Texte secondaire */
+  --ink-faint:    #9a8878;   /* Texte tertiaire — minimum utilisable */
+
+  /* ── Parchemin ── */
+  --parchment:      #f7f3ed;
   --parchment-dark: #ede6db;
   --parchment-deep: #e0d5c5;
-  --gold: #b8843a;
+
+  /* ── Or ── */
+  --gold:       #b8843a;
   --gold-light: #d4a85a;
-  --gold-pale: #f0e4cc;
-  --blue-sacred: #2a4a7a;
-  --blue-light: #e8eef8;
-  --green-valid: #2d5a3a;
-  --green-light: #e8f4ec;
-  --red-soft: #7a2a2a;
-  --red-light: #f4e8e8;
-  --amber-pending: #7a5a1a;
-  --amber-light: #f8f0da;
-  --border: rgba(90, 70, 50, 0.15);
-  --border-strong: rgba(90, 70, 50, 0.3);
+  --gold-pale:  #f5ead4;
+
+  /* ── Statuts ── */
+  --green-valid:  #2d5a3a;
+  --green-light:  #dff0e5;
+  --red-soft:     #7a2a2a;
+  --red-light:    #f5e0e0;
+  --amber-pending:#7a5a1a;
+  --amber-light:  #f8edcd;
+  --blue-sacred:  #2a4a7a;
+  --blue-light:   #dde7f5;
+
+  /* ── Bordures ── */
+  --border:        rgba(90, 70, 50, 0.18);
+  --border-strong: rgba(90, 70, 50, 0.35);
+
+  /* ── Typographie ── */
+  --font-serif:  'Spectral', Georgia, serif;
+  --font-title:  'Crimson Pro', Georgia, serif;
+  --font-mono:   'DM Mono', 'Courier New', monospace;
+
+  /* ── Échelle de taille ── */
+  --text-xs:   11px;   /* Labels, metadata */
+  --text-sm:   13px;   /* Texte secondaire */
+  --text-base: 15px;   /* Texte courant */
+  --text-lg:   17px;   /* Titres de section */
+  --text-xl:   22px;   /* Titres */
+  --text-2xl:  32px;   /* Grands titres */
+  --text-3xl:  44px;   /* Titres héroïques */
+
+  /* ── Espacements ── */
+  --space-1:  4px;
+  --space-2:  8px;
+  --space-3:  12px;
+  --space-4:  16px;
+  --space-5:  24px;
+  --space-6:  32px;
+  --space-7:  48px;
+  --space-8:  64px;
+
+  /* ── Rayons ── */
+  --radius-sm:  4px;
+  --radius-md:  8px;
+  --radius-lg:  12px;
+  --radius-xl:  20px;
+  --radius-full: 9999px;
+
+  /* ── Ombres ── */
+  --shadow-sm:  0 1px 4px rgba(26, 22, 18, 0.08);
+  --shadow-md:  0 4px 16px rgba(26, 22, 18, 0.12);
+  --shadow-lg:  0 8px 32px rgba(26, 22, 18, 0.16);
+
+  /* ── Transitions ── */
+  --transition-fast: 0.1s ease;
+  --transition-base: 0.2s ease;
 }
 
+/* ── Reset ── */
 * {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
 }
 
+/* ── Base ── */
 body {
   background: var(--parchment);
   color: var(--ink);
-  font-family: 'Spectral', Georgia, serif;
+  font-family: var(--font-serif);
+  font-size: var(--text-base);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  font-weight: 300;
+}
+
+/* ── Typographie utilitaire ── */
+.font-title { font-family: var(--font-title); }
+.font-mono  { font-family: var(--font-mono); }
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--parchment-dark);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
+  border-radius: var(--radius-full);
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--ink-faint);
+}
+
+/* ── Sélection de texte ── */
+::selection {
+  background: var(--gold-pale);
+  color: var(--ink);
+}
+
+/* ── Focus visible ── */
+:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+/* ── Inputs ── */
+input, textarea, select {
+  font-family: var(--font-serif);
+  font-size: var(--text-base);
+  color: var(--ink);
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: var(--ink-faint);
+}
+
+.book-link {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 7px 16px;
+  font-family: var(--font-serif);
+  font-size: 14px;
+  color: var(--ink-soft);
+  border-left: 2px solid transparent;
+  text-decoration: none;
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+.book-link:hover {
+  background: var(--parchment-deep);
+  color: var(--ink);
+}
+.book-link.active {
+  background: var(--gold-pale);
+  color: var(--ink);
+  border-left-color: var(--gold);
+  font-weight: 600;
+}
+
+.ch-num {
+  text-align: center;
+  padding: 5px 2px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--ink-soft);
+  border-radius: 4px;
+  text-decoration: none;
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+.ch-num:hover {
+  background: var(--parchment-deep);
+  color: var(--ink);
+}
+.ch-num.active {
+  background: var(--gold);
+  color: white;
+}
+
+.verse-block {
+  display: grid;
+  grid-template-columns: 32px 1fr;
+  gap: 0 16px;
+  margin-bottom: 20px;
+  cursor: pointer;
+  border-radius: 8px;
+  padding: 8px;
+  margin-left: -8px;
+  transition: background var(--transition-base);
+}
+.verse-block:hover {
+  background: var(--gold-pale);
+}
+.verse-block.active {
+  background: var(--gold-pale);
+  outline: 1.5px solid var(--gold);
+}
+
+.verse-hebrew {
+  font-size: 19px;
+  line-height: 2.1;
+  direction: rtl;
+  text-align: right;
+  color: var(--ink);
+  margin-bottom: 8px;
+  font-weight: 300;
+  letter-spacing: 0.02em;
+}
+
+.verse-french {
+  font-family: var(--font-serif);
+  font-size: 15px;
+  color: var(--ink-soft);
+  font-style: italic;
+  line-height: 1.75;
+}
+
+.word-token {
+  cursor: pointer;
+  border-radius: 3px;
+  padding: 0 2px;
+  display: inline-block;
+  transition: all var(--transition-fast);
+}
+.word-token:hover {
+  background: rgba(184, 132, 58, 0.18);
+  color: var(--gold);
+}
+.word-token.active {
+  background: var(--gold);
+  color: white;
 }

@@ -304,16 +304,17 @@ export default function RightPanel({
             onClick={() => setActiveTab(tab)}
             style={{
               flex: 1,
-              padding: '13px 8px',
+              padding: '14px 8px',
               textAlign: 'center',
-              fontFamily: 'DM Mono, monospace',
-              fontSize: '10px',
-              letterSpacing: '0.08em',
+              fontFamily: 'var(--font-mono)',
+              fontSize: 'var(--text-xs)',
+              letterSpacing: '0.1em',
               textTransform: 'uppercase' as const,
-              color: activeTab === tab ? 'var(--gold)' : 'var(--ink-muted)',
+              color: activeTab === tab ? 'var(--gold)' : 'var(--ink-faint)',
               cursor: 'pointer',
               borderBottom: activeTab === tab ? '2px solid var(--gold)' : '2px solid transparent',
               background: activeTab === tab ? 'var(--parchment)' : 'transparent',
+              transition: 'color var(--transition-fast)',
             }}
           >
             {tab === 'verse' ? 'Verset' : tab === 'word' ? 'Mot' : 'Commentaires'}
@@ -1129,13 +1130,13 @@ export default function RightPanel({
               justifyContent: 'center',
               height: '300px',
               color: 'var(--ink-faint)',
-              fontFamily: 'Spectral, serif',
+              fontFamily: 'var(--font-serif)',
               fontStyle: 'italic',
               textAlign: 'center',
-              gap: '10px',
+              gap: '16px',
             }}>
-              <div style={{ fontSize: '36px', opacity: 0.3, fontFamily: 'Crimson Pro, serif' }}>א</div>
-              <div>Cliquez sur un verset<br />pour l&apos;explorer</div>
+              <div style={{ fontSize: '56px', opacity: 0.2, fontFamily: 'var(--font-title)', fontWeight: '300', lineHeight: 1 }}>א</div>
+              <div style={{ fontSize: '14px', lineHeight: '1.6' }}>Cliquez sur un verset<br />pour l&apos;explorer</div>
             </div>
           )
         )}
@@ -1641,13 +1642,13 @@ export default function RightPanel({
               justifyContent: 'center',
               height: '300px',
               color: 'var(--ink-faint)',
-              fontFamily: 'Spectral, serif',
+              fontFamily: 'var(--font-serif)',
               fontStyle: 'italic',
               textAlign: 'center',
-              gap: '10px',
+              gap: '16px',
             }}>
-              <div style={{ fontSize: '36px', opacity: 0.3, fontFamily: 'Crimson Pro, serif' }}>ב</div>
-              <div>Cliquez sur un mot<br />pour voir son analyse</div>
+              <div style={{ fontSize: '56px', opacity: 0.2, fontFamily: 'var(--font-title)', fontWeight: '300', lineHeight: 1 }}>ב</div>
+              <div style={{ fontSize: '14px', lineHeight: '1.6' }}>Cliquez sur un mot<br />pour voir son analyse</div>
             </div>
           )
         )}
@@ -2215,13 +2216,13 @@ export default function RightPanel({
               justifyContent: 'center',
               height: '300px',
               color: 'var(--ink-faint)',
-              fontFamily: 'Spectral, serif',
+              fontFamily: 'var(--font-serif)',
               fontStyle: 'italic',
               textAlign: 'center',
-              gap: '10px',
+              gap: '16px',
             }}>
-              <div style={{ fontSize: '36px', opacity: 0.3, fontFamily: 'Crimson Pro, serif' }}>ג</div>
-              <div>Cliquez sur un verset<br />pour voir les commentaires</div>
+              <div style={{ fontSize: '56px', opacity: 0.2, fontFamily: 'var(--font-title)', fontWeight: '300', lineHeight: 1 }}>ג</div>
+              <div style={{ fontSize: '14px', lineHeight: '1.6' }}>Cliquez sur un verset<br />pour voir les commentaires</div>
             </div>
           )
         )}

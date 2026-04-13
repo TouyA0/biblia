@@ -21,6 +21,22 @@ export default function Sidebar({ testament, currentBook, currentChapter, bookDa
   const books = allBooks.filter(b => b.testament === testament)
   const prefix = testament === 'AT' ? '/at' : '/nt'
 
+  const AT_CATEGORIES = [
+    { label: 'Pentateuque', slugs: ['genese', 'exode', 'levitique', 'nombres', 'deuteronome'] },
+    { label: 'Historiques', slugs: ['josue', 'juges', 'ruth', '1-samuel', '2-samuel', '1-rois', '2-rois', '1-chroniques', '2-chroniques', 'esdras', 'nehemie', 'tobie', 'judith', 'esther', '1-maccabees', '2-maccabees'] },
+    { label: 'Poétiques', slugs: ['job', 'psaumes', 'proverbes', 'ecclesiaste', 'cantique', 'sagesse', 'siracide'] },
+    { label: 'Prophétiques', slugs: ['isai', 'jeremie', 'lamentations', 'baruch', 'ezechiel', 'daniel', 'osee', 'joel', 'amos', 'abdias', 'jonas', 'michee', 'nahoum', 'habacuc', 'sophonie', 'aggee', 'zacharie', 'malachie'] },
+  ]
+
+  const NT_CATEGORIES = [
+    { label: 'Évangiles', slugs: ['matthieu', 'marc', 'luc', 'jean'] },
+    { label: 'Actes', slugs: ['actes'] },
+    { label: 'Épîtres', slugs: ['romains', '1-corinthiens', '2-corinthiens', 'galates', 'ephesiens', 'philippiens', 'colossiens', '1-thessaloniciens', '2-thessaloniciens', '1-timothee', '2-timothee', 'tite', 'philemon', 'hebreux', 'jacques', '1-pierre', '2-pierre', '1-jean', '2-jean', '3-jean', 'jude'] },
+    { label: 'Apocalypse', slugs: ['apocalypse'] },
+  ]
+
+  const categories = testament === 'AT' ? AT_CATEGORIES : NT_CATEGORIES
+
   return (
     <div style={{
       background: 'var(--parchment-dark)',
@@ -47,16 +63,8 @@ export default function Sidebar({ testament, currentBook, currentChapter, bookDa
             padding: '6px 16px 14px',
           }}>
             {(bookData.chapters || []).map(ch => (
-              <a key={ch.number} href={`${prefix}/${currentBook}/${ch.number}`} style={{
-                textAlign: 'center' as const,
-                padding: '5px 2px',
-                fontFamily: 'DM Mono, monospace',
-                fontSize: '11px',
-                color: ch.number === parseInt(currentChapter) ? 'white' : 'var(--ink-soft)',
-                borderRadius: '4px',
-                background: ch.number === parseInt(currentChapter) ? 'var(--gold)' : 'transparent',
-                textDecoration: 'none',
-              }}>
+              <a key={ch.number} href={`${prefix}/${currentBook}/${ch.number}`}
+                className={`ch-num ${ch.number === parseInt(currentChapter) ? 'active' : ''}`}>
                 {ch.number}
               </a>
             ))}
@@ -72,29 +80,33 @@ export default function Sidebar({ testament, currentBook, currentChapter, bookDa
             }}>
               Livres
             </div>
-            {books.map(b => (
-              <a key={b.slug} href={`${prefix}/${b.slug}/1`} style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                padding: '7px 16px',
-                fontFamily: 'Spectral, serif',
-                fontSize: '13.5px',
-                color: b.slug === currentBook ? 'var(--ink)' : 'var(--ink-soft)',
-                background: b.slug === currentBook ? 'var(--gold-pale)' : 'transparent',
-                borderLeft: b.slug === currentBook ? '2px solid var(--gold)' : '2px solid transparent',
-                textDecoration: 'none',
-              }}>
-                <span style={{ fontWeight: b.slug === currentBook ? 600 : 400 }}>{b.name}</span>
-                <span style={{
-                  fontFamily: 'DM Mono, monospace',
-                  fontSize: '10px',
-                  color: 'var(--ink-faint)',
-                }}>
-                  {b.chapterCount}
-                </span>
-              </a>
-            ))}
+            {categories.map(cat => {
+              const catBooks = books.filter(b => cat.slugs.some(s => b.slug.startsWith(s)))
+              if (catBooks.length === 0) return null
+              return (
+                <div key={cat.label}>
+                  <div style={{
+                    fontFamily: 'DM Mono, monospace',
+                    fontSize: '9px',
+                    letterSpacing: '0.12em',
+                    textTransform: 'uppercase' as const,
+                    color: 'var(--ink-faint)',
+                    padding: '10px 16px 4px',
+                  }}>
+                    {cat.label}
+                  </div>
+                  {catBooks.map(b => (
+                    <a key={b.slug} href={`${prefix}/${b.slug}/1`}
+                      className={`book-link ${b.slug === currentBook ? 'active' : ''}`}>
+                      <span>{b.name}</span>
+                      <span style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--text-xs)', color: 'var(--ink-faint)' }}>
+                        {b.chapterCount}
+                      </span>
+                    </a>
+                  ))}
+                </div>
+              )
+            })}
           </div>
         </>
       )}
