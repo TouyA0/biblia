@@ -50,6 +50,7 @@ model User {
   isActive         Boolean  @default(true)
   forcePasswordReset Boolean @default(false)
   lastLoginAt      DateTime?
+  notifications Notification[]
 }
 
 model Book {
@@ -201,4 +202,15 @@ model Session {
   userAgent String?
   createdAt DateTime @default(now())
   user      User     @relation(fields: [userId], references: [id])
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      String   // PROPOSAL_ACCEPTED, PROPOSAL_REJECTED, COMMENT_REPLY
+  message   String
+  link      String?
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
 }

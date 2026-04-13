@@ -209,6 +209,27 @@ router.delete('/word-translations/:id', authenticateJWT, async (req: AuthRequest
     await prisma.vote.deleteMany({ where: { wordTranslationId: id } })
     await prisma.wordTranslation.delete({ where: { id } })
     await logAction('TRANSLATION_DELETED', req.user!.id, { translationId: id }, req.ip)
+
+    // Notifier le créateur si c'est un expert qui supprime
+    if (isExpertOrAdmin && translation.createdBy && translation.createdBy !== req.user!.id) {
+      const wordToken = await prisma.wordToken.findUnique({
+        where: { id: translation.wordTokenId },
+        include: { verseText: { include: { verse: { include: { chapter: { include: { book: true } } } } } } }
+      })
+      if (wordToken) {
+        const verse = wordToken.verseText.verse
+        const link = `/${verse.chapter.book.testament === 'AT' ? 'at' : 'nt'}/${verse.chapter.book.slug}/${verse.chapter.number}?word=${wordToken.id}&tab=word#v${verse.number}`
+        await prisma.notification.create({
+          data: {
+            userId: translation.createdBy,
+            type: 'PROPOSAL_REJECTED',
+            message: `Traduction "${translation.translation}" supprimée`,
+            link,
+          }
+        })
+      }
+    }
+
     res.json({ message: 'Traduction supprimée' })
   } catch (error) {
     console.error(error)
@@ -227,6 +248,32 @@ router.patch('/word-translations/:id/validate', authenticateJWT, async (req: Aut
       data: { isValidated: true }
     })
     await logAction('TRANSLATION_VALIDATED', req.user!.id, { translationId: id }, req.ip)
+
+    // Notifier le créateur
+    const wordTranslation = await prisma.wordTranslation.findUnique({
+      where: { id },
+      include: {
+        wordToken: {
+          include: {
+            verseText: {
+              include: { verse: { include: { chapter: { include: { book: true } } } } }
+            }
+          }
+        }
+      }
+    })
+    if (wordTranslation?.createdBy && wordTranslation.createdBy !== req.user!.id) {
+      const verse = wordTranslation.wordToken.verseText.verse
+      const link = `/${verse.chapter.book.testament === 'AT' ? 'at' : 'nt'}/${verse.chapter.book.slug}/${verse.chapter.number}?word=${wordTranslation.wordTokenId}&tab=word#v${verse.number}`
+      await prisma.notification.create({
+        data: {
+          userId: wordTranslation.createdBy,
+          type: 'PROPOSAL_ACCEPTED',
+          message: `Traduction "${wordTranslation.translation}" validée`,
+          link,
+        }
+      })
+    }
     res.json(translation)
   } catch (error) {
     console.error(error)
@@ -404,6 +451,24 @@ router.post('/comments/:id/reply', authenticateJWT, async (req: AuthRequest, res
         creator: { select: { username: true, role: true } }
       }
     })
+
+    // Notifier le créateur du commentaire parent
+    if (parent.createdBy && parent.createdBy !== req.user!.id) {
+      const verse = parent.verseId ? await prisma.verse.findUnique({
+        where: { id: parent.verseId },
+        include: { chapter: { include: { book: true } } }
+      }) : null
+      const link = verse ? `/${verse.chapter.book.testament === 'AT' ? 'at' : 'nt'}/${verse.chapter.book.slug}/${verse.chapter.number}?verse=${verse.id}&tab=comments#v${verse.number}` : undefined
+      await prisma.notification.create({
+        data: {
+          userId: parent.createdBy,
+          type: 'COMMENT_REPLY',
+          message: text.length > 80 ? text.slice(0, 80) + '…' : text,
+          link,
+        }
+      })
+    }
+
     res.status(201).json(reply)
   } catch (error) {
     if (error instanceof z.ZodError) {
@@ -531,6 +596,30 @@ router.patch('/proposals/:id/accept', authenticateJWT, async (req: AuthRequest, 
       data: { status: 'ACCEPTED', reviewedBy: req.user!.id }
     })
     await logAction('PROPOSAL_ACCEPTED', req.user!.id, { proposalId: id }, req.ip)
+
+    // Notifier le créateur et les votants
+    const proposalWithVotes = await prisma.proposal.findUnique({
+      where: { id },
+      include: { votes: true, creator: true, translation: { include: { verse: { include: { chapter: { include: { book: true } } } } } } }
+    })
+    if (proposalWithVotes) {
+      const verse = proposalWithVotes.translation.verse
+      const link = `/${verse.chapter.book.testament === 'AT' ? 'at' : 'nt'}/${verse.chapter.book.slug}/${verse.chapter.number}?verse=${verse.id}&tab=verse#v${verse.number}`
+      const usersToNotify = new Set<string>()
+      if (proposalWithVotes.createdBy) usersToNotify.add(proposalWithVotes.createdBy)
+      proposalWithVotes.votes.forEach(v => usersToNotify.add(v.userId))
+      usersToNotify.delete(req.user!.id) // pas de notif pour celui qui a accepté
+      await Promise.all([...usersToNotify].map(userId =>
+        prisma.notification.create({
+          data: {
+            userId,
+            type: 'PROPOSAL_ACCEPTED',
+            message: `Proposition acceptée`,
+            link,
+          }
+        })
+      ))
+    }
     res.json(updated)
   } catch (error) {
     console.error(error)
@@ -583,6 +672,23 @@ router.patch('/proposals/:id/activate', authenticateJWT, async (req: AuthRequest
       })
     }
 
+    // Notifier le créateur
+    const proposalWithInfo = await prisma.proposal.findUnique({
+      where: { id },
+      include: { translation: { include: { verse: { include: { chapter: { include: { book: true } } } } } } }
+    })
+    if (proposalWithInfo?.createdBy && proposalWithInfo.createdBy !== req.user!.id) {
+      const verse = proposalWithInfo.translation.verse
+      const link = `/${verse.chapter.book.testament === 'AT' ? 'at' : 'nt'}/${verse.chapter.book.slug}/${verse.chapter.number}?verse=${verse.id}&tab=verse#v${verse.number}`
+      await prisma.notification.create({
+        data: {
+          userId: proposalWithInfo.createdBy,
+          type: 'PROPOSAL_ACCEPTED',
+          message: `Proposition activée comme traduction officielle`,
+          link,
+        }
+      })
+    }
     res.json({ message: 'Traduction officielle mise à jour' })
   } catch (error) {
     console.error(error)
@@ -635,6 +741,25 @@ router.patch('/proposals/:id/reject', authenticateJWT, async (req: AuthRequest, 
       data: { status: 'REJECTED', reason, reviewedBy: req.user!.id }
     })
     await logAction('PROPOSAL_REJECTED', req.user!.id, { proposalId: id, reason }, req.ip)
+
+    // Notifier le créateur et les votants
+    const proposalWithVotes = await prisma.proposal.findUnique({
+      where: { id },
+      include: { votes: true, translation: { include: { verse: { include: { chapter: { include: { book: true } } } } } } }
+    })
+    if (proposalWithVotes) {
+      const verse = proposalWithVotes.translation.verse
+      const link = `/${verse.chapter.book.testament === 'AT' ? 'at' : 'nt'}/${verse.chapter.book.slug}/${verse.chapter.number}?verse=${verse.id}&tab=verse#v${verse.number}`
+      const usersToNotify = new Set<string>()
+      if (proposalWithVotes.createdBy) usersToNotify.add(proposalWithVotes.createdBy)
+      proposalWithVotes.votes.forEach((v: { userId: string }) => usersToNotify.add(v.userId))
+      usersToNotify.delete(req.user!.id)
+      await Promise.all([...usersToNotify].map(userId =>
+        prisma.notification.create({
+          data: { userId, type: 'PROPOSAL_REJECTED', message: `Proposition rejetée : ${reason.length > 40 ? reason.slice(0, 40) + '…' : reason}`, link }
+        })
+      ))
+    }
     res.json(updated)
   } catch (error) {
     if (error instanceof z.ZodError) {
@@ -738,6 +863,23 @@ router.delete('/proposals/:id', authenticateJWT, async (req: AuthRequest, res: R
         }
       })
       await logAction('PROPOSAL_REJECTED', req.user!.id, { proposalId: id, reason: 'Supprimée par un expert' }, req.ip)
+      const proposalWithVotes = await prisma.proposal.findUnique({
+        where: { id },
+        include: { votes: true, translation: { include: { verse: { include: { chapter: { include: { book: true } } } } } } }
+      })
+      if (proposalWithVotes) {
+        const verse = proposalWithVotes.translation.verse
+        const link = `/${verse.chapter.book.testament === 'AT' ? 'at' : 'nt'}/${verse.chapter.book.slug}/${verse.chapter.number}?verse=${verse.id}&tab=verse#v${verse.number}`
+        const usersToNotify = new Set<string>()
+        if (proposalWithVotes.createdBy) usersToNotify.add(proposalWithVotes.createdBy)
+        proposalWithVotes.votes.forEach((v: { userId: string }) => usersToNotify.add(v.userId))
+        usersToNotify.delete(req.user!.id)
+        await Promise.all([...usersToNotify].map(userId =>
+          prisma.notification.create({
+            data: { userId, type: 'PROPOSAL_REJECTED', message: `Proposition rejetée`, link }
+          })
+        ))
+      }
     } else {
       // Créateur → suppression définitive
       await prisma.proposal.delete({ where: { id } })

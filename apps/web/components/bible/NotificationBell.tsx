@@ -43,6 +43,14 @@ export default function NotificationBell() {
   const [open, setOpen] = useState(false)
   const [proposals, setProposals] = useState<Proposal[]>([])
   const [wordTranslations, setWordTranslations] = useState<WordTranslation[]>([])
+  const [personalNotifs, setPersonalNotifs] = useState<{
+    id: string
+    type: string
+    message: string
+    link: string | null
+    isRead: boolean
+    createdAt: string
+  }[]>([])
   const [dismissed, setDismissed] = useState<Set<string>>(() => {
     if (typeof window === 'undefined') return new Set()
     const saved = localStorage.getItem('notif_dismissed')
@@ -71,11 +79,14 @@ export default function NotificationBell() {
 	}
 
   async function fetchPending() {
-    if (!isExpertOrAdmin) return
     try {
-      const res = await api.get('/api/pending')
-      setProposals(res.data.proposals)
-      setWordTranslations(res.data.wordTranslations)
+      const personalRes = await api.get('/api/notifications')
+      setPersonalNotifs(personalRes.data)
+      if (isExpertOrAdmin) {
+        const pendingRes = await api.get('/api/pending')
+        setProposals(pendingRes.data.proposals)
+        setWordTranslations(pendingRes.data.wordTranslations)
+      }
     } catch (e) { console.error(e) }
   }
 
@@ -96,11 +107,23 @@ export default function NotificationBell() {
     return () => document.removeEventListener('mousedown', handleClick)
   }, [])
 
-  if (!isExpertOrAdmin) return null
+  if (!user) return null
 
   const pendingProposals = proposals
-	const pendingWords = wordTranslations
-	const total = proposals.filter(p => !dismissed.has(`p-${p.id}`)).length + wordTranslations.filter(t => !dismissed.has(`w-${t.id}`)).length
+  const pendingWords = wordTranslations
+  const unreadPersonal = personalNotifs.filter(n => !n.isRead).length
+  const total = proposals.filter(p => !dismissed.has(`p-${p.id}`)).length + wordTranslations.filter(t => !dismissed.has(`w-${t.id}`)).length + unreadPersonal
+
+  function getRefFromLink(link: string | null): string | null {
+    if (!link) return null
+    const match = link.match(/\/(at|nt)\/([^/]+)\/(\d+).*#v(\d+)/)
+    if (!match) return null
+    // Trouver le nom du livre depuis le slug
+    const slug = match[2]
+    const chapter = match[3]
+    const verse = match[4]
+    return `${slug} ${chapter}:${verse}`
+  }
 
   return (
     <div ref={popupRef} style={{ position: 'relative' }}>
@@ -177,7 +200,13 @@ export default function NotificationBell() {
               </button>
               {total > 0 && (
                 <button
-                  onClick={() => dismissAll()}
+                  onClick={async () => {
+                    dismissAll()
+                    if (unreadPersonal > 0) {
+                      await api.patch('/api/notifications/read-all')
+                      setPersonalNotifs(prev => prev.map(n => ({ ...n, isRead: true })))
+                    }
+                  }}
                   style={{ padding: '2px 6px', borderRadius: '4px', border: '1px solid var(--border)', background: 'transparent', fontFamily: 'DM Mono, monospace', fontSize: '9px', color: 'var(--ink-muted)', cursor: 'pointer' }}
                 >
                   Tout lire
@@ -187,12 +216,54 @@ export default function NotificationBell() {
           </div>
 
           <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
-            {proposals.length === 0 && wordTranslations.length === 0 ? (
+            {proposals.length === 0 && wordTranslations.length === 0 && personalNotifs.length === 0 ? (
               <div style={{ padding: '24px', textAlign: 'center', fontFamily: 'Spectral, serif', fontSize: '13px', color: 'var(--ink-faint)', fontStyle: 'italic' }}>
-                Aucun élément en attente 🎉
+                Aucune notification 🎉
               </div>
             ) : (
               <>
+                {/* Notifs personnelles */}
+                {personalNotifs.length > 0 && (
+                  <div>
+                    <div style={{ padding: '8px 16px', fontFamily: 'DM Mono, monospace', fontSize: '9px', letterSpacing: '0.1em', textTransform: 'uppercase' as const, color: 'var(--ink-muted)', background: 'var(--parchment-dark)', borderBottom: '1px solid var(--border)' }}>
+                      Notifications ({unreadPersonal} non lues)
+                    </div>
+                    {personalNotifs.slice(0, 5).map(n => (
+                      <div
+                        key={n.id}
+                        onClick={async () => {
+                          if (!n.isRead) {
+                            await api.patch(`/api/notifications/${n.id}/read`)
+                            setPersonalNotifs(prev => prev.map(x => x.id === n.id ? { ...x, isRead: true } : x))
+                          }
+                          if (n.link) { setOpen(false); window.location.href = n.link }
+                        }}
+                        style={{ padding: '10px 16px', borderBottom: '1px solid var(--border)', cursor: n.link ? 'pointer' : 'default', opacity: n.isRead ? 0.5 : 1, transition: 'background 0.1s', background: n.isRead ? 'transparent' : 'rgba(184,132,58,0.04)' }}
+                        onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = 'var(--parchment)'}
+                        onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = n.isRead ? 'transparent' : 'rgba(184,132,58,0.04)'}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                          <span style={{ fontFamily: 'DM Mono, monospace', fontSize: '9px', padding: '1px 6px', borderRadius: '20px', background: n.type === 'PROPOSAL_ACCEPTED' ? 'var(--green-light)' : n.type === 'PROPOSAL_REJECTED' ? 'var(--red-light)' : 'var(--blue-light)', color: n.type === 'PROPOSAL_ACCEPTED' ? 'var(--green-valid)' : n.type === 'PROPOSAL_REJECTED' ? 'var(--red-soft)' : 'var(--blue-sacred)' }}>
+                            {n.type === 'PROPOSAL_ACCEPTED' ? '✓ Acceptée' : n.type === 'PROPOSAL_REJECTED' ? '✕ Rejetée' : '↩ Réponse'}
+                          </span>
+                          {getRefFromLink(n.link) && (
+                            <span style={{ fontFamily: 'DM Mono, monospace', fontSize: '9px', color: 'var(--gold)' }}>
+                              {getRefFromLink(n.link)}
+                            </span>
+                          )}
+                        </div>
+                        <div style={{ fontFamily: 'Spectral, serif', fontSize: '12px', color: 'var(--ink-soft)', marginTop: '4px', lineHeight: '1.4', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' as const }}>
+                          {n.message}
+                        </div>
+                        <div style={{ fontFamily: 'DM Mono, monospace', fontSize: '9px', color: 'var(--ink-faint)', marginTop: '3px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          {new Date(n.createdAt).toLocaleDateString('fr-FR')}
+                          {!n.isRead && <span style={{ color: 'var(--gold)' }}>● non lu</span>}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
                 {/* Propositions */}
                 {proposals.length > 0 && (
                   <div>

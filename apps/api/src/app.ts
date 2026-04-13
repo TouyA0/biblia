@@ -5,6 +5,7 @@ import bibleRouter from './routes/bible'
 import profileRouter from './routes/profile'
 import adminRouter from './routes/admin'
 import usersRouter from './routes/users'
+import notificationsRouter from './routes/notifications'
 
 const app = express()
 
@@ -23,6 +24,7 @@ app.use('/api/auth', authRouter)
 app.use('/api/profile', profileRouter)
 app.use('/api/admin', adminRouter)
 app.use('/api/users', usersRouter)
+app.use('/api/notifications', notificationsRouter)
 app.use('/api', bibleRouter)
 
 export default app
