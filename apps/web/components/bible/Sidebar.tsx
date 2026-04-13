@@ -52,9 +52,9 @@ export default function Sidebar({ testament, currentBook, currentChapter, bookDa
             letterSpacing: '0.12em',
             textTransform: 'uppercase' as const,
             color: 'var(--ink-muted)',
-            padding: '0 16px 8px',
+            padding: '16px 16px 8px',
           }}>
-            {bookData.name}
+            Chapitres
           </div>
           <div style={{
             display: 'grid',
@@ -69,17 +69,7 @@ export default function Sidebar({ testament, currentBook, currentChapter, bookDa
               </a>
             ))}
           </div>
-          <div style={{ borderTop: '1px solid var(--border)', marginTop: '8px', paddingTop: '8px' }}>
-            <div style={{
-              fontFamily: 'DM Mono, monospace',
-              fontSize: '9px',
-              letterSpacing: '0.12em',
-              textTransform: 'uppercase' as const,
-              color: 'var(--ink-muted)',
-              padding: '0 16px 8px',
-            }}>
-              Livres
-            </div>
+          <div style={{ borderTop: '1px solid var(--border)', marginTop: '4px', paddingTop: '4px' }}>
             {categories.map(cat => {
               const catBooks = books.filter(b => cat.slugs.some(s => b.slug.startsWith(s)))
               if (catBooks.length === 0) return null
@@ -91,7 +81,7 @@ export default function Sidebar({ testament, currentBook, currentChapter, bookDa
                     letterSpacing: '0.12em',
                     textTransform: 'uppercase' as const,
                     color: 'var(--ink-faint)',
-                    padding: '10px 16px 4px',
+                    padding: '16px 16px 4px',
                   }}>
                     {cat.label}
                   </div>
