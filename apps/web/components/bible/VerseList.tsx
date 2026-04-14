@@ -61,11 +61,14 @@ interface VerseListProps {
 export default function VerseList({ verses, bookName, chapter, activeVerseId, activeWordId, storageKey, onVerseClick, onWordClick }: VerseListProps) {
   const [copiedId, setCopiedId] = useState<string | null>(null)
   const [fontSize, setFontSizeState] = useState<FontSize>('S')
+  const [showFrench, setShowFrenchState] = useState(true)
   const scrollRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     const saved = localStorage.getItem('verse_font_size') as FontSize | null
     if (saved && ['S', 'M', 'L'].includes(saved)) setFontSizeState(saved)
+    const fr = localStorage.getItem('verse_show_french')
+    if (fr !== null) setShowFrenchState(fr === 'true')
   }, [])
 
   // Sauvegarde de la position de lecture
@@ -104,6 +107,12 @@ export default function VerseList({ verses, bookName, chapter, activeVerseId, ac
     localStorage.setItem('verse_font_size', size)
   }
 
+  function toggleFrench() {
+    const next = !showFrench
+    setShowFrenchState(next)
+    localStorage.setItem('verse_show_french', String(next))
+  }
+
   return (
     <div ref={scrollRef} className="verse-list-scroll" data-verse-size={fontSize}>
       <div className="verse-list-inner">
@@ -127,8 +136,8 @@ export default function VerseList({ verses, bookName, chapter, activeVerseId, ac
               {bookName} · Chapitre {chapter}
             </div>
 
-            {/* Boutons S / M / L */}
-            <div style={{ display: 'flex', gap: '4px' }}>
+            {/* Boutons S / M / L + toggles affichage */}
+            <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
               {FONT_LEVELS.map(({ key, btnSize }) => (
                 <button
                   key={key}
@@ -155,6 +164,32 @@ export default function VerseList({ verses, bookName, chapter, activeVerseId, ac
                   A
                 </button>
               ))}
+
+              {/* Séparateur */}
+              <div style={{ width: '1px', height: '16px', background: 'var(--border)', margin: '0 2px' }} />
+
+              {/* Toggle traduction française */}
+              <button
+                onClick={toggleFrench}
+                title={showFrench ? 'Masquer la traduction française' : 'Afficher la traduction française'}
+                style={{
+                  height: '26px',
+                  padding: '0 8px',
+                  borderRadius: '4px',
+                  border: `1px solid ${showFrench ? 'var(--gold)' : 'var(--border)'}`,
+                  background: showFrench ? 'var(--gold-pale)' : 'transparent',
+                  color: showFrench ? 'var(--gold)' : 'var(--ink-faint)',
+                  fontFamily: 'var(--font-mono)',
+                  fontSize: '11px',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  transition: 'all var(--transition-fast)',
+                  whiteSpace: 'nowrap' as const,
+                }}
+              >
+                fr
+              </button>
             </div>
           </div>
 
@@ -269,7 +304,7 @@ export default function VerseList({ verses, bookName, chapter, activeVerseId, ac
                     ))}
                   </div>
                 )}
-                {translation && (
+                {showFrench && translation && (
                   <div style={{
                     fontFamily: 'var(--font-serif)',
                     fontSize: 'var(--verse-fr-size)',
