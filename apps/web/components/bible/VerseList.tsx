@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
+import { useAuthStore } from '@/store/auth'
 
 type FontSize = 'S' | 'M' | 'L'
 
@@ -59,9 +60,11 @@ interface VerseListProps {
 }
 
 export default function VerseList({ verses, bookName, chapter, activeVerseId, activeWordId, storageKey, onVerseClick, onWordClick }: VerseListProps) {
+  const { user } = useAuthStore()
   const [copiedId, setCopiedId] = useState<string | null>(null)
   const [fontSize, setFontSizeState] = useState<FontSize>('S')
   const [showFrench, setShowFrenchState] = useState(true)
+  const [showMissing, setShowMissingState] = useState(false)
   const scrollRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -69,6 +72,8 @@ export default function VerseList({ verses, bookName, chapter, activeVerseId, ac
     if (saved && ['S', 'M', 'L'].includes(saved)) setFontSizeState(saved)
     const fr = localStorage.getItem('verse_show_french')
     if (fr !== null) setShowFrenchState(fr === 'true')
+    const missing = localStorage.getItem('verse_show_missing')
+    if (missing !== null) setShowMissingState(missing === 'true')
   }, [])
 
   // Sauvegarde de la position de lecture
@@ -111,6 +116,12 @@ export default function VerseList({ verses, bookName, chapter, activeVerseId, ac
     const next = !showFrench
     setShowFrenchState(next)
     localStorage.setItem('verse_show_french', String(next))
+  }
+
+  function toggleMissing() {
+    const next = !showMissing
+    setShowMissingState(next)
+    localStorage.setItem('verse_show_missing', String(next))
   }
 
   return (
@@ -190,6 +201,34 @@ export default function VerseList({ verses, bookName, chapter, activeVerseId, ac
               >
                 fr
               </button>
+
+              {/* Filtre mots sans traduction — contributeurs connectés uniquement */}
+              {user && (
+                <>
+                  <div style={{ width: '1px', height: '16px', background: 'var(--border)', margin: '0 2px' }} />
+                  <button
+                    onClick={toggleMissing}
+                    title={showMissing ? 'Masquer les mots sans traduction' : 'Voir les mots sans traduction'}
+                    style={{
+                      width: '30px',
+                      height: '26px',
+                      borderRadius: '4px',
+                      border: `1px solid ${showMissing ? 'var(--amber-pending)' : 'var(--border)'}`,
+                      background: showMissing ? 'var(--amber-light)' : 'transparent',
+                      color: showMissing ? 'var(--amber-pending)' : 'var(--ink-faint)',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      transition: 'all var(--transition-fast)',
+                    }}
+                  >
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                      <circle cx="12" cy="12" r="9" strokeDasharray="3 3"/>
+                    </svg>
+                  </button>
+                </>
+              )}
             </div>
           </div>
 
@@ -293,11 +332,15 @@ export default function VerseList({ verses, bookName, chapter, activeVerseId, ac
                           onWordClick(token, rect.left + rect.width / 2, rect.bottom + window.scrollY)
                         }}
                         className={`word-token ${activeWordId === token.id ? 'active' : ''}`}
-                        style={{
-                          borderBottom: token.translations && token.translations.length > 0
-                            ? '1px dotted rgba(26,22,18,0.35)'
-                            : 'none',
-                        }}
+                        style={(() => {
+                          const hasTranslation = token.translations && token.translations.length > 0
+                          if (showMissing) {
+                            return hasTranslation
+                              ? { borderBottom: '1px dotted var(--green-valid)', opacity: 0.45 }
+                              : { borderBottom: '2px solid var(--amber-pending)', background: 'var(--amber-light)', borderRadius: '2px' }
+                          }
+                          return { borderBottom: hasTranslation ? '1px dotted rgba(26,22,18,0.35)' : 'none' }
+                        })()}
                       >
                         {token.word}{i < originalText.wordTokens.length - 1 ? '\u00A0' : ''}
                       </span>
