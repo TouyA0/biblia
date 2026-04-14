@@ -143,6 +143,20 @@
   margin: 0 auto;
 }
 
+/* ── Contrôle taille de lecture (S / M / L) ── */
+:root {
+  --verse-orig-size: 19px;
+  --verse-fr-size:   16px;
+}
+[data-verse-size="M"] {
+  --verse-orig-size: 22px;
+  --verse-fr-size:   18px;
+}
+[data-verse-size="L"] {
+  --verse-orig-size: 26px;
+  --verse-fr-size:   21px;
+}
+
 /* ── Reset ── */
 * {
   box-sizing: border-box;
@@ -269,7 +283,7 @@ textarea::placeholder {
 
 .verse-hebrew {
   font-size: 19px;
-  line-height: 2.1;
+  line-height: 2.4;
   direction: rtl;
   text-align: right;
   color: var(--ink);
