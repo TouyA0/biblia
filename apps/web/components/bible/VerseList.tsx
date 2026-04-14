@@ -52,7 +52,8 @@ interface VerseListProps {
 export default function VerseList({ verses, bookName, chapter, activeVerseId, activeWordId, onVerseClick, onWordClick }: VerseListProps) {
   const [copiedId, setCopiedId] = useState<string | null>(null)
   return (
-    <div style={{ overflowY: 'auto', padding: '48px 56px' }}>
+    <div className="verse-list-scroll">
+      <div className="verse-list-inner">
       <div style={{ marginBottom: '48px' }}>
         <div style={{
           fontFamily: 'var(--font-mono)',
@@ -191,6 +192,7 @@ export default function VerseList({ verses, bookName, chapter, activeVerseId, ac
           </div>
         )
       })}
+      </div>
     </div>
   )
 }

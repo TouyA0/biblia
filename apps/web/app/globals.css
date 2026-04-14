@@ -81,6 +81,68 @@
   --transition-base: 0.2s ease;
 }
 
+/* ═══════════════════════════════════════
+   RESPONSIVE — Utilitaires
+   ═══════════════════════════════════════ */
+
+@media (max-width: 767px) {
+  .hide-mobile { display: none !important; }
+}
+@media (max-width: 1023px) {
+  .hide-tablet { display: none !important; }
+}
+.show-mobile-only { display: none !important; }
+@media (max-width: 767px) {
+  .show-mobile-only { display: flex !important; }
+}
+
+/* Visible uniquement sur mobile + tablette (< 1024px) */
+.show-non-desktop { display: none !important; }
+@media (max-width: 1023px) {
+  .show-non-desktop { display: flex !important; }
+}
+
+/* Masqué sous 1280px (liens secondaires topbar) */
+.hide-narrow { }
+@media (max-width: 1279px) {
+  .hide-narrow { display: none !important; }
+}
+
+/* Label long topbar → masqué sous 1200px */
+.topbar-label-full { display: inline; }
+@media (max-width: 1199px) {
+  .topbar-label-full { display: none !important; }
+}
+/* Label court topbar → visible sous 1200px */
+.topbar-label-short { display: none; }
+@media (max-width: 1199px) {
+  .topbar-label-short { display: inline !important; }
+}
+
+/* Padding du VerseList */
+.verse-list-scroll {
+  overflow-y: auto;
+  padding: 48px 56px;
+}
+@media (max-width: 1023px) {
+  .verse-list-scroll {
+    padding: 32px 32px;
+    height: 100%;
+  }
+}
+@media (max-width: 767px) {
+  .verse-list-scroll {
+    padding: 20px 16px;
+    height: 100%;
+  }
+}
+
+/* Largeur de lecture confortable + centrage */
+.verse-list-inner {
+  max-width: 720px;
+  margin: 0 auto;
+}
+
 /* ── Reset ── */
 * {
   box-sizing: border-box;

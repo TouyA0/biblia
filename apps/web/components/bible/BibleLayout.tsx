@@ -8,6 +8,9 @@ import Sidebar from './Sidebar'
 import VerseList from './VerseList'
 import RightPanel from './RightPanel'
 import WordPopover from './WordPopover'
+import { useBreakpoint } from '@/lib/useBreakpoint'
+import Drawer from './Drawer'
+import SearchBar from './SearchBar'
 
 
 interface WordToken {
@@ -124,6 +127,12 @@ export default function BibleLayout({ testament }: BibleLayoutProps) {
   const [comments, setComments] = useState<Comment[]>([])
   const [proposals, setProposals] = useState<Proposal[]>([])
   const [verseTranslations, setVerseTranslations] = useState<VerseTranslation[]>([])
+
+  const bp = useBreakpoint()
+  const isDesktop = bp === 'desktop'
+  const isMobile = bp === 'mobile'
+  const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [panelOpen, setPanelOpen] = useState(false)
 
   useEffect(() => {
     loadData()
@@ -242,28 +251,113 @@ export default function BibleLayout({ testament }: BibleLayoutProps) {
     </div>
   )
 
+  // Props communes au RightPanel (desktop et drawer)
+  const rightPanelProps = {
+    activeTab,
+    bookName: bookData?.name,
+    chapterNumber: chapterData?.number,
+    setActiveTab: (tab: 'verse' | 'word' | 'comments') => {
+      setActiveTab(tab)
+      if (activeVerse) {
+        window.history.replaceState(null, '', `?verse=${activeVerse.id}&tab=${tab}#v${activeVerse.number}`)
+      } else if (activeWord) {
+        window.history.replaceState(null, '', `?word=${activeWord.id}&tab=${tab}`)
+      }
+    },
+    activeVerse,
+    activeWord,
+    wordTranslations,
+    comments,
+    proposals,
+    verseTranslations,
+    onCommentAdded: async () => {
+      if (activeVerse) {
+        const res = await api.get(`/api/verses/${activeVerse.id}/comments`)
+        setComments(res.data)
+      }
+    },
+    onProposalUpdated: async () => {
+      if (activeVerse) {
+        const [commentsRes, proposalsRes, chapterRes] = await Promise.all([
+          api.get(`/api/verses/${activeVerse.id}/comments`),
+          api.get(`/api/verses/${activeVerse.id}/proposals`),
+          api.get(`/api/books/${book}/chapters/${chapter}`),
+        ])
+        setComments(commentsRes.data)
+        setProposals(proposalsRes.data.proposals)
+        setVerseTranslations(proposalsRes.data.translations)
+        setChapterData(chapterRes.data)
+        const updatedVerse = chapterRes.data.verses.find((v: { id: string }) => v.id === activeVerse.id)
+        if (updatedVerse) setActiveVerse(updatedVerse)
+      }
+    },
+    onTranslationAdded: async () => {
+      if (activeWord) {
+        const res = await api.get(`/api/words/${activeWord.id}/translations`)
+        setWordTranslations(res.data)
+      }
+    },
+  }
+
   return (
     <div
       onClick={() => setPopoverPos(null)}
       style={{
         display: 'grid',
-        gridTemplateColumns: fullscreen ? '0px 1fr' : '220px 1fr',
+        gridTemplateColumns: isDesktop
+          ? (fullscreen ? '0px 1fr' : '220px 1fr')
+          : '1fr',
         gridTemplateRows: '52px 1fr',
         height: '100vh',
         overflow: 'hidden',
       }}
     >
-      <TopBar testament={testament} book={book} chapter={chapter} />
-
-      <Sidebar
+      <TopBar
         testament={testament}
-        currentBook={book}
-        currentChapter={chapter}
-        bookData={bookData}
-        allBooks={allBooks}
+        book={book}
+        chapter={chapter}
+        onMenuClick={!isDesktop ? () => setSidebarOpen(true) : undefined}
       />
 
-      <div style={{ display: 'grid', gridTemplateColumns: fullscreen ? '1fr 0px' : '1fr 360px', overflow: 'hidden', position: 'relative' }}>
+      {/* Sidebar — dans la grille sur desktop, dans un drawer sinon */}
+      {isDesktop ? (
+        <Sidebar
+          testament={testament}
+          currentBook={book}
+          currentChapter={chapter}
+          bookData={bookData}
+          allBooks={allBooks}
+        />
+      ) : (
+        <Drawer open={sidebarOpen} onClose={() => setSidebarOpen(false)} side="left" width="260px">
+          {/* Barre de recherche dans le drawer mobile/tablette */}
+          <div style={{
+            background: 'var(--ink)',
+            padding: '10px 12px',
+            flexShrink: 0,
+            borderBottom: '1px solid rgba(255,255,255,0.1)',
+          }}>
+            <SearchBar />
+          </div>
+          <div style={{ flex: 1, overflowY: 'auto' }}>
+            <Sidebar
+              testament={testament}
+              currentBook={book}
+              currentChapter={chapter}
+              bookData={bookData}
+              allBooks={allBooks}
+            />
+          </div>
+        </Drawer>
+      )}
+
+      <div style={{
+        display: isDesktop ? 'grid' : 'block',
+        gridTemplateColumns: isDesktop ? (fullscreen ? '1fr 0px' : '1fr 360px') : undefined,
+        overflow: 'hidden',
+        position: 'relative',
+        height: !isDesktop ? '100%' : undefined,
+      }}>
         {chapterData && bookData && (
           <VerseList
             verses={chapterData.verses}
@@ -274,6 +368,7 @@ export default function BibleLayout({ testament }: BibleLayoutProps) {
             onVerseClick={async (verse) => {
               setActiveVerse(verse)
               setActiveTab('verse')
+              if (!isDesktop) setPanelOpen(true)
               window.history.replaceState(null, '', `?verse=${verse.id}&tab=verse#v${verse.number}`)
               try {
                 const [commentsRes, proposalsRes] = await Promise.all([
@@ -291,8 +386,14 @@ export default function BibleLayout({ testament }: BibleLayoutProps) {
             }}
             onWordClick={async (token, x, y) => {
               setActiveWord(token)
-              setPopoverPos({ x, y })
               window.history.replaceState(null, '', `?word=${token.id}&tab=word`)
+              if (isDesktop) {
+                setPopoverPos({ x, y })
+              } else {
+                setPopoverPos(null)
+                setActiveTab('word')
+                setPanelOpen(true)
+              }
               try {
                 const res = await api.get(`/api/words/${token.id}/translations`)
                 setWordTranslations(res.data)
@@ -304,100 +405,70 @@ export default function BibleLayout({ testament }: BibleLayoutProps) {
           />
         )}
 
-        <button
-          onClick={() => setFullscreen(f => !f)}
-          title={fullscreen ? 'Quitter le mode lecture' : 'Mode lecture'}
-          style={{
-            position: 'fixed',
-            bottom: '24px',
-            right: fullscreen ? '24px' : '384px',
-            zIndex: 100,
-            width: '32px',
-            height: '32px',
-            borderRadius: '6px',
-            border: '1px solid var(--border)',
-            background: 'var(--parchment-dark)',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: 'var(--ink-muted)',
-            fontSize: '11px',
-            fontFamily: 'DM Mono, monospace',
-            letterSpacing: '-0.05em',
-            boxShadow: '0 2px 8px rgba(26,22,18,0.12)',
-            transition: 'right 0.3s ease',
-          }}
-          onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = 'var(--gold-pale)'}
-          onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = 'var(--parchment-dark)'}
-        >
-          {fullscreen ? (
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <polyline points="4 14 10 14 10 20"/>
-              <polyline points="20 10 14 10 14 4"/>
-              <line x1="10" y1="14" x2="3" y2="21"/>
-              <line x1="21" y1="3" x2="14" y2="10"/>
-            </svg>
-          ) : (
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <polyline points="15 3 21 3 21 9"/>
-              <polyline points="9 21 3 21 3 15"/>
-              <line x1="21" y1="3" x2="14" y2="10"/>
-              <line x1="3" y1="21" x2="10" y2="14"/>
-            </svg>
-          )}
-        </button>
+        {/* Bouton plein écran — desktop uniquement */}
+        {isDesktop && (
+          <button
+            onClick={() => setFullscreen(f => !f)}
+            title={fullscreen ? 'Quitter le mode lecture' : 'Mode lecture'}
+            style={{
+              position: 'fixed',
+              bottom: '24px',
+              right: fullscreen ? '24px' : '384px',
+              zIndex: 100,
+              width: '32px',
+              height: '32px',
+              borderRadius: '6px',
+              border: '1px solid var(--border)',
+              background: 'var(--parchment-dark)',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: 'var(--ink-muted)',
+              fontSize: '11px',
+              fontFamily: 'DM Mono, monospace',
+              letterSpacing: '-0.05em',
+              boxShadow: '0 2px 8px rgba(26,22,18,0.12)',
+              transition: 'right 0.3s ease',
+            }}
+            onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = 'var(--gold-pale)'}
+            onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = 'var(--parchment-dark)'}
+          >
+            {fullscreen ? (
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <polyline points="4 14 10 14 10 20"/>
+                <polyline points="20 10 14 10 14 4"/>
+                <line x1="10" y1="14" x2="3" y2="21"/>
+                <line x1="21" y1="3" x2="14" y2="10"/>
+              </svg>
+            ) : (
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <polyline points="15 3 21 3 21 9"/>
+                <polyline points="9 21 3 21 3 15"/>
+                <line x1="21" y1="3" x2="14" y2="10"/>
+                <line x1="3" y1="21" x2="10" y2="14"/>
+              </svg>
+            )}
+          </button>
+        )}
 
-        <RightPanel
-          activeTab={activeTab}
-          bookName={bookData?.name}
-          chapterNumber={chapterData?.number}
-          setActiveTab={(tab) => {
-            setActiveTab(tab)
-            if (activeVerse) {
-              window.history.replaceState(null, '', `?verse=${activeVerse.id}&tab=${tab}#v${activeVerse.number}`)
-            } else if (activeWord) {
-              window.history.replaceState(null, '', `?word=${activeWord.id}&tab=${tab}`)
-            }
-          }}
-          activeVerse={activeVerse}
-          activeWord={activeWord}
-          wordTranslations={wordTranslations}
-          comments={comments}
-          proposals={proposals}
-          verseTranslations={verseTranslations}
-          onCommentAdded={async () => {
-            if (activeVerse) {
-              const res = await api.get(`/api/verses/${activeVerse.id}/comments`)
-              setComments(res.data)
-            }
-          }}
-          onProposalUpdated={async () => {
-            if (activeVerse) {
-              const [commentsRes, proposalsRes, chapterRes] = await Promise.all([
-                api.get(`/api/verses/${activeVerse.id}/comments`),
-                api.get(`/api/verses/${activeVerse.id}/proposals`),
-                api.get(`/api/books/${book}/chapters/${chapter}`),
-              ])
-              setComments(commentsRes.data)
-              setProposals(proposalsRes.data.proposals)
-              setVerseTranslations(proposalsRes.data.translations)
-              setChapterData(chapterRes.data)
-              // Mettre à jour activeVerse avec les nouvelles traductions
-              const updatedVerse = chapterRes.data.verses.find((v: { id: string }) => v.id === activeVerse.id)
-              if (updatedVerse) setActiveVerse(updatedVerse)
-            }
-          }}
-          onTranslationAdded={async () => {
-            if (activeWord) {
-              const res = await api.get(`/api/words/${activeWord.id}/translations`)
-              setWordTranslations(res.data)
-            }
-          }}
-        />
+        {/* RightPanel — dans la grille sur desktop, dans un drawer sinon */}
+        {isDesktop ? (
+          <RightPanel {...rightPanelProps} />
+        ) : (
+          <Drawer
+            open={panelOpen}
+            onClose={() => setPanelOpen(false)}
+            side={isMobile ? 'bottom' : 'right'}
+            width="380px"
+            height="80vh"
+          >
+            <RightPanel {...rightPanelProps} />
+          </Drawer>
+        )}
       </div>
 
-      {activeWord && popoverPos && (
+      {isDesktop && activeWord && popoverPos && (
         <WordPopover
           word={activeWord}
           position={popoverPos}
