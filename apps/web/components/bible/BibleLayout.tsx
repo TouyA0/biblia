@@ -248,6 +248,97 @@ export default function BibleLayout({ testament }: BibleLayoutProps) {
     }
   }
 
+  // Ouvrir un verset (clic ou clavier)
+  async function openVerse(verse: Verse) {
+    setActiveVerse(verse)
+    setActiveTab('verse')
+    if (!isDesktop) setPanelOpen(true)
+    window.history.replaceState(null, '', `?verse=${verse.id}&tab=verse#v${verse.number}`)
+    setTimeout(() => {
+      const el = document.getElementById(`v${verse.number}`)
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    }, 50)
+    try {
+      const [commentsRes, proposalsRes] = await Promise.all([
+        api.get(`/api/verses/${verse.id}/comments`),
+        api.get(`/api/verses/${verse.id}/proposals`),
+      ])
+      setComments(commentsRes.data)
+      setProposals(proposalsRes.data.proposals)
+      setVerseTranslations(proposalsRes.data.translations)
+    } catch {
+      setComments([])
+      setProposals([])
+    }
+  }
+
+  // Navigation clavier
+  useEffect(() => {
+    const handleKey = (e: KeyboardEvent) => {
+      const tag = (e.target as HTMLElement).tagName
+      if (tag === 'INPUT' || tag === 'TEXTAREA') return
+
+      const chapterNum = Number(chapter)
+      const testamentBooks = allBooks.filter(b => b.testament === bookData?.testament)
+      const currentBookIdx = testamentBooks.findIndex(b => b.slug === book)
+      const base = testament.toLowerCase()
+
+      switch (e.key) {
+        case 'Escape':
+          setActiveVerse(null)
+          setActiveWord(null)
+          setPopoverPos(null)
+          setPanelOpen(false)
+          break
+
+        case 'ArrowLeft':
+          e.preventDefault()
+          if (chapterNum > 1) {
+            router.push(`/${base}/${book}/${chapterNum - 1}`)
+          } else if (currentBookIdx > 0) {
+            const prevBook = testamentBooks[currentBookIdx - 1]
+            router.push(`/${base}/${prevBook.slug}/${prevBook.chapterCount}`)
+          }
+          break
+
+        case 'ArrowRight':
+          e.preventDefault()
+          if (bookData && chapterNum < bookData.chapterCount) {
+            router.push(`/${base}/${book}/${chapterNum + 1}`)
+          } else if (currentBookIdx >= 0 && currentBookIdx < testamentBooks.length - 1) {
+            const nextBook = testamentBooks[currentBookIdx + 1]
+            router.push(`/${base}/${nextBook.slug}/1`)
+          }
+          break
+
+        case 'ArrowUp':
+          e.preventDefault()
+          if (!chapterData) break
+          if (!activeVerse) {
+            openVerse(chapterData.verses[chapterData.verses.length - 1])
+          } else {
+            const idx = chapterData.verses.findIndex(v => v.id === activeVerse.id)
+            if (idx > 0) openVerse(chapterData.verses[idx - 1])
+          }
+          break
+
+        case 'ArrowDown':
+          e.preventDefault()
+          if (!chapterData) break
+          if (!activeVerse) {
+            openVerse(chapterData.verses[0])
+          } else {
+            const idx = chapterData.verses.findIndex(v => v.id === activeVerse.id)
+            if (idx < chapterData.verses.length - 1) openVerse(chapterData.verses[idx + 1])
+          }
+          break
+      }
+    }
+
+    window.addEventListener('keydown', handleKey)
+    return () => window.removeEventListener('keydown', handleKey)
+  }, [book, chapter, testament, allBooks, bookData, chapterData, activeVerse, isDesktop])
+
   if (loading) return (
     <div style={{
       height: '100vh',
@@ -379,25 +470,7 @@ export default function BibleLayout({ testament }: BibleLayoutProps) {
             activeVerseId={activeVerse?.id || null}
             activeWordId={activeWord?.id || null}
             storageKey={storageKey}
-            onVerseClick={async (verse) => {
-              setActiveVerse(verse)
-              setActiveTab('verse')
-              if (!isDesktop) setPanelOpen(true)
-              window.history.replaceState(null, '', `?verse=${verse.id}&tab=verse#v${verse.number}`)
-              try {
-                const [commentsRes, proposalsRes] = await Promise.all([
-                  api.get(`/api/verses/${verse.id}/comments`),
-                  api.get(`/api/verses/${verse.id}/proposals`),
-                ])
-                setComments(commentsRes.data)
-                setProposals(proposalsRes.data.proposals)
-                setVerseTranslations(proposalsRes.data.translations)
-              } catch (error) {
-                console.error(error)
-                setComments([])
-                setProposals([])
-              }
-            }}
+            onVerseClick={openVerse}
             onWordClick={async (token, x, y) => {
               setActiveWord(token)
               window.history.replaceState(null, '', `?word=${token.id}&tab=word`)
