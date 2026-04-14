@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 import api from '@/lib/api'
 import { useAuthStore } from '@/store/auth'
 import { getRoleColor } from '@/lib/roleColors'
+import { useBreakpoint } from '@/lib/useBreakpoint'
 
 interface Proposal {
   id: string
@@ -40,6 +41,8 @@ interface WordTranslation {
 
 export default function NotificationBell() {
   const { user } = useAuthStore()
+  const bp = useBreakpoint()
+  const isMobile = bp === 'mobile'
   const [open, setOpen] = useState(false)
   const [proposals, setProposals] = useState<Proposal[]>([])
   const [wordTranslations, setWordTranslations] = useState<WordTranslation[]>([])
@@ -168,13 +171,17 @@ export default function NotificationBell() {
 
       {open && (
         <div style={{
-          position: 'absolute',
-          top: '40px',
+          position: isMobile ? 'fixed' : 'absolute',
+          top: isMobile ? '52px' : '40px',
+          left: isMobile ? 0 : 'auto',
           right: 0,
-          width: '340px',
+          width: isMobile ? '100%' : '340px',
+          height: isMobile ? 'calc(100vh - 52px)' : 'auto',
+          display: isMobile ? 'flex' : 'block',
+          flexDirection: 'column',
           background: 'white',
           border: '1px solid var(--border)',
-          borderRadius: '10px',
+          borderRadius: isMobile ? '0' : '10px',
           boxShadow: '0 8px 32px rgba(26,22,18,0.15)',
           zIndex: 1000,
           overflow: 'hidden',
@@ -215,7 +222,7 @@ export default function NotificationBell() {
             </div>
           </div>
 
-          <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
+          <div style={{ maxHeight: isMobile ? 'none' : '400px', flex: isMobile ? 1 : 'none', overflowY: 'auto' }}>
             {proposals.length === 0 && wordTranslations.length === 0 && personalNotifs.length === 0 ? (
               <div style={{ padding: '24px', textAlign: 'center', fontFamily: 'Spectral, serif', fontSize: '14px', color: 'var(--ink-faint)', fontStyle: 'italic' }}>
                 Aucune notification 🎉
