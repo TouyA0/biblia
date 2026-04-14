@@ -1,6 +1,6 @@
 ﻿'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useParams, useSearchParams, useRouter } from 'next/navigation'
 import api from '@/lib/api'
 import TopBar from './TopBar'
@@ -134,6 +134,9 @@ export default function BibleLayout({ testament }: BibleLayoutProps) {
   const isMobile = bp === 'mobile'
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [panelOpen, setPanelOpen] = useState(false)
+  const [verseInputDisplay, setVerseInputDisplay] = useState('')
+  const verseInputRef = useRef('')
+  const verseInputTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
     loadData()
@@ -248,6 +251,9 @@ export default function BibleLayout({ testament }: BibleLayoutProps) {
     }
   }
 
+  // Ref toujours à jour pour openVerse (évite les closures stale dans les timers)
+  const openVerseRef = useRef<(verse: Verse) => void>(() => {})
+
   // Ouvrir un verset (clic ou clavier)
   async function openVerse(verse: Verse) {
     setActiveVerse(verse)
@@ -271,6 +277,8 @@ export default function BibleLayout({ testament }: BibleLayoutProps) {
       setProposals([])
     }
   }
+
+  openVerseRef.current = openVerse
 
   // Navigation clavier
   useEffect(() => {
@@ -332,6 +340,38 @@ export default function BibleLayout({ testament }: BibleLayoutProps) {
             if (idx < chapterData.verses.length - 1) openVerse(chapterData.verses[idx + 1])
           }
           break
+
+        case 'Enter':
+          if (verseInputRef.current && chapterData) {
+            e.preventDefault()
+            if (verseInputTimer.current) clearTimeout(verseInputTimer.current)
+            const num = Number(verseInputRef.current)
+            const verse = chapterData.verses.find(v => v.number === num)
+              ?? chapterData.verses[chapterData.verses.length - 1]
+            openVerseRef.current(verse)
+            verseInputRef.current = ''
+            setVerseInputDisplay('')
+          }
+          break
+
+        default:
+          if ((/^\d$/.test(e.key) || /^Numpad\d$/.test(e.code)) && !e.ctrlKey && !e.metaKey && !e.altKey) {
+            e.preventDefault()
+            const digit = /^\d$/.test(e.key) ? e.key : e.code.slice(-1)
+            verseInputRef.current += digit
+            setVerseInputDisplay(verseInputRef.current)
+            if (verseInputTimer.current) clearTimeout(verseInputTimer.current)
+            verseInputTimer.current = setTimeout(() => {
+              const verses = chapterData?.verses
+              if (verses?.length) {
+                const num = Number(verseInputRef.current)
+                const verse = verses.find(v => v.number === num) ?? verses[verses.length - 1]
+                openVerseRef.current(verse)
+              }
+              verseInputRef.current = ''
+              setVerseInputDisplay('')
+            }, 800)
+          }
       }
     }
 
@@ -592,6 +632,28 @@ export default function BibleLayout({ testament }: BibleLayoutProps) {
           </Drawer>
         )}
       </div>
+
+      {/* Badge "aller au verset" */}
+      {verseInputDisplay && (
+        <div style={{
+          position: 'fixed',
+          bottom: '68px',
+          right: isDesktop ? (fullscreen ? '24px' : '384px') : '24px',
+          zIndex: 200,
+          background: 'var(--ink)',
+          color: 'var(--gold-light)',
+          fontFamily: 'DM Mono, monospace',
+          fontSize: '13px',
+          padding: '5px 12px',
+          borderRadius: '6px',
+          letterSpacing: '0.1em',
+          boxShadow: '0 2px 8px rgba(26,22,18,0.25)',
+          transition: 'right 0.3s ease',
+          pointerEvents: 'none',
+        }}>
+          ↵ verset {verseInputDisplay}
+        </div>
+      )}
 
       {isDesktop && activeWord && popoverPos && (
         <WordPopover
