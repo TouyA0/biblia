@@ -125,7 +125,7 @@ export default function TopBar({ testament, book, chapter, showSearch = true, sh
 
       {/* ── Centre : SearchBar centré ── */}
       {showSearch && (
-        <div className="hide-mobile" style={{
+        <div className="hide-tablet" style={{
           flex: '0 1 380px',
           display: 'flex',
           justifyContent: 'center',
