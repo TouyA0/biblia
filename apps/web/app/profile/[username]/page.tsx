@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
@@ -163,7 +163,7 @@ function ActivityGraph({ activity }: { activity: ActivityDay[] }) {
           }}>
             <div style={{
               fontFamily: 'DM Mono, monospace',
-              fontSize: '8px',
+              fontSize: '10px',
               color: 'var(--ink-muted)',
             }}>
               {m.count > 0 ? m.count : ''}
@@ -194,7 +194,7 @@ function ActivityGraph({ activity }: { activity: ActivityDay[] }) {
             flex: 1,
             textAlign: 'center',
             fontFamily: 'DM Mono, monospace',
-            fontSize: '8px',
+            fontSize: '10px',
             color: 'var(--ink-muted)',
           }}>
             {m.label}
@@ -203,7 +203,7 @@ function ActivityGraph({ activity }: { activity: ActivityDay[] }) {
       </div>
       <div style={{
         fontFamily: 'DM Mono, monospace',
-        fontSize: '9px',
+        fontSize: '11px',
         color: 'var(--ink-muted)',
         marginTop: '10px',
         textAlign: 'right',
@@ -226,7 +226,7 @@ function InlineField({ label, value, type, onSave }: {
 
   return (
     <div style={{ marginBottom: '12px', padding: '12px 14px', border: '1px solid var(--border)', borderRadius: '8px', background: 'white' }}>
-      <div style={{ fontFamily: 'DM Mono, monospace', fontSize: '9px', letterSpacing: '0.1em', textTransform: 'uppercase' as const, color: 'var(--ink-muted)', marginBottom: '6px' }}>
+      <div style={{ fontFamily: 'DM Mono, monospace', fontSize: '11px', letterSpacing: '0.1em', textTransform: 'uppercase' as const, color: 'var(--ink-muted)', marginBottom: '6px' }}>
         {label}
       </div>
       {editing ? (
@@ -281,7 +281,7 @@ function PasswordField({ onSave }: { onSave: (current: string, newPwd: string) =
 
   return (
     <div style={{ marginBottom: '12px', padding: '12px 14px', border: '1px solid var(--border)', borderRadius: '8px', background: 'white' }}>
-      <div style={{ fontFamily: 'DM Mono, monospace', fontSize: '9px', letterSpacing: '0.1em', textTransform: 'uppercase' as const, color: 'var(--ink-muted)', marginBottom: '6px' }}>
+      <div style={{ fontFamily: 'DM Mono, monospace', fontSize: '11px', letterSpacing: '0.1em', textTransform: 'uppercase' as const, color: 'var(--ink-muted)', marginBottom: '6px' }}>
         Mot de passe
       </div>
       {editing ? (
@@ -293,12 +293,12 @@ function PasswordField({ onSave }: { onSave: (current: string, newPwd: string) =
             { label: 'Confirmer', value: confirm, setter: setConfirm },
           ].map(f => (
             <div key={f.label} style={{ marginBottom: '8px' }}>
-              <div style={{ fontFamily: 'DM Mono, monospace', fontSize: '8px', color: 'var(--ink-muted)', marginBottom: '3px' }}>{f.label}</div>
+              <div style={{ fontFamily: 'DM Mono, monospace', fontSize: '10px', color: 'var(--ink-muted)', marginBottom: '3px' }}>{f.label}</div>
               <input
                 type="password"
                 value={f.value}
                 onChange={e => f.setter(e.target.value)}
-                style={{ width: '100%', padding: '6px 10px', border: '1px solid var(--border)', borderRadius: '6px', fontFamily: 'Spectral, serif', fontSize: '13px', color: 'var(--ink)', outline: 'none' }}
+                style={{ width: '100%', padding: '6px 10px', border: '1px solid var(--border)', borderRadius: '6px', fontFamily: 'Spectral, serif', fontSize: '14px', color: 'var(--ink)', outline: 'none' }}
               />
             </div>
           ))}
@@ -315,13 +315,13 @@ function PasswordField({ onSave }: { onSave: (current: string, newPwd: string) =
                 setCurrent(''); setNewPwd(''); setConfirm('')
               }}
               disabled={saving}
-              style={{ padding: '6px 14px', background: 'var(--green-valid)', color: 'white', border: 'none', borderRadius: '6px', fontFamily: 'DM Mono, monospace', fontSize: '9px', cursor: 'pointer' }}
+              style={{ padding: '6px 14px', background: 'var(--green-valid)', color: 'white', border: 'none', borderRadius: '6px', fontFamily: 'DM Mono, monospace', fontSize: '11px', cursor: 'pointer' }}
             >
               {saving ? '…' : '✓ Enregistrer'}
             </button>
             <button
               onClick={() => { setEditing(false); setCurrent(''); setNewPwd(''); setConfirm(''); setErr('') }}
-              style={{ padding: '6px 14px', background: 'transparent', color: 'var(--ink-muted)', border: '1px solid var(--border)', borderRadius: '6px', fontFamily: 'DM Mono, monospace', fontSize: '9px', cursor: 'pointer' }}
+              style={{ padding: '6px 14px', background: 'transparent', color: 'var(--ink-muted)', border: '1px solid var(--border)', borderRadius: '6px', fontFamily: 'DM Mono, monospace', fontSize: '11px', cursor: 'pointer' }}
             >
               Annuler
             </button>
@@ -544,7 +544,7 @@ export default function UserProfilePage() {
   if (notFound) return (
     <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: 'var(--parchment)', gap: '16px' }}>
       <div style={{ fontFamily: 'Crimson Pro, serif', fontSize: '32px', color: 'var(--ink-muted)' }}>Utilisateur introuvable</div>
-      <Link href="/" style={{ color: 'var(--gold)', fontFamily: 'DM Mono, monospace', fontSize: '11px' }}>← Retour</Link>
+      <Link href="/" style={{ color: 'var(--gold)', fontFamily: 'DM Mono, monospace', fontSize: '12px' }}>← Retour</Link>
     </div>
   )
 
@@ -566,19 +566,19 @@ export default function UserProfilePage() {
         </Link>
         <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '16px' }}>
           {currentUser?.role === 'ADMIN' && (
-            <Link href="/admin" style={{ fontFamily: 'DM Mono, monospace', fontSize: '10px', color: '#e88', letterSpacing: '0.08em', textDecoration: 'none', padding: '3px 8px', borderRadius: '4px', border: '1px solid rgba(122,42,42,0.3)', background: 'rgba(122,42,42,0.15)' }}>
+            <Link href="/admin" style={{ fontFamily: 'DM Mono, monospace', fontSize: '12px', color: '#e88', letterSpacing: '0.08em', textDecoration: 'none', padding: '3px 8px', borderRadius: '4px', border: '1px solid rgba(122,42,42,0.3)', background: 'rgba(122,42,42,0.15)' }}>
               Administration
             </Link>
           )}
           {currentUser && ['EXPERT', 'ADMIN'].includes(currentUser.role) && <NotificationBell />}
           {currentUser && (
-            <Link href={`/profile/${currentUser.username}`} style={{ fontFamily: 'DM Mono, monospace', fontSize: '10px', color: 'rgba(255,255,255,0.6)', textDecoration: 'none' }}>
+            <Link href={`/profile/${currentUser.username}`} style={{ fontFamily: 'DM Mono, monospace', fontSize: '12px', color: 'rgba(255,255,255,0.6)', textDecoration: 'none' }}>
               {currentUser.username}
             </Link>
           )}
           {currentUser && (
             <button onClick={() => { localStorage.removeItem('token'); localStorage.removeItem('refreshToken'); localStorage.removeItem('user'); router.push('/login') }}
-              style={{ fontFamily: 'DM Mono, monospace', fontSize: '10px', color: 'rgba(255,255,255,0.4)', background: 'transparent', border: 'none', cursor: 'pointer' }}>
+              style={{ fontFamily: 'DM Mono, monospace', fontSize: '12px', color: 'rgba(255,255,255,0.4)', background: 'transparent', border: 'none', cursor: 'pointer' }}>
               Déconnexion
             </button>
           )}
@@ -595,13 +595,13 @@ export default function UserProfilePage() {
             <div>
               <div style={{ fontFamily: 'Crimson Pro, serif', fontSize: '28px', fontWeight: '300', color: 'var(--ink)', marginBottom: '4px' }}>
                 {profile.username}
-                {isOwnProfile && <span style={{ fontFamily: 'DM Mono, monospace', fontSize: '10px', color: 'var(--gold)', marginLeft: '10px' }}>(vous)</span>}
+                {isOwnProfile && <span style={{ fontFamily: 'DM Mono, monospace', fontSize: '12px', color: 'var(--gold)', marginLeft: '10px' }}>(vous)</span>}
               </div>
               <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                <span style={{ fontFamily: 'DM Mono, monospace', fontSize: '10px', padding: '3px 10px', borderRadius: '20px', background: getRoleBackground(profile.role), color: getRoleColor(profile.role), border: `1px solid ${getRoleBorder(profile.role)}` }}>
+                <span style={{ fontFamily: 'DM Mono, monospace', fontSize: '12px', padding: '3px 10px', borderRadius: '20px', background: getRoleBackground(profile.role), color: getRoleColor(profile.role), border: `1px solid ${getRoleBorder(profile.role)}` }}>
                   {profile.role}
                 </span>
-                <span style={{ fontFamily: 'DM Mono, monospace', fontSize: '10px', color: 'var(--ink-muted)' }}>
+                <span style={{ fontFamily: 'DM Mono, monospace', fontSize: '12px', color: 'var(--ink-muted)' }}>
                   Membre depuis {new Date(profile.createdAt).toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' })}
                 </span>
               </div>
@@ -615,7 +615,7 @@ export default function UserProfilePage() {
               ].map(stat => (
                 <div key={stat.label} style={{ textAlign: 'center' }}>
                   <div style={{ fontFamily: 'Crimson Pro, serif', fontSize: '28px', fontWeight: '300', color: 'var(--gold)' }}>{stat.value}</div>
-                  <div style={{ fontFamily: 'DM Mono, monospace', fontSize: '9px', letterSpacing: '0.08em', textTransform: 'uppercase' as const, color: 'var(--ink-muted)' }}>{stat.label}</div>
+                  <div style={{ fontFamily: 'DM Mono, monospace', fontSize: '11px', letterSpacing: '0.08em', textTransform: 'uppercase' as const, color: 'var(--ink-muted)' }}>{stat.label}</div>
                 </div>
               ))}
             </div>
@@ -624,7 +624,7 @@ export default function UserProfilePage() {
 
         {/* Graphique d'activité */}
         <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: '10px', padding: '20px', marginBottom: '24px' }}>
-          <div style={{ fontFamily: 'DM Mono, monospace', fontSize: '10px', letterSpacing: '0.1em', textTransform: 'uppercase' as const, color: 'var(--ink-muted)', marginBottom: '16px' }}>
+          <div style={{ fontFamily: 'DM Mono, monospace', fontSize: '12px', letterSpacing: '0.1em', textTransform: 'uppercase' as const, color: 'var(--ink-muted)', marginBottom: '16px' }}>
             Activité — 12 derniers mois
           </div>
           <ActivityGraph activity={activity} />
@@ -634,7 +634,7 @@ export default function UserProfilePage() {
         <div style={{ display: 'flex', borderBottom: '1px solid var(--border)', marginBottom: '32px' }}>
           {tabs.map(tab => (
             <div key={tab.key} onClick={() => setActiveTab(tab.key as typeof activeTab)}
-              style={{ padding: '12px 20px', fontFamily: 'DM Mono, monospace', fontSize: '11px', letterSpacing: '0.08em', textTransform: 'uppercase' as const, color: activeTab === tab.key ? 'var(--gold)' : 'var(--ink-muted)', cursor: 'pointer', borderBottom: activeTab === tab.key ? '2px solid var(--gold)' : '2px solid transparent', marginBottom: '-1px' }}>
+              style={{ padding: '12px 20px', fontFamily: 'DM Mono, monospace', fontSize: '12px', letterSpacing: '0.08em', textTransform: 'uppercase' as const, color: activeTab === tab.key ? 'var(--gold)' : 'var(--ink-muted)', cursor: 'pointer', borderBottom: activeTab === tab.key ? '2px solid var(--gold)' : '2px solid transparent', marginBottom: '-1px' }}>
               {tab.label}
             </div>
           ))}
@@ -649,7 +649,7 @@ export default function UserProfilePage() {
               <div style={{ display: 'flex', gap: '4px' }}>
                 {(['ALL', 'AT', 'NT'] as const).map(t => (
                   <button key={t} onClick={() => { setFilterTestament(t); setFilterBook(''); setFilterChapter(''); setFilterVerse(''); setWordPage(1); setProposalPage(1); setCommentPage(1) }}
-                    style={{ padding: '5px 10px', borderRadius: '20px', border: `1px solid ${filterTestament === t ? 'var(--gold)' : 'var(--border)'}`, background: filterTestament === t ? 'var(--gold-pale)' : 'transparent', fontFamily: 'DM Mono, monospace', fontSize: '9px', color: filterTestament === t ? 'var(--gold)' : 'var(--ink-muted)', cursor: 'pointer' }}>
+                    style={{ padding: '5px 10px', borderRadius: '20px', border: `1px solid ${filterTestament === t ? 'var(--gold)' : 'var(--border)'}`, background: filterTestament === t ? 'var(--gold-pale)' : 'transparent', fontFamily: 'DM Mono, monospace', fontSize: '11px', color: filterTestament === t ? 'var(--gold)' : 'var(--ink-muted)', cursor: 'pointer' }}>
                     {t === 'ALL' ? 'Tout' : t}
                   </button>
                 ))}
@@ -660,7 +660,7 @@ export default function UserProfilePage() {
                 <select
                   value={filterBook}
                   onChange={e => { setFilterBook(e.target.value); setFilterChapter(''); setFilterVerse(''); setWordPage(1); setProposalPage(1); setCommentPage(1) }}
-                  style={{ padding: '5px 10px', border: `1px solid ${filterBook ? 'var(--gold)' : 'var(--border)'}`, borderRadius: '6px', background: filterBook ? 'var(--gold-pale)' : 'white', fontFamily: 'DM Mono, monospace', fontSize: '9px', color: filterBook ? 'var(--gold)' : 'var(--ink-muted)', cursor: 'pointer', outline: 'none' }}
+                  style={{ padding: '5px 10px', border: `1px solid ${filterBook ? 'var(--gold)' : 'var(--border)'}`, borderRadius: '6px', background: filterBook ? 'var(--gold-pale)' : 'white', fontFamily: 'DM Mono, monospace', fontSize: '11px', color: filterBook ? 'var(--gold)' : 'var(--ink-muted)', cursor: 'pointer', outline: 'none' }}
                 >
                   <option value="">Tous les livres</option>
                   {availableBooks.map(b => <option key={b} value={b}>{b}</option>)}
@@ -672,7 +672,7 @@ export default function UserProfilePage() {
                 <select
                   value={filterChapter}
                   onChange={e => { setFilterChapter(e.target.value); setFilterVerse(''); setWordPage(1); setProposalPage(1); setCommentPage(1) }}
-                  style={{ padding: '5px 10px', border: `1px solid ${filterChapter ? 'var(--gold)' : 'var(--border)'}`, borderRadius: '6px', background: filterChapter ? 'var(--gold-pale)' : 'white', fontFamily: 'DM Mono, monospace', fontSize: '9px', color: filterChapter ? 'var(--gold)' : 'var(--ink-muted)', cursor: 'pointer', outline: 'none' }}
+                  style={{ padding: '5px 10px', border: `1px solid ${filterChapter ? 'var(--gold)' : 'var(--border)'}`, borderRadius: '6px', background: filterChapter ? 'var(--gold-pale)' : 'white', fontFamily: 'DM Mono, monospace', fontSize: '11px', color: filterChapter ? 'var(--gold)' : 'var(--ink-muted)', cursor: 'pointer', outline: 'none' }}
                 >
                   <option value="">Tous les chapitres</option>
                   {availableChapters.map(c => <option key={c} value={c}>Chapitre {c}</option>)}
@@ -684,7 +684,7 @@ export default function UserProfilePage() {
                 <select
                   value={filterVerse}
                   onChange={e => { setFilterVerse(e.target.value); setWordPage(1); setProposalPage(1); setCommentPage(1) }}
-                  style={{ padding: '5px 10px', border: `1px solid ${filterVerse ? 'var(--gold)' : 'var(--border)'}`, borderRadius: '6px', background: filterVerse ? 'var(--gold-pale)' : 'white', fontFamily: 'DM Mono, monospace', fontSize: '9px', color: filterVerse ? 'var(--gold)' : 'var(--ink-muted)', cursor: 'pointer', outline: 'none' }}
+                  style={{ padding: '5px 10px', border: `1px solid ${filterVerse ? 'var(--gold)' : 'var(--border)'}`, borderRadius: '6px', background: filterVerse ? 'var(--gold-pale)' : 'white', fontFamily: 'DM Mono, monospace', fontSize: '11px', color: filterVerse ? 'var(--gold)' : 'var(--ink-muted)', cursor: 'pointer', outline: 'none' }}
                 >
                   <option value="">Tous les versets</option>
                   {availableVerses.map(v => <option key={v} value={v}>Verset {v}</option>)}
@@ -694,7 +694,7 @@ export default function UserProfilePage() {
               {/* Reset */}
               {(filterTestament !== 'ALL' || filterBook || filterChapter || filterVerse) && (
                 <button onClick={() => { setFilterTestament('ALL'); setFilterBook(''); setFilterChapter(''); setFilterVerse(''); setWordPage(1); setProposalPage(1); setCommentPage(1) }}
-                  style={{ padding: '5px 10px', borderRadius: '20px', border: '1px solid rgba(122,42,42,0.2)', background: 'var(--red-light)', fontFamily: 'DM Mono, monospace', fontSize: '9px', color: 'var(--red-soft)', cursor: 'pointer' }}>
+                  style={{ padding: '5px 10px', borderRadius: '20px', border: '1px solid rgba(122,42,42,0.2)', background: 'var(--red-light)', fontFamily: 'DM Mono, monospace', fontSize: '11px', color: 'var(--red-soft)', cursor: 'pointer' }}>
                   ✕ Réinitialiser
                 </button>
               )}
@@ -702,13 +702,13 @@ export default function UserProfilePage() {
             {/* Traductions */}
             <div style={{ marginBottom: '32px' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
-                <div style={{ fontFamily: 'DM Mono, monospace', fontSize: '10px', letterSpacing: '0.1em', textTransform: 'uppercase' as const, color: 'var(--ink-muted)' }}>
+                <div style={{ fontFamily: 'DM Mono, monospace', fontSize: '12px', letterSpacing: '0.1em', textTransform: 'uppercase' as const, color: 'var(--ink-muted)' }}>
                   Traductions de mots ({profile?._count.wordTranslations || 0})
                 </div>
                 <div style={{ display: 'flex', gap: '4px' }}>
                   {(['ALL', 'VALIDATED', 'PROPOSED'] as const).map(f => (
                     <button key={f} onClick={() => { setWordFilter(f); setWordPage(1) }}
-                      style={{ padding: '2px 8px', borderRadius: '20px', border: `1px solid ${wordFilter === f ? 'var(--gold)' : 'var(--border)'}`, background: wordFilter === f ? 'var(--gold-pale)' : 'transparent', fontFamily: 'DM Mono, monospace', fontSize: '9px', color: wordFilter === f ? 'var(--gold)' : 'var(--ink-muted)', cursor: 'pointer' }}>
+                      style={{ padding: '2px 8px', borderRadius: '20px', border: `1px solid ${wordFilter === f ? 'var(--gold)' : 'var(--border)'}`, background: wordFilter === f ? 'var(--gold-pale)' : 'transparent', fontFamily: 'DM Mono, monospace', fontSize: '11px', color: wordFilter === f ? 'var(--gold)' : 'var(--ink-muted)', cursor: 'pointer' }}>
                       {f === 'ALL' ? 'Toutes' : f === 'VALIDATED' ? 'Validées' : 'Proposées'}
                     </button>
                   ))}
@@ -728,17 +728,17 @@ export default function UserProfilePage() {
                           onMouseLeave={e => (e.currentTarget as HTMLElement).style.opacity = '1'}>
                           <div>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '2px' }}>
-                              <span style={{ fontFamily: 'Spectral, serif', fontSize: '15px', fontStyle: 'italic', color: 'var(--ink)' }}>{t.translation}</span>
-                              <span style={{ fontFamily: 'DM Mono, monospace', fontSize: '9px', padding: '1px 6px', borderRadius: '20px', background: t.isValidated ? 'var(--green-light)' : 'var(--amber-light)', color: t.isValidated ? 'var(--green-valid)' : 'var(--amber-pending)', border: `1px solid ${t.isValidated ? 'rgba(45,90,58,0.2)' : 'rgba(122,90,26,0.2)'}` }}>
+                              <span style={{ fontFamily: 'Spectral, serif', fontSize: '16px', fontStyle: 'italic', color: 'var(--ink)' }}>{t.translation}</span>
+                              <span style={{ fontFamily: 'DM Mono, monospace', fontSize: '11px', padding: '1px 6px', borderRadius: '20px', background: t.isValidated ? 'var(--green-light)' : 'var(--amber-light)', color: t.isValidated ? 'var(--green-valid)' : 'var(--amber-pending)', border: `1px solid ${t.isValidated ? 'rgba(45,90,58,0.2)' : 'rgba(122,90,26,0.2)'}` }}>
                                 {t.isValidated ? 'Validée' : 'Proposée'}
                               </span>
-                              {!t.isValidated && <span style={{ fontFamily: 'DM Mono, monospace', fontSize: '9px', color: 'var(--ink-muted)' }}>{t.voteCount} vote{t.voteCount !== 1 ? 's' : ''}</span>}
+                              {!t.isValidated && <span style={{ fontFamily: 'DM Mono, monospace', fontSize: '11px', color: 'var(--ink-muted)' }}>{t.voteCount} vote{t.voteCount !== 1 ? 's' : ''}</span>}
                             </div>
-                            <div style={{ fontFamily: 'DM Mono, monospace', fontSize: '9px', color: 'var(--ink-muted)' }}>
+                            <div style={{ fontFamily: 'DM Mono, monospace', fontSize: '11px', color: 'var(--ink-muted)' }}>
                               {t.wordToken.word} · {verse.chapter.book.name} {verse.chapter.number}:{verse.number}
                             </div>
                           </div>
-                          <div style={{ fontFamily: 'DM Mono, monospace', fontSize: '9px', color: 'var(--ink-faint)', flexShrink: 0, marginLeft: '12px' }}>
+                          <div style={{ fontFamily: 'DM Mono, monospace', fontSize: '11px', color: 'var(--ink-faint)', flexShrink: 0, marginLeft: '12px' }}>
                             {new Date(t.createdAt).toLocaleDateString('fr-FR')}
                           </div>
                         </div>
@@ -746,7 +746,7 @@ export default function UserProfilePage() {
                     )
                   })}
                   {pagedWords.length < filteredWords.length && (
-                    <button onClick={() => setWordPage(p => p + 1)} style={{ width: '100%', padding: '8px', background: 'transparent', border: '1px dashed var(--border-strong)', borderRadius: '6px', fontFamily: 'DM Mono, monospace', fontSize: '10px', color: 'var(--ink-muted)', cursor: 'pointer', marginTop: '4px' }}>
+                    <button onClick={() => setWordPage(p => p + 1)} style={{ width: '100%', padding: '8px', background: 'transparent', border: '1px dashed var(--border-strong)', borderRadius: '6px', fontFamily: 'DM Mono, monospace', fontSize: '12px', color: 'var(--ink-muted)', cursor: 'pointer', marginTop: '4px' }}>
                       Voir plus ({filteredWords.length - pagedWords.length} restantes)
                     </button>
                   )}
@@ -757,13 +757,13 @@ export default function UserProfilePage() {
             {/* Propositions */}
             <div style={{ marginBottom: '32px' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
-                <div style={{ fontFamily: 'DM Mono, monospace', fontSize: '10px', letterSpacing: '0.1em', textTransform: 'uppercase' as const, color: 'var(--ink-muted)' }}>
+                <div style={{ fontFamily: 'DM Mono, monospace', fontSize: '12px', letterSpacing: '0.1em', textTransform: 'uppercase' as const, color: 'var(--ink-muted)' }}>
                   Reformulations de versets ({profile?._count.proposals || 0})
                 </div>
                 <div style={{ display: 'flex', gap: '4px' }}>
                   {(['ALL', 'PENDING', 'ACCEPTED', 'REJECTED'] as const).map(f => (
                     <button key={f} onClick={() => { setProposalFilter(f); setProposalPage(1) }}
-                      style={{ padding: '2px 8px', borderRadius: '20px', border: `1px solid ${proposalFilter === f ? 'var(--gold)' : 'var(--border)'}`, background: proposalFilter === f ? 'var(--gold-pale)' : 'transparent', fontFamily: 'DM Mono, monospace', fontSize: '9px', color: proposalFilter === f ? 'var(--gold)' : 'var(--ink-muted)', cursor: 'pointer' }}>
+                      style={{ padding: '2px 8px', borderRadius: '20px', border: `1px solid ${proposalFilter === f ? 'var(--gold)' : 'var(--border)'}`, background: proposalFilter === f ? 'var(--gold-pale)' : 'transparent', fontFamily: 'DM Mono, monospace', fontSize: '11px', color: proposalFilter === f ? 'var(--gold)' : 'var(--ink-muted)', cursor: 'pointer' }}>
                       {f === 'ALL' ? 'Toutes' : f === 'PENDING' ? 'En attente' : f === 'ACCEPTED' ? 'Acceptées' : 'Rejetées'}
                     </button>
                   ))}
@@ -782,19 +782,19 @@ export default function UserProfilePage() {
                           onMouseEnter={e => (e.currentTarget as HTMLElement).style.opacity = '0.8'}
                           onMouseLeave={e => (e.currentTarget as HTMLElement).style.opacity = '1'}>
                           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
-                            <span style={{ fontFamily: 'DM Mono, monospace', fontSize: '9px', color: 'var(--ink-muted)' }}>
+                            <span style={{ fontFamily: 'DM Mono, monospace', fontSize: '11px', color: 'var(--ink-muted)' }}>
                               {verse.chapter.book.name} {verse.chapter.number}:{verse.number}
                             </span>
                             <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                              <span style={{ fontFamily: 'DM Mono, monospace', fontSize: '9px', padding: '1px 6px', borderRadius: '20px', background: p.status === 'ACCEPTED' ? 'var(--green-light)' : p.status === 'REJECTED' ? 'var(--red-light)' : 'var(--amber-light)', color: p.status === 'ACCEPTED' ? 'var(--green-valid)' : p.status === 'REJECTED' ? 'var(--red-soft)' : 'var(--amber-pending)', border: `1px solid ${p.status === 'ACCEPTED' ? 'rgba(45,90,58,0.2)' : p.status === 'REJECTED' ? 'rgba(122,42,42,0.2)' : 'rgba(122,90,26,0.2)'}` }}>
+                              <span style={{ fontFamily: 'DM Mono, monospace', fontSize: '11px', padding: '1px 6px', borderRadius: '20px', background: p.status === 'ACCEPTED' ? 'var(--green-light)' : p.status === 'REJECTED' ? 'var(--red-light)' : 'var(--amber-light)', color: p.status === 'ACCEPTED' ? 'var(--green-valid)' : p.status === 'REJECTED' ? 'var(--red-soft)' : 'var(--amber-pending)', border: `1px solid ${p.status === 'ACCEPTED' ? 'rgba(45,90,58,0.2)' : p.status === 'REJECTED' ? 'rgba(122,42,42,0.2)' : 'rgba(122,90,26,0.2)'}` }}>
                                 {p.status === 'ACCEPTED' ? 'Acceptée' : p.status === 'REJECTED' ? 'Rejetée' : 'En attente'}
                               </span>
-                              <span style={{ fontFamily: 'DM Mono, monospace', fontSize: '9px', color: 'var(--ink-faint)' }}>
+                              <span style={{ fontFamily: 'DM Mono, monospace', fontSize: '11px', color: 'var(--ink-faint)' }}>
                                 {new Date(p.createdAt).toLocaleDateString('fr-FR')}
                               </span>
                             </div>
                           </div>
-                          <div style={{ fontFamily: 'Spectral, serif', fontSize: '13px', fontStyle: 'italic', color: 'var(--ink-soft)', lineHeight: '1.6' }}>
+                          <div style={{ fontFamily: 'Spectral, serif', fontSize: '14px', fontStyle: 'italic', color: 'var(--ink-soft)', lineHeight: '1.6' }}>
                             {p.proposedText}
                           </div>
                         </div>
@@ -802,7 +802,7 @@ export default function UserProfilePage() {
                     )
                   })}
                   {pagedProposals.length < filteredProposals.length && (
-                    <button onClick={() => setProposalPage(p => p + 1)} style={{ width: '100%', padding: '8px', background: 'transparent', border: '1px dashed var(--border-strong)', borderRadius: '6px', fontFamily: 'DM Mono, monospace', fontSize: '10px', color: 'var(--ink-muted)', cursor: 'pointer', marginTop: '4px' }}>
+                    <button onClick={() => setProposalPage(p => p + 1)} style={{ width: '100%', padding: '8px', background: 'transparent', border: '1px dashed var(--border-strong)', borderRadius: '6px', fontFamily: 'DM Mono, monospace', fontSize: '12px', color: 'var(--ink-muted)', cursor: 'pointer', marginTop: '4px' }}>
                       Voir plus ({filteredProposals.length - pagedProposals.length} restantes)
                     </button>
                   )}
@@ -812,7 +812,7 @@ export default function UserProfilePage() {
 
             {/* Commentaires */}
             <div>
-              <div style={{ fontFamily: 'DM Mono, monospace', fontSize: '10px', letterSpacing: '0.1em', textTransform: 'uppercase' as const, color: 'var(--ink-muted)', marginBottom: '12px' }}>
+              <div style={{ fontFamily: 'DM Mono, monospace', fontSize: '12px', letterSpacing: '0.1em', textTransform: 'uppercase' as const, color: 'var(--ink-muted)', marginBottom: '12px' }}>
                 Commentaires ({filteredComments.length})
               </div>
               {pagedComments.length === 0 ? (
@@ -828,7 +828,7 @@ export default function UserProfilePage() {
                           onMouseEnter={e => (e.currentTarget as HTMLElement).style.opacity = '0.8'}
                           onMouseLeave={e => (e.currentTarget as HTMLElement).style.opacity = '1'}>
                           {verse && (
-                            <div style={{ display: 'flex', justifyContent: 'space-between', fontFamily: 'DM Mono, monospace', fontSize: '9px', color: 'var(--ink-muted)', marginBottom: '4px' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', fontFamily: 'DM Mono, monospace', fontSize: '11px', color: 'var(--ink-muted)', marginBottom: '4px' }}>
                               <span>
                                 {verse.chapter.book.name} {verse.chapter.number}:{verse.number}
                                 {c.parent && (
@@ -840,21 +840,21 @@ export default function UserProfilePage() {
                               <span style={{ color: 'var(--ink-faint)' }}>{new Date(c.createdAt).toLocaleDateString('fr-FR')}</span>
                             </div>
                           )}
-                          <div style={{ fontFamily: 'Spectral, serif', fontSize: '13px', color: 'var(--ink-soft)', lineHeight: '1.6', pointerEvents: 'none' }}>
+                          <div style={{ fontFamily: 'Spectral, serif', fontSize: '14px', color: 'var(--ink-soft)', lineHeight: '1.6', pointerEvents: 'none' }}>
                             <CommentText text={c.text} disableLinks />
                           </div>
                         </div>
                       </Link>
                     ) : (
                       <div key={c.id} style={{ padding: '10px 14px', border: '1px solid var(--border)', borderRadius: '8px', background: 'white', marginBottom: '8px' }}>
-                        <div style={{ fontFamily: 'Spectral, serif', fontSize: '13px', color: 'var(--ink-soft)', lineHeight: '1.6' }}>
+                        <div style={{ fontFamily: 'Spectral, serif', fontSize: '14px', color: 'var(--ink-soft)', lineHeight: '1.6' }}>
                           <CommentText text={c.text} disableLinks />
                         </div>
                       </div>
                     )
                   })}
                   {pagedComments.length < filteredComments.length && (
-                    <button onClick={() => setCommentPage(p => p + 1)} style={{ width: '100%', padding: '8px', background: 'transparent', border: '1px dashed var(--border-strong)', borderRadius: '6px', fontFamily: 'DM Mono, monospace', fontSize: '10px', color: 'var(--ink-muted)', cursor: 'pointer', marginTop: '4px' }}>
+                    <button onClick={() => setCommentPage(p => p + 1)} style={{ width: '100%', padding: '8px', background: 'transparent', border: '1px dashed var(--border-strong)', borderRadius: '6px', fontFamily: 'DM Mono, monospace', fontSize: '12px', color: 'var(--ink-muted)', cursor: 'pointer', marginTop: '4px' }}>
                       Voir plus ({filteredComments.length - pagedComments.length} restants)
                     </button>
                   )}
@@ -868,12 +868,12 @@ export default function UserProfilePage() {
         {activeTab === 'info' && isOwnProfile && (
           <div style={{ maxWidth: '480px' }}>
             {profileSuccess && (
-              <div style={{ padding: '10px 14px', background: 'var(--green-light)', border: '1px solid rgba(45,90,58,0.2)', borderRadius: '6px', color: 'var(--green-valid)', fontFamily: 'Spectral, serif', fontSize: '13px', marginBottom: '20px' }}>
+              <div style={{ padding: '10px 14px', background: 'var(--green-light)', border: '1px solid rgba(45,90,58,0.2)', borderRadius: '6px', color: 'var(--green-valid)', fontFamily: 'Spectral, serif', fontSize: '14px', marginBottom: '20px' }}>
                 {profileSuccess}
               </div>
             )}
             {profileError && (
-              <div style={{ padding: '10px 14px', background: 'var(--red-light)', border: '1px solid rgba(122,42,42,0.2)', borderRadius: '6px', color: 'var(--red-soft)', fontFamily: 'Spectral, serif', fontSize: '13px', marginBottom: '20px' }}>
+              <div style={{ padding: '10px 14px', background: 'var(--red-light)', border: '1px solid rgba(122,42,42,0.2)', borderRadius: '6px', color: 'var(--red-soft)', fontFamily: 'Spectral, serif', fontSize: '14px', marginBottom: '20px' }}>
                 {profileError}
               </div>
             )}
@@ -928,12 +928,12 @@ export default function UserProfilePage() {
               }}
             />
             {passwordSuccess && (
-              <div style={{ padding: '10px 14px', background: 'var(--green-light)', border: '1px solid rgba(45,90,58,0.2)', borderRadius: '6px', color: 'var(--green-valid)', fontFamily: 'Spectral, serif', fontSize: '13px', marginTop: '12px' }}>
+              <div style={{ padding: '10px 14px', background: 'var(--green-light)', border: '1px solid rgba(45,90,58,0.2)', borderRadius: '6px', color: 'var(--green-valid)', fontFamily: 'Spectral, serif', fontSize: '14px', marginTop: '12px' }}>
                 {passwordSuccess}
               </div>
             )}
             {passwordError && (
-              <div style={{ padding: '10px 14px', background: 'var(--red-light)', border: '1px solid rgba(122,42,42,0.2)', borderRadius: '6px', color: 'var(--red-soft)', fontFamily: 'Spectral, serif', fontSize: '13px', marginTop: '12px' }}>
+              <div style={{ padding: '10px 14px', background: 'var(--red-light)', border: '1px solid rgba(122,42,42,0.2)', borderRadius: '6px', color: 'var(--red-soft)', fontFamily: 'Spectral, serif', fontSize: '14px', marginTop: '12px' }}>
                 {passwordError}
               </div>
             )}
@@ -943,20 +943,20 @@ export default function UserProfilePage() {
         {/* ONGLET MOT DE PASSE */}
         {activeTab === 'password' && isOwnProfile && (
           <div style={{ maxWidth: '480px' }}>
-            {passwordSuccess && <div style={{ padding: '10px 14px', background: 'var(--green-light)', border: '1px solid rgba(45,90,58,0.2)', borderRadius: '6px', color: 'var(--green-valid)', fontFamily: 'Spectral, serif', fontSize: '13px', marginBottom: '20px' }}>{passwordSuccess}</div>}
-            {passwordError && <div style={{ padding: '10px 14px', background: 'var(--red-light)', border: '1px solid rgba(122,42,42,0.2)', borderRadius: '6px', color: 'var(--red-soft)', fontFamily: 'Spectral, serif', fontSize: '13px', marginBottom: '20px' }}>{passwordError}</div>}
+            {passwordSuccess && <div style={{ padding: '10px 14px', background: 'var(--green-light)', border: '1px solid rgba(45,90,58,0.2)', borderRadius: '6px', color: 'var(--green-valid)', fontFamily: 'Spectral, serif', fontSize: '14px', marginBottom: '20px' }}>{passwordSuccess}</div>}
+            {passwordError && <div style={{ padding: '10px 14px', background: 'var(--red-light)', border: '1px solid rgba(122,42,42,0.2)', borderRadius: '6px', color: 'var(--red-soft)', fontFamily: 'Spectral, serif', fontSize: '14px', marginBottom: '20px' }}>{passwordError}</div>}
             {[
               { label: 'Mot de passe actuel', value: currentPassword, setter: setCurrentPassword },
               { label: 'Nouveau mot de passe', value: newPassword, setter: setNewPassword },
               { label: 'Confirmer', value: confirmPassword, setter: setConfirmPassword },
             ].map(field => (
               <div key={field.label} style={{ marginBottom: '16px' }}>
-                <label style={{ display: 'block', fontFamily: 'DM Mono, monospace', fontSize: '10px', letterSpacing: '0.1em', textTransform: 'uppercase' as const, color: 'var(--ink-muted)', marginBottom: '6px' }}>{field.label}</label>
+                <label style={{ display: 'block', fontFamily: 'DM Mono, monospace', fontSize: '12px', letterSpacing: '0.1em', textTransform: 'uppercase' as const, color: 'var(--ink-muted)', marginBottom: '6px' }}>{field.label}</label>
                 <input type="password" value={field.value} onChange={e => field.setter(e.target.value)}
                   style={{ width: '100%', padding: '10px 12px', border: '1px solid var(--border)', borderRadius: '6px', background: 'white', fontFamily: 'Spectral, serif', fontSize: '14px', color: 'var(--ink)', outline: 'none' }} />
               </div>
             ))}
-            <button onClick={handleChangePassword} style={{ padding: '10px 24px', background: 'var(--gold)', color: 'white', border: 'none', borderRadius: '6px', fontFamily: 'DM Mono, monospace', fontSize: '11px', letterSpacing: '0.08em', textTransform: 'uppercase' as const, cursor: 'pointer' }}>
+            <button onClick={handleChangePassword} style={{ padding: '10px 24px', background: 'var(--gold)', color: 'white', border: 'none', borderRadius: '6px', fontFamily: 'DM Mono, monospace', fontSize: '12px', letterSpacing: '0.08em', textTransform: 'uppercase' as const, cursor: 'pointer' }}>
               Changer
             </button>
           </div>
@@ -974,7 +974,7 @@ export default function UserProfilePage() {
                 borderRadius: '8px',
                 marginBottom: '16px',
                 fontFamily: 'DM Mono, monospace',
-                fontSize: '11px',
+                fontSize: '12px',
                 color: 'var(--red-soft)',
                 display: 'flex',
                 alignItems: 'center',
@@ -991,7 +991,7 @@ export default function UserProfilePage() {
                 borderRadius: '8px',
                 marginBottom: '16px',
                 fontFamily: 'DM Mono, monospace',
-                fontSize: '11px',
+                fontSize: '12px',
                 color: 'var(--amber-pending)',
                 display: 'flex',
                 alignItems: 'center',
@@ -1003,7 +1003,7 @@ export default function UserProfilePage() {
 
             {/* Informations confidentielles */}
             <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: '10px', padding: '20px', marginBottom: '24px' }}>
-              <div style={{ fontFamily: 'DM Mono, monospace', fontSize: '10px', letterSpacing: '0.1em', textTransform: 'uppercase' as const, color: 'var(--ink-muted)', marginBottom: '16px' }}>
+              <div style={{ fontFamily: 'DM Mono, monospace', fontSize: '12px', letterSpacing: '0.1em', textTransform: 'uppercase' as const, color: 'var(--ink-muted)', marginBottom: '16px' }}>
                 Informations confidentielles
               </div>
               {[
@@ -1014,22 +1014,22 @@ export default function UserProfilePage() {
                 { label: 'Statut', value: adminInfo.user.isActive ? 'Actif' : 'Désactivé' },
               ].map(item => (
                 <div key={item.label} style={{ display: 'flex', gap: '12px', padding: '8px 0', borderBottom: '1px solid var(--border)' }}>
-                  <span style={{ fontFamily: 'DM Mono, monospace', fontSize: '10px', color: 'var(--ink-muted)', width: '100px', flexShrink: 0 }}>{item.label}</span>
-                  <span style={{ fontFamily: 'DM Mono, monospace', fontSize: '10px', color: 'var(--ink)' }}>{item.value}</span>
+                  <span style={{ fontFamily: 'DM Mono, monospace', fontSize: '12px', color: 'var(--ink-muted)', width: '100px', flexShrink: 0 }}>{item.label}</span>
+                  <span style={{ fontFamily: 'DM Mono, monospace', fontSize: '12px', color: 'var(--ink)' }}>{item.value}</span>
                 </div>
               ))}
             </div>
 
             {/* Actions admin */}
             <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: '10px', padding: '20px', marginBottom: '24px' }}>
-              <div style={{ fontFamily: 'DM Mono, monospace', fontSize: '10px', letterSpacing: '0.1em', textTransform: 'uppercase' as const, color: 'var(--ink-muted)', marginBottom: '20px' }}>
+              <div style={{ fontFamily: 'DM Mono, monospace', fontSize: '12px', letterSpacing: '0.1em', textTransform: 'uppercase' as const, color: 'var(--ink-muted)', marginBottom: '20px' }}>
                 Actions
               </div>
 
               <div style={{ display: 'flex', alignItems: 'flex-end', gap: '24px', flexWrap: 'wrap' }}>
                 {/* Rôle */}
                 <div>
-                  <label style={{ display: 'block', fontFamily: 'DM Mono, monospace', fontSize: '9px', color: 'var(--ink-muted)', marginBottom: '8px', letterSpacing: '0.1em', textTransform: 'uppercase' as const }}>Rôle</label>
+                  <label style={{ display: 'block', fontFamily: 'DM Mono, monospace', fontSize: '11px', color: 'var(--ink-muted)', marginBottom: '8px', letterSpacing: '0.1em', textTransform: 'uppercase' as const }}>Rôle</label>
                   <select
                     defaultValue={adminInfo.user.role}
                     onChange={async e => {
@@ -1038,7 +1038,7 @@ export default function UserProfilePage() {
                         setProfile(prev => prev ? { ...prev, role: e.target.value } : prev)
                       } catch (error) { console.error(error) }
                     }}
-                    style={{ padding: '8px 12px', border: `1px solid ${getRoleBorder(adminInfo.user.role)}`, borderRadius: '6px', background: getRoleBackground(adminInfo.user.role), fontFamily: 'DM Mono, monospace', fontSize: '10px', color: getRoleColor(adminInfo.user.role), cursor: 'pointer', outline: 'none' }}
+                    style={{ padding: '8px 12px', border: `1px solid ${getRoleBorder(adminInfo.user.role)}`, borderRadius: '6px', background: getRoleBackground(adminInfo.user.role), fontFamily: 'DM Mono, monospace', fontSize: '12px', color: getRoleColor(adminInfo.user.role), cursor: 'pointer', outline: 'none' }}
                   >
                     {['VISITOR', 'NOVICE', 'INTERMEDIATE', 'EXPERT', 'ADMIN'].map(r => (
                       <option key={r} value={r}>{r}</option>
@@ -1051,7 +1051,7 @@ export default function UserProfilePage() {
 
                 {/* Désactiver / Réactiver */}
                 <div>
-                  <label style={{ display: 'block', fontFamily: 'DM Mono, monospace', fontSize: '9px', color: 'var(--ink-muted)', marginBottom: '8px', letterSpacing: '0.1em', textTransform: 'uppercase' as const }}>Accès</label>
+                  <label style={{ display: 'block', fontFamily: 'DM Mono, monospace', fontSize: '11px', color: 'var(--ink-muted)', marginBottom: '8px', letterSpacing: '0.1em', textTransform: 'uppercase' as const }}>Accès</label>
                   {adminInfo.user.isActive ? (
                     <button
                       onClick={() => setConfirmModal({
@@ -1064,7 +1064,7 @@ export default function UserProfilePage() {
                           } catch (error) { console.error(error) }
                         }
                       })}
-                      style={{ padding: '8px 16px', background: 'var(--red-light)', color: 'var(--red-soft)', border: '1px solid rgba(122,42,42,0.2)', borderRadius: '6px', fontFamily: 'DM Mono, monospace', fontSize: '10px', cursor: 'pointer', letterSpacing: '0.06em' }}
+                      style={{ padding: '8px 16px', background: 'var(--red-light)', color: 'var(--red-soft)', border: '1px solid rgba(122,42,42,0.2)', borderRadius: '6px', fontFamily: 'DM Mono, monospace', fontSize: '12px', cursor: 'pointer', letterSpacing: '0.06em' }}
                     >
                       ✕ Désactiver
                     </button>
@@ -1080,7 +1080,7 @@ export default function UserProfilePage() {
                           } catch (error) { console.error(error) }
                         }
                       })}
-                      style={{ padding: '8px 16px', background: 'var(--green-light)', color: 'var(--green-valid)', border: '1px solid rgba(45,90,58,0.2)', borderRadius: '6px', fontFamily: 'DM Mono, monospace', fontSize: '10px', cursor: 'pointer', letterSpacing: '0.06em' }}
+                      style={{ padding: '8px 16px', background: 'var(--green-light)', color: 'var(--green-valid)', border: '1px solid rgba(45,90,58,0.2)', borderRadius: '6px', fontFamily: 'DM Mono, monospace', fontSize: '12px', cursor: 'pointer', letterSpacing: '0.06em' }}
                     >
                       ✓ Réactiver
                     </button>
@@ -1092,7 +1092,7 @@ export default function UserProfilePage() {
 
                 {/* Reset mdp */}
                 <div>
-                  <label style={{ display: 'block', fontFamily: 'DM Mono, monospace', fontSize: '9px', color: 'var(--ink-muted)', marginBottom: '8px', letterSpacing: '0.1em', textTransform: 'uppercase' as const }}>Sécurité</label>
+                  <label style={{ display: 'block', fontFamily: 'DM Mono, monospace', fontSize: '11px', color: 'var(--ink-muted)', marginBottom: '8px', letterSpacing: '0.1em', textTransform: 'uppercase' as const }}>Sécurité</label>
                   <button
                     onClick={() => setConfirmModal({
                       message: `Forcer la réinitialisation du mot de passe de ${adminInfo.user.username} ?`,
@@ -1105,7 +1105,7 @@ export default function UserProfilePage() {
                       }
                     })}
                     disabled={adminInfo.user.forcePasswordReset}
-                    style={{ padding: '8px 16px', background: adminInfo.user.forcePasswordReset ? 'var(--parchment-deep)' : 'var(--amber-light)', color: adminInfo.user.forcePasswordReset ? 'var(--ink-faint)' : 'var(--amber-pending)', border: `1px solid ${adminInfo.user.forcePasswordReset ? 'var(--border)' : 'rgba(122,90,26,0.2)'}`, borderRadius: '6px', fontFamily: 'DM Mono, monospace', fontSize: '10px', cursor: adminInfo.user.forcePasswordReset ? 'not-allowed' : 'pointer', letterSpacing: '0.06em' }}
+                    style={{ padding: '8px 16px', background: adminInfo.user.forcePasswordReset ? 'var(--parchment-deep)' : 'var(--amber-light)', color: adminInfo.user.forcePasswordReset ? 'var(--ink-faint)' : 'var(--amber-pending)', border: `1px solid ${adminInfo.user.forcePasswordReset ? 'var(--border)' : 'rgba(122,90,26,0.2)'}`, borderRadius: '6px', fontFamily: 'DM Mono, monospace', fontSize: '12px', cursor: adminInfo.user.forcePasswordReset ? 'not-allowed' : 'pointer', letterSpacing: '0.06em' }}
                   >
                     🔑 {adminInfo.user.forcePasswordReset ? 'Reset en attente' : 'Reset mdp'}
                   </button>
@@ -1115,7 +1115,7 @@ export default function UserProfilePage() {
             {/* Logs */}
             <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: '10px', padding: '20px' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
-                <div style={{ fontFamily: 'DM Mono, monospace', fontSize: '10px', letterSpacing: '0.1em', textTransform: 'uppercase' as const, color: 'var(--ink-muted)' }}>
+                <div style={{ fontFamily: 'DM Mono, monospace', fontSize: '12px', letterSpacing: '0.1em', textTransform: 'uppercase' as const, color: 'var(--ink-muted)' }}>
                   Historique d&apos;activité
                 </div>
                 <button
@@ -1125,7 +1125,7 @@ export default function UserProfilePage() {
                       setAdminInfo(adminRes.data)
                     } catch (e) { console.error(e) }
                   }}
-                  style={{ padding: '3px 8px', borderRadius: '4px', border: '1px solid var(--border)', background: 'transparent', fontFamily: 'DM Mono, monospace', fontSize: '9px', color: 'var(--ink-muted)', cursor: 'pointer' }}
+                  style={{ padding: '3px 8px', borderRadius: '4px', border: '1px solid var(--border)', background: 'transparent', fontFamily: 'DM Mono, monospace', fontSize: '11px', color: 'var(--ink-muted)', cursor: 'pointer' }}
                 >
                   ↻ Rafraîchir
                 </button>
@@ -1183,16 +1183,16 @@ export default function UserProfilePage() {
                       return (
                         <div key={cat} style={{ marginBottom: '16px' }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
-                            <span style={{ fontFamily: 'DM Mono, monospace', fontSize: '9px', padding: '2px 10px', borderRadius: '20px', background: style.bg, color: style.color }}>
+                            <span style={{ fontFamily: 'DM Mono, monospace', fontSize: '11px', padding: '2px 10px', borderRadius: '20px', background: style.bg, color: style.color }}>
                               {style.label}
                             </span>
-                            <span style={{ fontFamily: 'DM Mono, monospace', fontSize: '9px', color: 'var(--ink-faint)' }}>
+                            <span style={{ fontFamily: 'DM Mono, monospace', fontSize: '11px', color: 'var(--ink-faint)' }}>
                               {logs.length} événement{logs.length > 1 ? 's' : ''}
                             </span>
                           </div>
                           {(expandedLogCats.has(cat) ? logs : logs.slice(0, 5)).map(log => (
                             <div key={log.id} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '6px 10px', borderRadius: '6px', background: 'var(--parchment)', marginBottom: '4px' }}>
-                              <span style={{ fontFamily: 'DM Mono, monospace', fontSize: '10px', color: style.color, flexShrink: 0 }}>
+                              <span style={{ fontFamily: 'DM Mono, monospace', fontSize: '12px', color: style.color, flexShrink: 0 }}>
                                 {log.action === 'PASSWORD_CHANGE' && log.metadata?.forced === 'true'
                                   ? 'Reset mdp forcé par admin'
                                   : log.action === 'ACCOUNT_SUSPENDED' && log.metadata?.action === 'REACTIVATED'
@@ -1202,16 +1202,16 @@ export default function UserProfilePage() {
                                   : actionLabels[log.action] || log.action}
                               </span>
                               {log.metadata && Object.keys(log.metadata).filter(k => !['forced', 'by'].includes(k)).length > 0 && (
-                                <span style={{ fontFamily: 'DM Mono, monospace', fontSize: '9px', color: 'var(--ink-soft)', flex: 1 }}>
+                                <span style={{ fontFamily: 'DM Mono, monospace', fontSize: '11px', color: 'var(--ink-soft)', flex: 1 }}>
                                   {Object.entries(log.metadata).filter(([k]) => !['forced', 'by'].includes(k)).map(([k, v]) => `${k} : ${v}`).join(' · ')}
                                 </span>
                               )}
                               {log.ip && log.ip !== '::1' && (
-                                <span style={{ fontFamily: 'DM Mono, monospace', fontSize: '9px', color: 'var(--ink-faint)', flexShrink: 0 }}>
+                                <span style={{ fontFamily: 'DM Mono, monospace', fontSize: '11px', color: 'var(--ink-faint)', flexShrink: 0 }}>
                                   {log.ip}
                                 </span>
                               )}
-                              <span style={{ fontFamily: 'DM Mono, monospace', fontSize: '9px', color: 'var(--ink-faint)', flexShrink: 0 }}>
+                              <span style={{ fontFamily: 'DM Mono, monospace', fontSize: '11px', color: 'var(--ink-faint)', flexShrink: 0 }}>
                                 {new Date(log.createdAt).toLocaleDateString('fr-FR')} {new Date(log.createdAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
                               </span>
                             </div>
@@ -1226,7 +1226,7 @@ export default function UserProfilePage() {
                               })}
                               style={{
                                 fontFamily: 'DM Mono, monospace',
-                                fontSize: '9px',
+                                fontSize: '11px',
                                 color: 'var(--gold)',
                                 padding: '4px 10px',
                                 cursor: 'pointer',

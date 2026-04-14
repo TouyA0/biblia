@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useState } from 'react'
 
@@ -96,7 +96,7 @@ export default function VerseList({ verses, bookName, chapter, activeVerseId, ac
           >
             <div style={{
               fontFamily: 'DM Mono, monospace',
-              fontSize: '11px',
+              fontSize: '12px',
               color: 'var(--gold)',
               paddingTop: '4px',
               textAlign: 'right',
@@ -178,7 +178,7 @@ export default function VerseList({ verses, bookName, chapter, activeVerseId, ac
               {translation && (
                 <div style={{
                   fontFamily: 'var(--font-serif)',
-                  fontSize: '15px',
+                  fontSize: '16px',
                   color: 'var(--ink-soft)',
                   fontStyle: 'italic',
                   lineHeight: '1.75',

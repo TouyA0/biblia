@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
@@ -86,7 +86,7 @@ export default function RegisterPage() {
             borderRadius: '6px',
             color: 'var(--red-soft)',
             fontFamily: 'Spectral, serif',
-            fontSize: '13px',
+            fontSize: '14px',
             marginBottom: '20px',
           }}>
             {error}
@@ -99,7 +99,7 @@ export default function RegisterPage() {
               <label style={{
                 display: 'block',
                 fontFamily: 'DM Mono, monospace',
-                fontSize: '10px',
+                fontSize: '12px',
                 letterSpacing: '0.1em',
                 textTransform: 'uppercase',
                 color: 'var(--ink-muted)',
@@ -138,7 +138,7 @@ export default function RegisterPage() {
               border: 'none',
               borderRadius: '6px',
               fontFamily: 'DM Mono, monospace',
-              fontSize: '11px',
+              fontSize: '12px',
               letterSpacing: '0.1em',
               textTransform: 'uppercase',
               cursor: loading ? 'not-allowed' : 'pointer',
@@ -154,7 +154,7 @@ export default function RegisterPage() {
           textAlign: 'center',
           marginTop: '20px',
           fontFamily: 'Spectral, serif',
-          fontSize: '13px',
+          fontSize: '14px',
           color: 'var(--ink-muted)',
         }}>
           Déjà un compte ?{' '}

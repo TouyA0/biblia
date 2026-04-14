@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
@@ -90,15 +90,15 @@ export default function LoginPage() {
                 בּ Biblia
               </div>
             </div>
-            <div style={{ fontFamily: 'DM Mono, monospace', fontSize: '11px', letterSpacing: '0.08em', color: 'var(--ink)', marginBottom: '8px' }}>
+            <div style={{ fontFamily: 'DM Mono, monospace', fontSize: '12px', letterSpacing: '0.08em', color: 'var(--ink)', marginBottom: '8px' }}>
               Nouveau mot de passe requis
             </div>
-            <div style={{ fontFamily: 'Spectral, serif', fontSize: '13px', color: 'var(--amber-pending)', fontStyle: 'italic', marginBottom: '24px', padding: '10px 14px', background: 'var(--amber-light)', border: '1px solid rgba(122,90,26,0.2)', borderRadius: '6px' }}>
+            <div style={{ fontFamily: 'Spectral, serif', fontSize: '14px', color: 'var(--amber-pending)', fontStyle: 'italic', marginBottom: '24px', padding: '10px 14px', background: 'var(--amber-light)', border: '1px solid rgba(122,90,26,0.2)', borderRadius: '6px' }}>
               Un administrateur vous demande de changer votre mot de passe avant de continuer.
             </div>
 
             {error && (
-              <div style={{ padding: '10px 14px', background: 'var(--red-light)', border: '1px solid rgba(122,42,42,0.2)', borderRadius: '6px', color: 'var(--red-soft)', fontFamily: 'Spectral, serif', fontSize: '13px', marginBottom: '20px' }}>
+              <div style={{ padding: '10px 14px', background: 'var(--red-light)', border: '1px solid rgba(122,42,42,0.2)', borderRadius: '6px', color: 'var(--red-soft)', fontFamily: 'Spectral, serif', fontSize: '14px', marginBottom: '20px' }}>
                 {error}
               </div>
             )}
@@ -109,7 +109,7 @@ export default function LoginPage() {
               { label: 'Confirmer', value: confirmPassword, setter: setConfirmPassword },
             ].map(field => (
               <div key={field.label} style={{ marginBottom: '16px' }}>
-                <label style={{ display: 'block', fontFamily: 'DM Mono, monospace', fontSize: '10px', letterSpacing: '0.1em', textTransform: 'uppercase' as const, color: 'var(--ink-muted)', marginBottom: '6px' }}>
+                <label style={{ display: 'block', fontFamily: 'DM Mono, monospace', fontSize: '12px', letterSpacing: '0.1em', textTransform: 'uppercase' as const, color: 'var(--ink-muted)', marginBottom: '6px' }}>
                   {field.label}
                 </label>
                 <input
@@ -124,7 +124,7 @@ export default function LoginPage() {
             <button
               onClick={handleReset}
               disabled={loading || !currentPassword || !newPassword || !confirmPassword}
-              style={{ width: '100%', padding: '12px', background: 'var(--gold)', color: 'white', border: 'none', borderRadius: '6px', fontFamily: 'DM Mono, monospace', fontSize: '11px', letterSpacing: '0.1em', textTransform: 'uppercase' as const, cursor: loading ? 'not-allowed' : 'pointer', opacity: loading || !currentPassword || !newPassword || !confirmPassword ? 0.6 : 1 }}
+              style={{ width: '100%', padding: '12px', background: 'var(--gold)', color: 'white', border: 'none', borderRadius: '6px', fontFamily: 'DM Mono, monospace', fontSize: '12px', letterSpacing: '0.1em', textTransform: 'uppercase' as const, cursor: loading ? 'not-allowed' : 'pointer', opacity: loading || !currentPassword || !newPassword || !confirmPassword ? 0.6 : 1 }}
             >
               {loading ? 'Enregistrement...' : 'Changer le mot de passe'}
             </button>
@@ -141,14 +141,14 @@ export default function LoginPage() {
             </div>
 
             {error && (
-              <div style={{ padding: '10px 14px', background: 'var(--red-light)', border: '1px solid rgba(122,42,42,0.2)', borderRadius: '6px', color: 'var(--red-soft)', fontFamily: 'Spectral, serif', fontSize: '13px', marginBottom: '20px' }}>
+              <div style={{ padding: '10px 14px', background: 'var(--red-light)', border: '1px solid rgba(122,42,42,0.2)', borderRadius: '6px', color: 'var(--red-soft)', fontFamily: 'Spectral, serif', fontSize: '14px', marginBottom: '20px' }}>
                 {error}
               </div>
             )}
 
             <form onSubmit={handleSubmit}>
               <div style={{ marginBottom: '16px' }}>
-                <label style={{ display: 'block', fontFamily: 'DM Mono, monospace', fontSize: '10px', letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--ink-muted)', marginBottom: '6px' }}>
+                <label style={{ display: 'block', fontFamily: 'DM Mono, monospace', fontSize: '12px', letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--ink-muted)', marginBottom: '6px' }}>
                   Email
                 </label>
                 <input
@@ -161,7 +161,7 @@ export default function LoginPage() {
               </div>
 
               <div style={{ marginBottom: '24px' }}>
-                <label style={{ display: 'block', fontFamily: 'DM Mono, monospace', fontSize: '10px', letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--ink-muted)', marginBottom: '6px' }}>
+                <label style={{ display: 'block', fontFamily: 'DM Mono, monospace', fontSize: '12px', letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--ink-muted)', marginBottom: '6px' }}>
                   Mot de passe
                 </label>
                 <input
@@ -176,13 +176,13 @@ export default function LoginPage() {
               <button
                 type="submit"
                 disabled={loading}
-                style={{ width: '100%', padding: '12px', background: 'var(--gold)', color: 'white', border: 'none', borderRadius: '6px', fontFamily: 'DM Mono, monospace', fontSize: '11px', letterSpacing: '0.1em', textTransform: 'uppercase', cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.7 : 1 }}
+                style={{ width: '100%', padding: '12px', background: 'var(--gold)', color: 'white', border: 'none', borderRadius: '6px', fontFamily: 'DM Mono, monospace', fontSize: '12px', letterSpacing: '0.1em', textTransform: 'uppercase', cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.7 : 1 }}
               >
                 {loading ? 'Connexion...' : 'Se connecter'}
               </button>
             </form>
 
-            <div style={{ textAlign: 'center', marginTop: '20px', fontFamily: 'Spectral, serif', fontSize: '13px', color: 'var(--ink-muted)' }}>
+            <div style={{ textAlign: 'center', marginTop: '20px', fontFamily: 'Spectral, serif', fontSize: '14px', color: 'var(--ink-muted)' }}>
               Pas encore de compte ?{' '}
               <Link href="/register" style={{ color: 'var(--gold)' }}>
                 S&apos;inscrire

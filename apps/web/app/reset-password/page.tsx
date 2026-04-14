@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
@@ -86,7 +86,7 @@ export default function ResetPasswordPage() {
         </div>
         <div style={{
           fontFamily: 'Spectral, serif',
-          fontSize: '13px',
+          fontSize: '14px',
           color: 'var(--ink-muted)',
           fontStyle: 'italic',
           marginBottom: '24px',
@@ -102,7 +102,7 @@ export default function ResetPasswordPage() {
             borderRadius: '6px',
             color: 'var(--red-soft)',
             fontFamily: 'Spectral, serif',
-            fontSize: '13px',
+            fontSize: '14px',
             marginBottom: '20px',
           }}>
             {error}
@@ -118,7 +118,7 @@ export default function ResetPasswordPage() {
             <label style={{
               display: 'block',
               fontFamily: 'DM Mono, monospace',
-              fontSize: '10px',
+              fontSize: '12px',
               letterSpacing: '0.1em',
               textTransform: 'uppercase' as const,
               color: 'var(--ink-muted)',
@@ -157,7 +157,7 @@ export default function ResetPasswordPage() {
             border: 'none',
             borderRadius: '6px',
             fontFamily: 'DM Mono, monospace',
-            fontSize: '11px',
+            fontSize: '12px',
             letterSpacing: '0.08em',
             textTransform: 'uppercase' as const,
             cursor: loading ? 'not-allowed' : 'pointer',

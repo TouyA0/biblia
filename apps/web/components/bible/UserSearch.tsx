@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useState, useRef, useEffect, useCallback } from 'react'
 import api from '@/lib/api'
@@ -102,22 +102,22 @@ export default function UserSearch() {
                 outline: 'none',
                 background: 'transparent',
                 fontFamily: 'Spectral, serif',
-                fontSize: '13px',
+                fontSize: '14px',
                 color: 'var(--ink)',
               }}
             />
           </div>
           <div style={{ maxHeight: '300px', overflowY: 'auto' }}>
             {query.length < 2 ? (
-              <div style={{ padding: '16px', textAlign: 'center', fontFamily: 'Spectral, serif', fontSize: '13px', color: 'var(--ink-faint)', fontStyle: 'italic' }}>
+              <div style={{ padding: '16px', textAlign: 'center', fontFamily: 'Spectral, serif', fontSize: '14px', color: 'var(--ink-faint)', fontStyle: 'italic' }}>
                 Tapez au moins 2 caractères
               </div>
             ) : loading ? (
-              <div style={{ padding: '16px', textAlign: 'center', fontFamily: 'Spectral, serif', fontSize: '13px', color: 'var(--ink-faint)', fontStyle: 'italic' }}>
+              <div style={{ padding: '16px', textAlign: 'center', fontFamily: 'Spectral, serif', fontSize: '14px', color: 'var(--ink-faint)', fontStyle: 'italic' }}>
                 Chargement...
               </div>
             ) : results.length === 0 ? (
-              <div style={{ padding: '16px', textAlign: 'center', fontFamily: 'Spectral, serif', fontSize: '13px', color: 'var(--ink-faint)', fontStyle: 'italic' }}>
+              <div style={{ padding: '16px', textAlign: 'center', fontFamily: 'Spectral, serif', fontSize: '14px', color: 'var(--ink-faint)', fontStyle: 'italic' }}>
                 Aucun utilisateur trouvé
               </div>
             ) : results.map(u => (
@@ -128,13 +128,13 @@ export default function UserSearch() {
                 onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = 'var(--parchment)'}
                 onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = 'transparent'}
               >
-                <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: getRoleColor(u.role), display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'DM Mono, monospace', fontSize: '9px', color: 'white', flexShrink: 0 }}>
+                <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: getRoleColor(u.role), display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'DM Mono, monospace', fontSize: '11px', color: 'white', flexShrink: 0 }}>
                   {u.username.substring(0, 2).toUpperCase()}
                 </div>
                 <div style={{ fontFamily: 'Spectral, serif', fontSize: '14px', color: 'var(--ink)', flex: 1 }}>
                   {u.username}
                 </div>
-                <span style={{ fontFamily: 'DM Mono, monospace', fontSize: '9px', color: getRoleColor(u.role) }}>
+                <span style={{ fontFamily: 'DM Mono, monospace', fontSize: '11px', color: getRoleColor(u.role) }}>
                   {u.role}
                 </span>
               </div>

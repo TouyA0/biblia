@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useState, useEffect, useRef } from 'react'
 import api from '@/lib/api'
@@ -140,7 +140,7 @@ export default function NotificationBell() {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          fontSize: '15px',
+          fontSize: '16px',
           color: total > 0 ? 'var(--gold-light)' : 'rgba(255,255,255,0.5)',
         }}
       >
@@ -156,7 +156,7 @@ export default function NotificationBell() {
             background: 'var(--red-soft)',
             color: 'white',
             fontFamily: 'DM Mono, monospace',
-            fontSize: '9px',
+            fontSize: '11px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -188,13 +188,13 @@ export default function NotificationBell() {
             borderBottom: '1px solid var(--border)',
             background: 'var(--parchment-dark)',
           }}>
-            <span style={{ fontFamily: 'DM Mono, monospace', fontSize: '10px', letterSpacing: '0.1em', textTransform: 'uppercase' as const, color: 'var(--ink-muted)' }}>
+            <span style={{ fontFamily: 'DM Mono, monospace', fontSize: '12px', letterSpacing: '0.1em', textTransform: 'uppercase' as const, color: 'var(--ink-muted)' }}>
               En attente ({total})
             </span>
             <div style={{ display: 'flex', gap: '8px' }}>
               <button
                 onClick={() => fetchPending()}
-                style={{ padding: '2px 6px', borderRadius: '4px', border: '1px solid var(--border)', background: 'transparent', fontFamily: 'DM Mono, monospace', fontSize: '9px', color: 'var(--ink-muted)', cursor: 'pointer' }}
+                style={{ padding: '2px 6px', borderRadius: '4px', border: '1px solid var(--border)', background: 'transparent', fontFamily: 'DM Mono, monospace', fontSize: '11px', color: 'var(--ink-muted)', cursor: 'pointer' }}
               >
                 ↻
               </button>
@@ -207,7 +207,7 @@ export default function NotificationBell() {
                       setPersonalNotifs(prev => prev.map(n => ({ ...n, isRead: true })))
                     }
                   }}
-                  style={{ padding: '2px 6px', borderRadius: '4px', border: '1px solid var(--border)', background: 'transparent', fontFamily: 'DM Mono, monospace', fontSize: '9px', color: 'var(--ink-muted)', cursor: 'pointer' }}
+                  style={{ padding: '2px 6px', borderRadius: '4px', border: '1px solid var(--border)', background: 'transparent', fontFamily: 'DM Mono, monospace', fontSize: '11px', color: 'var(--ink-muted)', cursor: 'pointer' }}
                 >
                   Tout lire
                 </button>
@@ -217,7 +217,7 @@ export default function NotificationBell() {
 
           <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
             {proposals.length === 0 && wordTranslations.length === 0 && personalNotifs.length === 0 ? (
-              <div style={{ padding: '24px', textAlign: 'center', fontFamily: 'Spectral, serif', fontSize: '13px', color: 'var(--ink-faint)', fontStyle: 'italic' }}>
+              <div style={{ padding: '24px', textAlign: 'center', fontFamily: 'Spectral, serif', fontSize: '14px', color: 'var(--ink-faint)', fontStyle: 'italic' }}>
                 Aucune notification 🎉
               </div>
             ) : (
@@ -225,7 +225,7 @@ export default function NotificationBell() {
                 {/* Notifs personnelles */}
                 {personalNotifs.length > 0 && (
                   <div>
-                    <div style={{ padding: '8px 16px', fontFamily: 'DM Mono, monospace', fontSize: '9px', letterSpacing: '0.1em', textTransform: 'uppercase' as const, color: 'var(--ink-muted)', background: 'var(--parchment-dark)', borderBottom: '1px solid var(--border)' }}>
+                    <div style={{ padding: '8px 16px', fontFamily: 'DM Mono, monospace', fontSize: '11px', letterSpacing: '0.1em', textTransform: 'uppercase' as const, color: 'var(--ink-muted)', background: 'var(--parchment-dark)', borderBottom: '1px solid var(--border)' }}>
                       Notifications ({unreadPersonal} non lues)
                     </div>
                     {personalNotifs.slice(0, 5).map(n => (
@@ -243,11 +243,11 @@ export default function NotificationBell() {
                         onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = n.isRead ? 'transparent' : 'rgba(184,132,58,0.04)'}
                       >
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                          <span style={{ fontFamily: 'DM Mono, monospace', fontSize: '9px', padding: '1px 6px', borderRadius: '20px', background: n.type === 'PROPOSAL_ACCEPTED' ? 'var(--green-light)' : n.type === 'PROPOSAL_REJECTED' ? 'var(--red-light)' : 'var(--blue-light)', color: n.type === 'PROPOSAL_ACCEPTED' ? 'var(--green-valid)' : n.type === 'PROPOSAL_REJECTED' ? 'var(--red-soft)' : 'var(--blue-sacred)' }}>
+                          <span style={{ fontFamily: 'DM Mono, monospace', fontSize: '11px', padding: '1px 6px', borderRadius: '20px', background: n.type === 'PROPOSAL_ACCEPTED' ? 'var(--green-light)' : n.type === 'PROPOSAL_REJECTED' ? 'var(--red-light)' : 'var(--blue-light)', color: n.type === 'PROPOSAL_ACCEPTED' ? 'var(--green-valid)' : n.type === 'PROPOSAL_REJECTED' ? 'var(--red-soft)' : 'var(--blue-sacred)' }}>
                             {n.type === 'PROPOSAL_ACCEPTED' ? '✓ Acceptée' : n.type === 'PROPOSAL_REJECTED' ? '✕ Rejetée' : '↩ Réponse'}
                           </span>
                           {getRefFromLink(n.link) && (
-                            <span style={{ fontFamily: 'DM Mono, monospace', fontSize: '9px', color: 'var(--gold)' }}>
+                            <span style={{ fontFamily: 'DM Mono, monospace', fontSize: '11px', color: 'var(--gold)' }}>
                               {getRefFromLink(n.link)}
                             </span>
                           )}
@@ -255,7 +255,7 @@ export default function NotificationBell() {
                         <div style={{ fontFamily: 'Spectral, serif', fontSize: '12px', color: 'var(--ink-soft)', marginTop: '4px', lineHeight: '1.4', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' as const }}>
                           {n.message}
                         </div>
-                        <div style={{ fontFamily: 'DM Mono, monospace', fontSize: '9px', color: 'var(--ink-faint)', marginTop: '3px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <div style={{ fontFamily: 'DM Mono, monospace', fontSize: '11px', color: 'var(--ink-faint)', marginTop: '3px', display: 'flex', alignItems: 'center', gap: '8px' }}>
                           {new Date(n.createdAt).toLocaleDateString('fr-FR')}
                           {!n.isRead && <span style={{ color: 'var(--gold)' }}>● non lu</span>}
                         </div>
@@ -267,7 +267,7 @@ export default function NotificationBell() {
                 {/* Propositions */}
                 {proposals.length > 0 && (
                   <div>
-                    <div style={{ padding: '8px 16px', fontFamily: 'DM Mono, monospace', fontSize: '9px', letterSpacing: '0.1em', textTransform: 'uppercase' as const, color: 'var(--amber-pending)', background: 'var(--amber-light)', borderBottom: '1px solid var(--border)' }}>
+                    <div style={{ padding: '8px 16px', fontFamily: 'DM Mono, monospace', fontSize: '11px', letterSpacing: '0.1em', textTransform: 'uppercase' as const, color: 'var(--amber-pending)', background: 'var(--amber-light)', borderBottom: '1px solid var(--border)' }}>
                       Propositions de reformulation ({pendingProposals.length})
                     </div>
                     {pendingProposals.map(p => {
@@ -279,10 +279,10 @@ export default function NotificationBell() {
                             onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = 'var(--parchment)'}
                             onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = 'transparent'}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '3px' }}>
-                              <span style={{ fontFamily: 'DM Mono, monospace', fontSize: '9px', color: 'var(--ink-muted)' }}>
+                              <span style={{ fontFamily: 'DM Mono, monospace', fontSize: '11px', color: 'var(--ink-muted)' }}>
                                 {verse.chapter.book.name} {verse.chapter.number}:{verse.number}
                               </span>
-                              <span style={{ fontFamily: 'DM Mono, monospace', fontSize: '9px', color: 'var(--ink-faint)' }}>
+                              <span style={{ fontFamily: 'DM Mono, monospace', fontSize: '11px', color: 'var(--ink-faint)' }}>
                                 {new Date(p.createdAt).toLocaleDateString('fr-FR')}
                               </span>
                             </div>
@@ -290,12 +290,12 @@ export default function NotificationBell() {
                               {p.proposedText}
                             </div>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-															<div style={{ fontFamily: 'DM Mono, monospace', fontSize: '9px', color: p.creator ? getRoleColor(p.creator.role) : 'var(--ink-muted)' }}>
+															<div style={{ fontFamily: 'DM Mono, monospace', fontSize: '11px', color: p.creator ? getRoleColor(p.creator.role) : 'var(--ink-muted)' }}>
 																@{p.creator?.username || 'anonyme'}
 															</div>
 															<button
 																onClick={e => { e.stopPropagation(); if (dismissed.has(`p-${p.id}`)) { setDismissed(prev => { const next = new Set(prev); next.delete(`p-${p.id}`); localStorage.setItem('notif_dismissed', JSON.stringify([...next])); return next }) } else { dismiss(`p-${p.id}`) } }}
-																style={{ padding: '1px 6px', borderRadius: '4px', border: `1px solid ${dismissed.has(`p-${p.id}`) ? 'var(--green-valid)' : 'var(--border)'}`, background: dismissed.has(`p-${p.id}`) ? 'var(--green-light)' : 'transparent', fontFamily: 'DM Mono, monospace', fontSize: '8px', color: dismissed.has(`p-${p.id}`) ? 'var(--green-valid)' : 'var(--ink-faint)', cursor: 'pointer' }}
+																style={{ padding: '1px 6px', borderRadius: '4px', border: `1px solid ${dismissed.has(`p-${p.id}`) ? 'var(--green-valid)' : 'var(--border)'}`, background: dismissed.has(`p-${p.id}`) ? 'var(--green-light)' : 'transparent', fontFamily: 'DM Mono, monospace', fontSize: '10px', color: dismissed.has(`p-${p.id}`) ? 'var(--green-valid)' : 'var(--ink-faint)', cursor: 'pointer' }}
 															>
 																{dismissed.has(`p-${p.id}`) ? '✓ Lu' : 'Marquer lu'}
 															</button>
@@ -310,7 +310,7 @@ export default function NotificationBell() {
                 {/* Traductions de mots */}
                 {wordTranslations.length > 0 && (
                   <div>
-                    <div style={{ padding: '8px 16px', fontFamily: 'DM Mono, monospace', fontSize: '9px', letterSpacing: '0.1em', textTransform: 'uppercase' as const, color: 'var(--blue-sacred)', background: 'var(--blue-light)', borderBottom: '1px solid var(--border)' }}>
+                    <div style={{ padding: '8px 16px', fontFamily: 'DM Mono, monospace', fontSize: '11px', letterSpacing: '0.1em', textTransform: 'uppercase' as const, color: 'var(--blue-sacred)', background: 'var(--blue-light)', borderBottom: '1px solid var(--border)' }}>
                       Traductions de mots ({pendingWords.length})
                     </div>
                     {pendingWords.map(t => {
@@ -322,10 +322,10 @@ export default function NotificationBell() {
                             onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = 'var(--parchment)'}
                             onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = 'transparent'}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '3px' }}>
-                              <span style={{ fontFamily: 'DM Mono, monospace', fontSize: '9px', color: 'var(--ink-muted)' }}>
+                              <span style={{ fontFamily: 'DM Mono, monospace', fontSize: '11px', color: 'var(--ink-muted)' }}>
                                 {verse.chapter.book.name} {verse.chapter.number}:{verse.number} · {t.wordToken.word}
                               </span>
-                              <span style={{ fontFamily: 'DM Mono, monospace', fontSize: '9px', color: 'var(--ink-faint)' }}>
+                              <span style={{ fontFamily: 'DM Mono, monospace', fontSize: '11px', color: 'var(--ink-faint)' }}>
                                 {t.voteCount} vote{t.voteCount !== 1 ? 's' : ''}
                               </span>
                             </div>
@@ -333,12 +333,12 @@ export default function NotificationBell() {
                               {t.translation}
                             </div>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-															<div style={{ fontFamily: 'DM Mono, monospace', fontSize: '9px', color: t.creator ? getRoleColor(t.creator.role) : 'var(--ink-muted)' }}>
+															<div style={{ fontFamily: 'DM Mono, monospace', fontSize: '11px', color: t.creator ? getRoleColor(t.creator.role) : 'var(--ink-muted)' }}>
 																@{t.creator?.username || 'anonyme'}
 															</div>
 															<button
 																onClick={e => { e.stopPropagation(); if (dismissed.has(`w-${t.id}`)) { setDismissed(prev => { const next = new Set(prev); next.delete(`w-${t.id}`); localStorage.setItem('notif_dismissed', JSON.stringify([...next])); return next }) } else { dismiss(`w-${t.id}`) } }}
-																style={{ padding: '1px 6px', borderRadius: '4px', border: `1px solid ${dismissed.has(`w-${t.id}`) ? 'var(--green-valid)' : 'var(--border)'}`, background: dismissed.has(`w-${t.id}`) ? 'var(--green-light)' : 'transparent', fontFamily: 'DM Mono, monospace', fontSize: '8px', color: dismissed.has(`w-${t.id}`) ? 'var(--green-valid)' : 'var(--ink-faint)', cursor: 'pointer' }}
+																style={{ padding: '1px 6px', borderRadius: '4px', border: `1px solid ${dismissed.has(`w-${t.id}`) ? 'var(--green-valid)' : 'var(--border)'}`, background: dismissed.has(`w-${t.id}`) ? 'var(--green-light)' : 'transparent', fontFamily: 'DM Mono, monospace', fontSize: '10px', color: dismissed.has(`w-${t.id}`) ? 'var(--green-valid)' : 'var(--ink-faint)', cursor: 'pointer' }}
 															>
 																{dismissed.has(`w-${t.id}`) ? '✓ Lu' : 'Marquer lu'}
 															</button>

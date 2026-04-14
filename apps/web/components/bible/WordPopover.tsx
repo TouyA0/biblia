@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 interface WordToken {
   id: string
@@ -68,7 +68,7 @@ export default function WordPopover({ word, position, onClose, onOpenPanel, tran
       {word.translit && (
         <div style={{
           fontFamily: 'DM Mono, monospace',
-          fontSize: '11px',
+          fontSize: '12px',
           color: 'var(--gold-light)',
           marginBottom: '10px',
         }}>
@@ -80,7 +80,7 @@ export default function WordPopover({ word, position, onClose, onOpenPanel, tran
         {word.strongNumber && (
           <span style={{
             fontFamily: 'DM Mono, monospace',
-            fontSize: '9px',
+            fontSize: '11px',
             padding: '2px 8px',
             borderRadius: '20px',
             background: 'rgba(255,255,255,0.1)',
@@ -93,7 +93,7 @@ export default function WordPopover({ word, position, onClose, onOpenPanel, tran
         {word.morphology && (
           <span style={{
             fontFamily: 'DM Mono, monospace',
-            fontSize: '9px',
+            fontSize: '11px',
             padding: '2px 8px',
             borderRadius: '20px',
             background: 'rgba(255,255,255,0.1)',
@@ -106,7 +106,7 @@ export default function WordPopover({ word, position, onClose, onOpenPanel, tran
         {word.lemma && (
           <span style={{
             fontFamily: 'DM Mono, monospace',
-            fontSize: '9px',
+            fontSize: '11px',
             padding: '2px 8px',
             borderRadius: '20px',
             background: 'rgba(255,255,255,0.1)',
@@ -128,7 +128,7 @@ export default function WordPopover({ word, position, onClose, onOpenPanel, tran
       }}>
         <span style={{
           fontFamily: 'DM Mono, monospace',
-          fontSize: '9px',
+          fontSize: '11px',
           letterSpacing: '0.1em',
           textTransform: 'uppercase' as const,
           color: 'rgba(255,255,255,0.35)',
@@ -138,7 +138,7 @@ export default function WordPopover({ word, position, onClose, onOpenPanel, tran
         {allProposedTranslations.length > 0 && (
           <span style={{
             fontFamily: 'DM Mono, monospace',
-            fontSize: '8px',
+            fontSize: '10px',
             padding: '1px 5px',
             borderRadius: '20px',
             background: 'rgba(122,90,26,0.35)',
@@ -161,7 +161,7 @@ export default function WordPopover({ word, position, onClose, onOpenPanel, tran
           }}>
             <span style={{
               fontFamily: 'Spectral, serif',
-              fontSize: '13px',
+              fontSize: '14px',
               fontStyle: 'italic',
               color: 'rgba(255,255,255,0.85)',
             }}>
@@ -169,7 +169,7 @@ export default function WordPopover({ word, position, onClose, onOpenPanel, tran
             </span>
             <span style={{
               fontFamily: 'DM Mono, monospace',
-              fontSize: '8px',
+              fontSize: '10px',
               padding: '1px 6px',
               borderRadius: '20px',
               background: 'rgba(45,90,58,0.4)',
@@ -188,7 +188,7 @@ export default function WordPopover({ word, position, onClose, onOpenPanel, tran
             padding: '4px 0',
             borderBottom: '1px solid rgba(255,255,255,0.07)',
             fontFamily: 'Spectral, serif',
-            fontSize: '13px',
+            fontSize: '14px',
             fontStyle: 'italic',
             color: 'rgba(255,255,255,0.65)',
           }}>
@@ -210,7 +210,7 @@ export default function WordPopover({ word, position, onClose, onOpenPanel, tran
         onClick={() => { onClose(); onOpenPanel() }}
         style={{
           fontFamily: 'DM Mono, monospace',
-          fontSize: '10px',
+          fontSize: '12px',
           color: 'var(--gold-light)',
           marginTop: '10px',
           cursor: 'pointer',

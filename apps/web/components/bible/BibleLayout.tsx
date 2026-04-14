@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useEffect, useState } from 'react'
 import { useParams, useSearchParams } from 'next/navigation'
@@ -425,7 +425,7 @@ export default function BibleLayout({ testament }: BibleLayoutProps) {
               alignItems: 'center',
               justifyContent: 'center',
               color: 'var(--ink-muted)',
-              fontSize: '11px',
+              fontSize: '12px',
               fontFamily: 'DM Mono, monospace',
               letterSpacing: '-0.05em',
               boxShadow: '0 2px 8px rgba(26,22,18,0.12)',

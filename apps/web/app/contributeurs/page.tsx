@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
@@ -87,7 +87,7 @@ export default function ContributeursPage() {
             { key: 'comments', label: 'Commentaires' },
           ] as const).map(s => (
             <button key={s.key} onClick={() => setSortBy(s.key)}
-              style={{ padding: '5px 12px', borderRadius: '20px', border: `1px solid ${sortBy === s.key ? 'var(--gold)' : 'var(--border)'}`, background: sortBy === s.key ? 'var(--gold-pale)' : 'white', fontFamily: 'DM Mono, monospace', fontSize: '9px', color: sortBy === s.key ? 'var(--gold)' : 'var(--ink-muted)', cursor: 'pointer' }}>
+              style={{ padding: '5px 12px', borderRadius: '20px', border: `1px solid ${sortBy === s.key ? 'var(--gold)' : 'var(--border)'}`, background: sortBy === s.key ? 'var(--gold-pale)' : 'white', fontFamily: 'DM Mono, monospace', fontSize: '11px', color: sortBy === s.key ? 'var(--gold)' : 'var(--ink-muted)', cursor: 'pointer' }}>
               {s.label}
             </button>
           ))}
@@ -112,7 +112,7 @@ export default function ContributeursPage() {
                       {i + 1}
                     </div>
                     {/* Avatar */}
-                    <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: getRoleColor(u.role), display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'DM Mono, monospace', fontSize: '11px', color: 'white', flexShrink: 0 }}>
+                    <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: getRoleColor(u.role), display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'DM Mono, monospace', fontSize: '12px', color: 'white', flexShrink: 0 }}>
                       {u.username.substring(0, 2).toUpperCase()}
                     </div>
                     {/* Nom + rôle */}
@@ -120,7 +120,7 @@ export default function ContributeursPage() {
                       <div style={{ fontFamily: 'Spectral, serif', fontSize: '16px', color: 'var(--ink)', marginBottom: '3px' }}>
                         {u.username}
                       </div>
-                      <span style={{ fontFamily: 'DM Mono, monospace', fontSize: '9px', padding: '2px 8px', borderRadius: '20px', background: getRoleBackground(u.role), color: getRoleColor(u.role), border: `1px solid ${getRoleBorder(u.role)}` }}>
+                      <span style={{ fontFamily: 'DM Mono, monospace', fontSize: '11px', padding: '2px 8px', borderRadius: '20px', background: getRoleBackground(u.role), color: getRoleColor(u.role), border: `1px solid ${getRoleBorder(u.role)}` }}>
                         {u.role}
                       </span>
                     </div>
@@ -133,7 +133,7 @@ export default function ContributeursPage() {
                       ].map(s => (
                         <div key={s.label} style={{ textAlign: 'center' }}>
                           <div style={{ fontFamily: 'Crimson Pro, serif', fontSize: '20px', fontWeight: '300', color: 'var(--gold)' }}>{s.value}</div>
-                          <div style={{ fontFamily: 'DM Mono, monospace', fontSize: '8px', color: 'var(--ink-faint)', letterSpacing: '0.08em' }}>{s.label}</div>
+                          <div style={{ fontFamily: 'DM Mono, monospace', fontSize: '10px', color: 'var(--ink-faint)', letterSpacing: '0.08em' }}>{s.label}</div>
                         </div>
                       ))}
                     </div>

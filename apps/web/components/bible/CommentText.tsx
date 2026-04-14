@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import React, { useState, useRef, useCallback } from 'react'
 import api from '@/lib/api'
@@ -74,7 +74,7 @@ export default function CommentText({ text, disableLinks = false }: CommentTextP
                 style: {
                   color: 'var(--blue-sacred)',
                   fontFamily: 'DM Mono, monospace',
-                  fontSize: '11px',
+                  fontSize: '12px',
                   padding: '1px 5px',
                   borderRadius: '4px',
                   background: 'var(--blue-light)',
@@ -107,7 +107,7 @@ export default function CommentText({ text, disableLinks = false }: CommentTextP
                 color: 'var(--blue-sacred)',
                 textDecoration: 'none',
                 fontFamily: 'DM Mono, monospace',
-                fontSize: '11px',
+                fontSize: '12px',
                 padding: '1px 5px',
                 borderRadius: '4px',
                 background: 'var(--blue-light)',
@@ -153,7 +153,7 @@ export default function CommentText({ text, disableLinks = false }: CommentTextP
         >
           <div style={{
             fontFamily: 'DM Mono, monospace',
-            fontSize: '9px',
+            fontSize: '11px',
             letterSpacing: '0.1em',
             textTransform: 'uppercase',
             color: 'rgba(255,255,255,0.4)',
@@ -163,7 +163,7 @@ export default function CommentText({ text, disableLinks = false }: CommentTextP
           </div>
 
           {tooltip.loading ? (
-            <div style={{ fontFamily: 'Spectral, serif', fontSize: '13px', color: 'rgba(255,255,255,0.5)', fontStyle: 'italic' }}>
+            <div style={{ fontFamily: 'Spectral, serif', fontSize: '14px', color: 'rgba(255,255,255,0.5)', fontStyle: 'italic' }}>
               Chargement...
             </div>
           ) : tooltip.data ? (
@@ -183,7 +183,7 @@ export default function CommentText({ text, disableLinks = false }: CommentTextP
               {tooltip.data.translations[0] && (
                 <div style={{
                   fontFamily: 'Spectral, serif',
-                  fontSize: '13px',
+                  fontSize: '14px',
                   fontStyle: 'italic',
                   color: 'var(--gold-light)',
                   lineHeight: '1.6',
@@ -195,7 +195,7 @@ export default function CommentText({ text, disableLinks = false }: CommentTextP
               )}
             </>
           ) : (
-            <div style={{ fontFamily: 'Spectral, serif', fontSize: '13px', color: 'rgba(255,255,255,0.4)', fontStyle: 'italic' }}>
+            <div style={{ fontFamily: 'Spectral, serif', fontSize: '14px', color: 'rgba(255,255,255,0.4)', fontStyle: 'italic' }}>
               Verset introuvable
             </div>
           )}

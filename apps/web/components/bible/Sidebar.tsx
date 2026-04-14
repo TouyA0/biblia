@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 interface Book {
   id: string
@@ -48,7 +48,7 @@ export default function Sidebar({ testament, currentBook, currentChapter, bookDa
         <>
           <div style={{
             fontFamily: 'DM Mono, monospace',
-            fontSize: '9px',
+            fontSize: '11px',
             letterSpacing: '0.12em',
             textTransform: 'uppercase' as const,
             color: 'var(--ink-muted)',
@@ -77,7 +77,7 @@ export default function Sidebar({ testament, currentBook, currentChapter, bookDa
                 <div key={cat.label}>
                   <div style={{
                     fontFamily: 'DM Mono, monospace',
-                    fontSize: '9px',
+                    fontSize: '11px',
                     letterSpacing: '0.12em',
                     textTransform: 'uppercase' as const,
                     color: 'var(--ink-faint)',

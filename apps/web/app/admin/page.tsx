@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useEffect, useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
@@ -409,7 +409,7 @@ export default function AdminPage() {
         </Link>
         <span style={{
           fontFamily: 'DM Mono, monospace',
-          fontSize: '10px',
+          fontSize: '12px',
           letterSpacing: '0.1em',
           textTransform: 'uppercase' as const,
           padding: '4px 10px',
@@ -424,7 +424,7 @@ export default function AdminPage() {
           <NotificationBell />
           <Link href="/profile" style={{
             fontFamily: 'DM Mono, monospace',
-            fontSize: '10px',
+            fontSize: '12px',
             color: 'rgba(255,255,255,0.6)',
             textDecoration: 'none',
           }}>
@@ -439,7 +439,7 @@ export default function AdminPage() {
             }}
             style={{
               fontFamily: 'DM Mono, monospace',
-              fontSize: '10px',
+              fontSize: '12px',
               color: 'rgba(255,255,255,0.4)',
               background: 'transparent',
               border: 'none',
@@ -485,7 +485,7 @@ export default function AdminPage() {
               style={{
                 padding: '12px 20px',
                 fontFamily: 'DM Mono, monospace',
-                fontSize: '11px',
+                fontSize: '12px',
                 letterSpacing: '0.08em',
                 textTransform: 'uppercase' as const,
                 color: activeTab === tab.key ? 'var(--gold)' : 'var(--ink-muted)',
@@ -535,7 +535,7 @@ export default function AdminPage() {
                   </div>
                   <div style={{
                     fontFamily: 'DM Mono, monospace',
-                    fontSize: '9px',
+                    fontSize: '11px',
                     letterSpacing: '0.1em',
                     textTransform: 'uppercase' as const,
                     color: 'var(--ink-muted)',
@@ -556,7 +556,7 @@ export default function AdminPage() {
             }}>
               <div style={{
                 fontFamily: 'DM Mono, monospace',
-                fontSize: '10px',
+                fontSize: '12px',
                 letterSpacing: '0.1em',
                 textTransform: 'uppercase' as const,
                 color: 'var(--ink-muted)',
@@ -585,7 +585,7 @@ export default function AdminPage() {
                       </div>
                       <div style={{
                         fontFamily: 'DM Mono, monospace',
-                        fontSize: '9px',
+                        fontSize: '11px',
                         letterSpacing: '0.08em',
                         color: colors.color,
                         opacity: 0.8,
@@ -607,7 +607,7 @@ export default function AdminPage() {
             }}>
               <div style={{
                 fontFamily: 'DM Mono, monospace',
-                fontSize: '10px',
+                fontSize: '12px',
                 letterSpacing: '0.1em',
                 textTransform: 'uppercase' as const,
                 color: 'var(--ink-muted)',
@@ -634,7 +634,7 @@ export default function AdminPage() {
                       alignItems: 'center',
                       justifyContent: 'center',
                       fontFamily: 'DM Mono, monospace',
-                      fontSize: '11px',
+                      fontSize: '12px',
                       color: 'white',
                       flexShrink: 0,
                     }}>
@@ -651,7 +651,7 @@ export default function AdminPage() {
                     </Link>
                     <span style={{
                       fontFamily: 'DM Mono, monospace',
-                      fontSize: '9px',
+                      fontSize: '11px',
                       padding: '2px 8px',
                       borderRadius: '20px',
                       background: colors.bg,
@@ -662,7 +662,7 @@ export default function AdminPage() {
                     </span>
                     <span style={{
                       fontFamily: 'DM Mono, monospace',
-                      fontSize: '9px',
+                      fontSize: '11px',
                       color: 'var(--ink-faint)',
                     }}>
                       {new Date(u.createdAt).toLocaleDateString('fr-FR')}
@@ -673,7 +673,7 @@ export default function AdminPage() {
             </div>
             {/* Graphique évolution */}
             <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: '10px', padding: '20px', marginTop: '24px', marginBottom: '0' }}>
-              <div style={{ fontFamily: 'DM Mono, monospace', fontSize: '10px', letterSpacing: '0.1em', textTransform: 'uppercase' as const, color: 'var(--ink-muted)', marginBottom: '20px' }}>
+              <div style={{ fontFamily: 'DM Mono, monospace', fontSize: '12px', letterSpacing: '0.1em', textTransform: 'uppercase' as const, color: 'var(--ink-muted)', marginBottom: '20px' }}>
                 Contributions par mois
               </div>
               {(() => {
@@ -684,7 +684,7 @@ export default function AdminPage() {
                       {evolution.map((e, i) => (
                         <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', height: '100%', justifyContent: 'flex-end' }}>
                           {e.total > 0 && (
-                            <div style={{ fontFamily: 'DM Mono, monospace', fontSize: '8px', color: 'var(--ink-muted)' }}>
+                            <div style={{ fontFamily: 'DM Mono, monospace', fontSize: '10px', color: 'var(--ink-muted)' }}>
                               {e.total}
                             </div>
                           )}
@@ -702,7 +702,7 @@ export default function AdminPage() {
                     {/* Labels */}
                     <div style={{ display: 'flex', gap: '6px' }}>
                       {evolution.map((e, i) => (
-                        <div key={i} style={{ flex: 1, textAlign: 'center', fontFamily: 'DM Mono, monospace', fontSize: '7px', color: 'var(--ink-faint)', overflow: 'hidden' }}>
+                        <div key={i} style={{ flex: 1, textAlign: 'center', fontFamily: 'DM Mono, monospace', fontSize: '9px', color: 'var(--ink-faint)', overflow: 'hidden' }}>
                           {e.label.split(' ')[0]}
                         </div>
                       ))}
@@ -716,7 +716,7 @@ export default function AdminPage() {
                       ].map(l => (
                         <div key={l.label} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                           <div style={{ width: '10px', height: '10px', background: l.color, borderRadius: '2px' }} />
-                          <span style={{ fontFamily: 'DM Mono, monospace', fontSize: '9px', color: 'var(--ink-muted)' }}>{l.label}</span>
+                          <span style={{ fontFamily: 'DM Mono, monospace', fontSize: '11px', color: 'var(--ink-muted)' }}>{l.label}</span>
                         </div>
                       ))}
                     </div>
@@ -740,7 +740,7 @@ export default function AdminPage() {
 							}}>
 								<div style={{
 									fontFamily: 'DM Mono, monospace',
-									fontSize: '10px',
+									fontSize: '12px',
 									letterSpacing: '0.1em',
 									textTransform: 'uppercase' as const,
 									color: 'var(--ink-muted)',
@@ -769,14 +769,14 @@ export default function AdminPage() {
 												}}>
 													<span style={{
 														fontFamily: 'DM Mono, monospace',
-														fontSize: '9px',
+														fontSize: '11px',
 														color: 'var(--ink-muted)',
 													}}>
 														{verse.chapter.book.name} {verse.chapter.number}:{verse.number}
 													</span>
 													<span style={{
 														fontFamily: 'DM Mono, monospace',
-														fontSize: '9px',
+														fontSize: '11px',
 														color: t.isValidated ? 'var(--green-valid)' : 'var(--amber-pending)',
 													}}>
 														{t.isValidated ? 'Validée' : 'Proposée'}
@@ -793,7 +793,7 @@ export default function AdminPage() {
 												</div>
 												<div style={{
 													fontFamily: 'DM Mono, monospace',
-													fontSize: '9px',
+													fontSize: '11px',
 													color: 'var(--ink-faint)',
 												}}>
 													<span style={{ color: t.creator ? getRoleColor(t.creator.role) : 'var(--ink-muted)' }}>
@@ -816,7 +816,7 @@ export default function AdminPage() {
 							}}>
 								<div style={{
 									fontFamily: 'DM Mono, monospace',
-									fontSize: '10px',
+									fontSize: '12px',
 									letterSpacing: '0.1em',
 									textTransform: 'uppercase' as const,
 									color: 'var(--ink-muted)',
@@ -845,14 +845,14 @@ export default function AdminPage() {
 												}}>
 													<span style={{
 														fontFamily: 'DM Mono, monospace',
-														fontSize: '9px',
+														fontSize: '11px',
 														color: 'var(--ink-muted)',
 													}}>
 														{verse.chapter.book.name} {verse.chapter.number}:{verse.number}
 													</span>
 													<span style={{
 														fontFamily: 'DM Mono, monospace',
-														fontSize: '9px',
+														fontSize: '11px',
 														color: p.status === 'ACCEPTED' ? 'var(--green-valid)' : p.status === 'REJECTED' ? 'var(--red-soft)' : 'var(--amber-pending)',
 													}}>
 														{p.status === 'ACCEPTED' ? 'Acceptée' : p.status === 'REJECTED' ? 'Rejetée' : 'En attente'}
@@ -872,7 +872,7 @@ export default function AdminPage() {
 												</div>
 												<div style={{
 													fontFamily: 'DM Mono, monospace',
-													fontSize: '9px',
+													fontSize: '11px',
 													color: 'var(--ink-faint)',
 												}}>
 													<span style={{ color: p.creator ? getRoleColor(p.creator.role) : 'var(--ink-muted)' }}>
@@ -895,7 +895,7 @@ export default function AdminPage() {
 							}}>
 								<div style={{
 									fontFamily: 'DM Mono, monospace',
-									fontSize: '10px',
+									fontSize: '12px',
 									letterSpacing: '0.1em',
 									textTransform: 'uppercase' as const,
 									color: 'var(--ink-muted)',
@@ -920,7 +920,7 @@ export default function AdminPage() {
 											{c.verse && (
 												<div style={{
 													fontFamily: 'DM Mono, monospace',
-													fontSize: '9px',
+													fontSize: '11px',
 													color: 'var(--ink-muted)',
 													marginBottom: '2px',
 												}}>
@@ -941,7 +941,7 @@ export default function AdminPage() {
 											</div>
 											<div style={{
 												fontFamily: 'DM Mono, monospace',
-												fontSize: '9px',
+												fontSize: '11px',
 												color: 'var(--ink-faint)',
 											}}>
 												<span style={{ color: c.creator ? getRoleColor(c.creator.role) : 'var(--ink-muted)' }}>
@@ -1025,20 +1025,20 @@ export default function AdminPage() {
                           onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = 'var(--parchment)'}
                           onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = 'transparent'}
                         >
-                          <div style={{ width: '24px', height: '24px', borderRadius: '50%', background: 'var(--parchment-deep)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'DM Mono, monospace', fontSize: '9px', color: 'var(--ink-muted)', flexShrink: 0 }}>
+                          <div style={{ width: '24px', height: '24px', borderRadius: '50%', background: 'var(--parchment-deep)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'DM Mono, monospace', fontSize: '11px', color: 'var(--ink-muted)', flexShrink: 0 }}>
                             {u.username.substring(0, 2).toUpperCase()}
                           </div>
                           <div>
-                            <div style={{ fontFamily: 'Spectral, serif', fontSize: '13px', color: 'var(--ink)' }}>{u.username}</div>
-                            <div style={{ fontFamily: 'DM Mono, monospace', fontSize: '9px', color: 'var(--ink-faint)' }}>{u.email}</div>
+                            <div style={{ fontFamily: 'Spectral, serif', fontSize: '14px', color: 'var(--ink)' }}>{u.username}</div>
+                            <div style={{ fontFamily: 'DM Mono, monospace', fontSize: '11px', color: 'var(--ink-faint)' }}>{u.email}</div>
                           </div>
-                          <span style={{ marginLeft: 'auto', fontFamily: 'DM Mono, monospace', fontSize: '9px', padding: '2px 6px', borderRadius: '20px', background: getRoleBackground(u.role), color: getRoleColor(u.role), border: `1px solid ${getRoleBorder(u.role)}` }}>
+                          <span style={{ marginLeft: 'auto', fontFamily: 'DM Mono, monospace', fontSize: '11px', padding: '2px 6px', borderRadius: '20px', background: getRoleBackground(u.role), color: getRoleColor(u.role), border: `1px solid ${getRoleBorder(u.role)}` }}>
                             {u.role}
                           </span>
                         </div>
                       ))}
                     {users.filter(u => u.username.toLowerCase().includes(search.toLowerCase()) || u.email.toLowerCase().includes(search.toLowerCase())).length === 0 && (
-                      <div style={{ padding: '12px', fontFamily: 'Spectral, serif', fontSize: '13px', color: 'var(--ink-faint)', fontStyle: 'italic', textAlign: 'center' }}>
+                      <div style={{ padding: '12px', fontFamily: 'Spectral, serif', fontSize: '14px', color: 'var(--ink-faint)', fontStyle: 'italic', textAlign: 'center' }}>
                         Aucun utilisateur trouvé
                       </div>
                     )}
@@ -1056,7 +1056,7 @@ export default function AdminPage() {
                       border: `1px solid ${roleFilter === r ? 'var(--gold)' : 'var(--border)'}`,
                       background: roleFilter === r ? 'var(--gold-pale)' : 'transparent',
                       fontFamily: 'DM Mono, monospace',
-                      fontSize: '9px',
+                      fontSize: '11px',
                       color: roleFilter === r ? 'var(--gold)' : 'var(--ink-muted)',
                       cursor: 'pointer',
                       letterSpacing: '0.06em',
@@ -1068,7 +1068,7 @@ export default function AdminPage() {
               </div>
               <button
                 onClick={exportUsersCSV}
-                style={{ padding: '5px 12px', borderRadius: '6px', border: '1px solid var(--border)', background: 'white', fontFamily: 'DM Mono, monospace', fontSize: '9px', color: 'var(--ink-muted)', cursor: 'pointer', marginLeft: 'auto', flexShrink: 0 }}
+                style={{ padding: '5px 12px', borderRadius: '6px', border: '1px solid var(--border)', background: 'white', fontFamily: 'DM Mono, monospace', fontSize: '11px', color: 'var(--ink-muted)', cursor: 'pointer', marginLeft: 'auto', flexShrink: 0 }}
               >
                 ↓ Exporter CSV ({filteredUsers.length})
               </button>
@@ -1089,7 +1089,7 @@ export default function AdminPage() {
                 background: 'var(--parchment-dark)',
                 borderBottom: '1px solid var(--border)',
                 fontFamily: 'DM Mono, monospace',
-                fontSize: '9px',
+                fontSize: '11px',
                 letterSpacing: '0.1em',
                 textTransform: 'uppercase' as const,
                 color: 'var(--ink-muted)',
@@ -1137,7 +1137,7 @@ export default function AdminPage() {
                         alignItems: 'center',
                         justifyContent: 'center',
                         fontFamily: 'DM Mono, monospace',
-                        fontSize: '9px',
+                        fontSize: '11px',
                         color: isMe ? 'white' : 'var(--ink-muted)',
                         flexShrink: 0,
                       }}>
@@ -1157,19 +1157,19 @@ export default function AdminPage() {
                           {u.username}
                         </Link>
                         {isMe && (
-                          <span style={{ fontFamily: 'DM Mono, monospace', fontSize: '8px', color: 'var(--gold)', marginLeft: '6px' }}>(vous)</span>
+                          <span style={{ fontFamily: 'DM Mono, monospace', fontSize: '10px', color: 'var(--gold)', marginLeft: '6px' }}>(vous)</span>
                         )}
                         {!u.isActive && (
-                          <span style={{ fontFamily: 'DM Mono, monospace', fontSize: '8px', color: 'var(--red-soft)', marginLeft: '6px' }}>désactivé</span>
+                          <span style={{ fontFamily: 'DM Mono, monospace', fontSize: '10px', color: 'var(--red-soft)', marginLeft: '6px' }}>désactivé</span>
                         )}
                         {u.forcePasswordReset && (
-                          <span style={{ fontFamily: 'DM Mono, monospace', fontSize: '8px', color: 'var(--amber-pending)', marginLeft: '6px' }}>reset mdp</span>
+                          <span style={{ fontFamily: 'DM Mono, monospace', fontSize: '10px', color: 'var(--amber-pending)', marginLeft: '6px' }}>reset mdp</span>
                         )}
                       </span>
                     </div>
                     <span style={{
                       fontFamily: 'DM Mono, monospace',
-                      fontSize: '10px',
+                      fontSize: '12px',
                       color: 'var(--ink-muted)',
                       overflow: 'hidden',
                       textOverflow: 'ellipsis',
@@ -1179,14 +1179,14 @@ export default function AdminPage() {
                     </span>
                     <span style={{
                       fontFamily: 'DM Mono, monospace',
-                      fontSize: '10px',
+                      fontSize: '12px',
                       color: 'var(--ink-faint)',
                     }}>
                       {new Date(u.createdAt).toLocaleDateString('fr-FR')}
                     </span>
                     <span style={{
                       fontFamily: 'DM Mono, monospace',
-                      fontSize: '11px',
+                      fontSize: '12px',
                       color: 'var(--ink-soft)',
                       textAlign: 'center',
                     }}>
@@ -1194,7 +1194,7 @@ export default function AdminPage() {
                     </span>
                     <span style={{
                       fontFamily: 'DM Mono, monospace',
-                      fontSize: '11px',
+                      fontSize: '12px',
                       color: 'var(--ink-soft)',
                       textAlign: 'center',
                     }}>
@@ -1202,7 +1202,7 @@ export default function AdminPage() {
                     </span>
                     <span style={{
                       fontFamily: 'DM Mono, monospace',
-                      fontSize: '11px',
+                      fontSize: '12px',
                       color: 'var(--ink-soft)',
                       textAlign: 'center',
                     }}>
@@ -1212,7 +1212,7 @@ export default function AdminPage() {
                       {isMe ? (
                         <span style={{
                           fontFamily: 'DM Mono, monospace',
-                          fontSize: '9px',
+                          fontSize: '11px',
                           padding: '3px 10px',
                           borderRadius: '20px',
                           background: colors.bg,
@@ -1232,7 +1232,7 @@ export default function AdminPage() {
                             borderRadius: '6px',
                             background: colors.bg,
                             fontFamily: 'DM Mono, monospace',
-                            fontSize: '9px',
+                            fontSize: '11px',
                             color: colors.color,
                             cursor: 'pointer',
                             outline: 'none',
@@ -1273,7 +1273,7 @@ export default function AdminPage() {
                               border: `1px solid ${u.isActive ? 'rgba(122,42,42,0.2)' : 'rgba(45,90,58,0.2)'}`,
                               background: u.isActive ? 'var(--red-light)' : 'var(--green-light)',
                               cursor: 'pointer',
-                              fontSize: '11px',
+                              fontSize: '12px',
                               color: u.isActive ? 'var(--red-soft)' : 'var(--green-valid)',
                               opacity: actionLoading === u.id ? 0.5 : 1,
                             }}
@@ -1300,7 +1300,7 @@ export default function AdminPage() {
                               border: '1px solid rgba(122,90,26,0.2)',
                               background: 'var(--amber-light)',
                               cursor: u.forcePasswordReset ? 'not-allowed' : 'pointer',
-                              fontSize: '11px',
+                              fontSize: '12px',
                               color: 'var(--amber-pending)',
                               opacity: actionLoading === u.id || u.forcePasswordReset ? 0.5 : 1,
                             }}
@@ -1317,7 +1317,7 @@ export default function AdminPage() {
 
             <div style={{
               fontFamily: 'DM Mono, monospace',
-              fontSize: '10px',
+              fontSize: '12px',
               color: 'var(--ink-faint)',
               marginTop: '12px',
               textAlign: 'right',
@@ -1339,7 +1339,7 @@ export default function AdminPage() {
                   setContribVerse('')
                   loadContributions(t, '', '', '')
                 }}
-                  style={{ padding: '5px 10px', borderRadius: '20px', border: `1px solid ${contribTestament === t ? 'var(--gold)' : 'var(--border)'}`, background: contribTestament === t ? 'var(--gold-pale)' : 'transparent', fontFamily: 'DM Mono, monospace', fontSize: '9px', color: contribTestament === t ? 'var(--gold)' : 'var(--ink-muted)', cursor: 'pointer' }}>
+                  style={{ padding: '5px 10px', borderRadius: '20px', border: `1px solid ${contribTestament === t ? 'var(--gold)' : 'var(--border)'}`, background: contribTestament === t ? 'var(--gold-pale)' : 'transparent', fontFamily: 'DM Mono, monospace', fontSize: '11px', color: contribTestament === t ? 'var(--gold)' : 'var(--ink-muted)', cursor: 'pointer' }}>
                   {t === 'ALL' ? 'Tout' : t}
                 </button>
               ))}
@@ -1353,7 +1353,7 @@ export default function AdminPage() {
                   setContribVerse('')
                   loadContributions(contribTestament, val, '', '')
                 }}
-                style={{ padding: '5px 10px', border: `1px solid ${contribBook ? 'var(--gold)' : 'var(--border)'}`, borderRadius: '6px', background: contribBook ? 'var(--gold-pale)' : 'white', fontFamily: 'DM Mono, monospace', fontSize: '9px', color: contribBook ? 'var(--gold)' : 'var(--ink-muted)', cursor: 'pointer', outline: 'none' }}
+                style={{ padding: '5px 10px', border: `1px solid ${contribBook ? 'var(--gold)' : 'var(--border)'}`, borderRadius: '6px', background: contribBook ? 'var(--gold-pale)' : 'white', fontFamily: 'DM Mono, monospace', fontSize: '11px', color: contribBook ? 'var(--gold)' : 'var(--ink-muted)', cursor: 'pointer', outline: 'none' }}
               >
                 <option value="">Tous les livres</option>
                 {Object.keys(BOOK_NAME_TO_SLUG)
@@ -1372,7 +1372,7 @@ export default function AdminPage() {
                     setContribVerse('')
                     loadContributions(contribTestament, contribBook, e.target.value, '')
                   }}
-                  style={{ width: '80px', padding: '5px 10px', border: `1px solid ${contribChapter ? 'var(--gold)' : 'var(--border)'}`, borderRadius: '6px', background: contribChapter ? 'var(--gold-pale)' : 'white', fontFamily: 'DM Mono, monospace', fontSize: '9px', color: 'var(--ink)', outline: 'none' }}
+                  style={{ width: '80px', padding: '5px 10px', border: `1px solid ${contribChapter ? 'var(--gold)' : 'var(--border)'}`, borderRadius: '6px', background: contribChapter ? 'var(--gold-pale)' : 'white', fontFamily: 'DM Mono, monospace', fontSize: '11px', color: 'var(--ink)', outline: 'none' }}
                 />
               )}
 
@@ -1386,7 +1386,7 @@ export default function AdminPage() {
                     setContribVerse(e.target.value)
                     loadContributions(contribTestament, contribBook, contribChapter, e.target.value)
                   }}
-                  style={{ width: '80px', padding: '5px 10px', border: `1px solid ${contribVerse ? 'var(--gold)' : 'var(--border)'}`, borderRadius: '6px', background: contribVerse ? 'var(--gold-pale)' : 'white', fontFamily: 'DM Mono, monospace', fontSize: '9px', color: 'var(--ink)', outline: 'none' }}
+                  style={{ width: '80px', padding: '5px 10px', border: `1px solid ${contribVerse ? 'var(--gold)' : 'var(--border)'}`, borderRadius: '6px', background: contribVerse ? 'var(--gold-pale)' : 'white', fontFamily: 'DM Mono, monospace', fontSize: '11px', color: 'var(--ink)', outline: 'none' }}
                 />
               )}
 
@@ -1398,14 +1398,14 @@ export default function AdminPage() {
                   setContribVerse('')
                   setContribData(null)
                 }}
-                  style={{ padding: '5px 10px', borderRadius: '20px', border: '1px solid rgba(122,42,42,0.2)', background: 'var(--red-light)', fontFamily: 'DM Mono, monospace', fontSize: '9px', color: 'var(--red-soft)', cursor: 'pointer' }}>
+                  style={{ padding: '5px 10px', borderRadius: '20px', border: '1px solid rgba(122,42,42,0.2)', background: 'var(--red-light)', fontFamily: 'DM Mono, monospace', fontSize: '11px', color: 'var(--red-soft)', cursor: 'pointer' }}>
                   ✕ Réinitialiser
                 </button>
               )}
               {contribData && (
                 <button
                   onClick={exportCSV}
-                  style={{ marginLeft: 'auto', padding: '5px 12px', borderRadius: '6px', border: '1px solid var(--border)', background: 'white', fontFamily: 'DM Mono, monospace', fontSize: '9px', color: 'var(--ink-muted)', cursor: 'pointer' }}
+                  style={{ marginLeft: 'auto', padding: '5px 12px', borderRadius: '6px', border: '1px solid var(--border)', background: 'white', fontFamily: 'DM Mono, monospace', fontSize: '11px', color: 'var(--ink-muted)', cursor: 'pointer' }}
                 >
                   ↓ Exporter CSV ({contribData.wordTranslations.length + contribData.proposals.length + contribData.comments.length})
                 </button>
@@ -1429,11 +1429,11 @@ export default function AdminPage() {
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px' }}>
                 {/* Traductions de mots */}
                 <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: '10px', padding: '20px' }}>
-                  <div style={{ fontFamily: 'DM Mono, monospace', fontSize: '10px', letterSpacing: '0.1em', textTransform: 'uppercase' as const, color: 'var(--ink-muted)', marginBottom: '16px' }}>
+                  <div style={{ fontFamily: 'DM Mono, monospace', fontSize: '12px', letterSpacing: '0.1em', textTransform: 'uppercase' as const, color: 'var(--ink-muted)', marginBottom: '16px' }}>
                     Traductions de mots ({contribData.wordTranslations.length})
                   </div>
                   {contribData.wordTranslations.length === 0 ? (
-                    <div style={{ fontFamily: 'Spectral, serif', fontSize: '13px', color: 'var(--ink-faint)', fontStyle: 'italic' }}>Aucune.</div>
+                    <div style={{ fontFamily: 'Spectral, serif', fontSize: '14px', color: 'var(--ink-faint)', fontStyle: 'italic' }}>Aucune.</div>
                   ) : contribData.wordTranslations.map(t => {
                     const verse = t.wordToken.verseText.verse
                     const url = `/${verse.chapter.book.testament === 'AT' ? 'at' : 'nt'}/${verse.chapter.book.slug}/${verse.chapter.number}?word=${t.wordToken.id}&tab=word#v${verse.number}`
@@ -1443,17 +1443,17 @@ export default function AdminPage() {
                           onMouseEnter={e => (e.currentTarget as HTMLElement).style.opacity = '0.7'}
                           onMouseLeave={e => (e.currentTarget as HTMLElement).style.opacity = '1'}>
                           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '3px' }}>
-                            <span style={{ fontFamily: 'DM Mono, monospace', fontSize: '9px', color: 'var(--ink-muted)' }}>
+                            <span style={{ fontFamily: 'DM Mono, monospace', fontSize: '11px', color: 'var(--ink-muted)' }}>
                               {verse.chapter.book.name} {verse.chapter.number}:{verse.number} · {t.wordToken.word}
                             </span>
-                            <span style={{ fontFamily: 'DM Mono, monospace', fontSize: '9px', padding: '1px 6px', borderRadius: '20px', background: t.isValidated ? 'var(--green-light)' : 'var(--amber-light)', color: t.isValidated ? 'var(--green-valid)' : 'var(--amber-pending)' }}>
+                            <span style={{ fontFamily: 'DM Mono, monospace', fontSize: '11px', padding: '1px 6px', borderRadius: '20px', background: t.isValidated ? 'var(--green-light)' : 'var(--amber-light)', color: t.isValidated ? 'var(--green-valid)' : 'var(--amber-pending)' }}>
                               {t.isValidated ? 'Validée' : 'Proposée'}
                             </span>
                           </div>
-                          <div style={{ fontFamily: 'Spectral, serif', fontSize: '13px', fontStyle: 'italic', color: 'var(--ink)', marginBottom: '3px' }}>
+                          <div style={{ fontFamily: 'Spectral, serif', fontSize: '14px', fontStyle: 'italic', color: 'var(--ink)', marginBottom: '3px' }}>
                             {t.translation}
                           </div>
-                          <div style={{ fontFamily: 'DM Mono, monospace', fontSize: '9px', color: 'var(--ink-faint)' }}>
+                          <div style={{ fontFamily: 'DM Mono, monospace', fontSize: '11px', color: 'var(--ink-faint)' }}>
                             <span style={{ color: t.creator ? getRoleColor(t.creator.role) : 'var(--ink-muted)' }}>
                               @{t.creator?.username || 'anonyme'}
                             </span>
@@ -1467,11 +1467,11 @@ export default function AdminPage() {
 
                 {/* Propositions */}
                 <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: '10px', padding: '20px' }}>
-                  <div style={{ fontFamily: 'DM Mono, monospace', fontSize: '10px', letterSpacing: '0.1em', textTransform: 'uppercase' as const, color: 'var(--ink-muted)', marginBottom: '16px' }}>
+                  <div style={{ fontFamily: 'DM Mono, monospace', fontSize: '12px', letterSpacing: '0.1em', textTransform: 'uppercase' as const, color: 'var(--ink-muted)', marginBottom: '16px' }}>
                     Reformulations de versets ({contribData.proposals.length})
                   </div>
                   {contribData.proposals.length === 0 ? (
-                    <div style={{ fontFamily: 'Spectral, serif', fontSize: '13px', color: 'var(--ink-faint)', fontStyle: 'italic' }}>Aucune.</div>
+                    <div style={{ fontFamily: 'Spectral, serif', fontSize: '14px', color: 'var(--ink-faint)', fontStyle: 'italic' }}>Aucune.</div>
                   ) : contribData.proposals.map(p => {
                     const verse = p.translation.verse
                     const url = `/${verse.chapter.book.testament === 'AT' ? 'at' : 'nt'}/${verse.chapter.book.slug}/${verse.chapter.number}?verse=${verse.id}&tab=verse#v${verse.number}`
@@ -1481,17 +1481,17 @@ export default function AdminPage() {
                           onMouseEnter={e => (e.currentTarget as HTMLElement).style.opacity = '0.7'}
                           onMouseLeave={e => (e.currentTarget as HTMLElement).style.opacity = '1'}>
                           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '3px' }}>
-                            <span style={{ fontFamily: 'DM Mono, monospace', fontSize: '9px', color: 'var(--ink-muted)' }}>
+                            <span style={{ fontFamily: 'DM Mono, monospace', fontSize: '11px', color: 'var(--ink-muted)' }}>
                               {verse.chapter.book.name} {verse.chapter.number}:{verse.number}
                             </span>
-                            <span style={{ fontFamily: 'DM Mono, monospace', fontSize: '9px', padding: '1px 6px', borderRadius: '20px', background: p.status === 'ACCEPTED' ? 'var(--green-light)' : p.status === 'REJECTED' ? 'var(--red-light)' : 'var(--amber-light)', color: p.status === 'ACCEPTED' ? 'var(--green-valid)' : p.status === 'REJECTED' ? 'var(--red-soft)' : 'var(--amber-pending)' }}>
+                            <span style={{ fontFamily: 'DM Mono, monospace', fontSize: '11px', padding: '1px 6px', borderRadius: '20px', background: p.status === 'ACCEPTED' ? 'var(--green-light)' : p.status === 'REJECTED' ? 'var(--red-light)' : 'var(--amber-light)', color: p.status === 'ACCEPTED' ? 'var(--green-valid)' : p.status === 'REJECTED' ? 'var(--red-soft)' : 'var(--amber-pending)' }}>
                               {p.status === 'ACCEPTED' ? 'Acceptée' : p.status === 'REJECTED' ? 'Rejetée' : 'En attente'}
                             </span>
                           </div>
                           <div style={{ fontFamily: 'Spectral, serif', fontSize: '12px', fontStyle: 'italic', color: 'var(--ink-soft)', lineHeight: '1.5', marginBottom: '3px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' as const }}>
                             {p.proposedText}
                           </div>
-                          <div style={{ fontFamily: 'DM Mono, monospace', fontSize: '9px', color: 'var(--ink-faint)' }}>
+                          <div style={{ fontFamily: 'DM Mono, monospace', fontSize: '11px', color: 'var(--ink-faint)' }}>
                             <span style={{ color: p.creator ? getRoleColor(p.creator.role) : 'var(--ink-muted)' }}>
                               @{p.creator?.username || 'anonyme'}
                             </span>
@@ -1505,11 +1505,11 @@ export default function AdminPage() {
 
                 {/* Commentaires */}
                 <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: '10px', padding: '20px' }}>
-                  <div style={{ fontFamily: 'DM Mono, monospace', fontSize: '10px', letterSpacing: '0.1em', textTransform: 'uppercase' as const, color: 'var(--ink-muted)', marginBottom: '16px' }}>
+                  <div style={{ fontFamily: 'DM Mono, monospace', fontSize: '12px', letterSpacing: '0.1em', textTransform: 'uppercase' as const, color: 'var(--ink-muted)', marginBottom: '16px' }}>
                     Commentaires ({contribData.comments.length})
                   </div>
                   {contribData.comments.length === 0 ? (
-                    <div style={{ fontFamily: 'Spectral, serif', fontSize: '13px', color: 'var(--ink-faint)', fontStyle: 'italic' }}>Aucun.</div>
+                    <div style={{ fontFamily: 'Spectral, serif', fontSize: '14px', color: 'var(--ink-faint)', fontStyle: 'italic' }}>Aucun.</div>
                   ) : contribData.comments.map(c => {
                     const url = c.verse ? `/${c.verse.chapter.book.testament === 'AT' ? 'at' : 'nt'}/${c.verse.chapter.book.slug}/${c.verse.chapter.number}?verse=${c.verse.id}&tab=comments#v${c.verse.number}` : null
                     return url ? (
@@ -1518,14 +1518,14 @@ export default function AdminPage() {
                           onMouseEnter={e => (e.currentTarget as HTMLElement).style.opacity = '0.7'}
                           onMouseLeave={e => (e.currentTarget as HTMLElement).style.opacity = '1'}>
                           {c.verse && (
-                            <div style={{ fontFamily: 'DM Mono, monospace', fontSize: '9px', color: 'var(--ink-muted)', marginBottom: '3px' }}>
+                            <div style={{ fontFamily: 'DM Mono, monospace', fontSize: '11px', color: 'var(--ink-muted)', marginBottom: '3px' }}>
                               {c.verse.chapter.book.name} {c.verse.chapter.number}:{c.verse.number}
                             </div>
                           )}
                           <div style={{ fontFamily: 'Spectral, serif', fontSize: '12px', color: 'var(--ink-soft)', lineHeight: '1.5', marginBottom: '3px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' as const, pointerEvents: 'none' }}>
                             <CommentText text={c.text} disableLinks />
                           </div>
-                          <div style={{ fontFamily: 'DM Mono, monospace', fontSize: '9px', color: 'var(--ink-faint)' }}>
+                          <div style={{ fontFamily: 'DM Mono, monospace', fontSize: '11px', color: 'var(--ink-faint)' }}>
                             <span style={{ color: c.creator ? getRoleColor(c.creator.role) : 'var(--ink-muted)' }}>
                               @{c.creator?.username || 'anonyme'}
                             </span>
@@ -1540,28 +1540,28 @@ export default function AdminPage() {
               {/* Historique des traductions */}
               {contribVerse && (
                 <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: '10px', padding: '20px', marginTop: '16px' }}>
-                  <div style={{ fontFamily: 'DM Mono, monospace', fontSize: '10px', letterSpacing: '0.1em', textTransform: 'uppercase' as const, color: 'var(--ink-muted)', marginBottom: '16px' }}>
+                  <div style={{ fontFamily: 'DM Mono, monospace', fontSize: '12px', letterSpacing: '0.1em', textTransform: 'uppercase' as const, color: 'var(--ink-muted)', marginBottom: '16px' }}>
                     Historique des traductions — {contribBook} {contribChapter}:{contribVerse}
                   </div>
                   {verseHistoryLoading ? (
-                    <div style={{ fontFamily: 'Spectral, serif', fontSize: '13px', color: 'var(--ink-faint)', fontStyle: 'italic' }}>Chargement...</div>
+                    <div style={{ fontFamily: 'Spectral, serif', fontSize: '14px', color: 'var(--ink-faint)', fontStyle: 'italic' }}>Chargement...</div>
                   ) : verseHistory.length === 0 ? (
-                    <div style={{ fontFamily: 'Spectral, serif', fontSize: '13px', color: 'var(--ink-faint)', fontStyle: 'italic' }}>Aucun historique.</div>
+                    <div style={{ fontFamily: 'Spectral, serif', fontSize: '14px', color: 'var(--ink-faint)', fontStyle: 'italic' }}>Aucun historique.</div>
                   ) : verseHistory.map(t => (
                     <div key={t.id} style={{ marginBottom: '16px', borderBottom: '1px solid var(--border)', paddingBottom: '16px' }}>
                       {/* Traduction */}
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
-                        <span style={{ fontFamily: 'DM Mono, monospace', fontSize: '9px', padding: '2px 8px', borderRadius: '20px', background: t.isActive ? 'var(--green-light)' : t.isReference ? 'var(--blue-light)' : 'var(--parchment-deep)', color: t.isActive ? 'var(--green-valid)' : t.isReference ? 'var(--blue-sacred)' : 'var(--ink-muted)' }}>
+                        <span style={{ fontFamily: 'DM Mono, monospace', fontSize: '11px', padding: '2px 8px', borderRadius: '20px', background: t.isActive ? 'var(--green-light)' : t.isReference ? 'var(--blue-light)' : 'var(--parchment-deep)', color: t.isActive ? 'var(--green-valid)' : t.isReference ? 'var(--blue-sacred)' : 'var(--ink-muted)' }}>
                           {t.isActive ? 'Active' : t.isReference ? 'Référence' : 'Inactive'}
                         </span>
                         {t.source && (
-                          <span style={{ fontFamily: 'DM Mono, monospace', fontSize: '9px', color: 'var(--ink-faint)' }}>{t.source}</span>
+                          <span style={{ fontFamily: 'DM Mono, monospace', fontSize: '11px', color: 'var(--ink-faint)' }}>{t.source}</span>
                         )}
-                        <span style={{ fontFamily: 'DM Mono, monospace', fontSize: '9px', color: 'var(--ink-faint)', marginLeft: 'auto' }}>
+                        <span style={{ fontFamily: 'DM Mono, monospace', fontSize: '11px', color: 'var(--ink-faint)', marginLeft: 'auto' }}>
                           {new Date(t.createdAt).toLocaleDateString('fr-FR')}
                         </span>
                       </div>
-                      <div style={{ fontFamily: 'Spectral, serif', fontSize: '13px', fontStyle: 'italic', color: 'var(--ink)', lineHeight: '1.6', marginBottom: t.proposals.length > 0 ? '10px' : '0' }}>
+                      <div style={{ fontFamily: 'Spectral, serif', fontSize: '14px', fontStyle: 'italic', color: 'var(--ink)', lineHeight: '1.6', marginBottom: t.proposals.length > 0 ? '10px' : '0' }}>
                         {t.textFr}
                       </div>
                       {/* Propositions liées */}
@@ -1570,20 +1570,20 @@ export default function AdminPage() {
                           {t.proposals.map(p => (
                             <div key={p.id} style={{ padding: '6px 0', borderBottom: '1px solid var(--border)' }}>
                               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-                                <span style={{ fontFamily: 'DM Mono, monospace', fontSize: '9px', padding: '1px 6px', borderRadius: '20px', background: p.status === 'ACCEPTED' ? 'var(--green-light)' : p.status === 'REJECTED' ? 'var(--red-light)' : 'var(--amber-light)', color: p.status === 'ACCEPTED' ? 'var(--green-valid)' : p.status === 'REJECTED' ? 'var(--red-soft)' : 'var(--amber-pending)' }}>
+                                <span style={{ fontFamily: 'DM Mono, monospace', fontSize: '11px', padding: '1px 6px', borderRadius: '20px', background: p.status === 'ACCEPTED' ? 'var(--green-light)' : p.status === 'REJECTED' ? 'var(--red-light)' : 'var(--amber-light)', color: p.status === 'ACCEPTED' ? 'var(--green-valid)' : p.status === 'REJECTED' ? 'var(--red-soft)' : 'var(--amber-pending)' }}>
                                   {p.status === 'ACCEPTED' ? 'Acceptée' : p.status === 'REJECTED' ? 'Rejetée' : 'En attente'}
                                 </span>
                                 {p.creator && (
-                                  <Link href={`/profile/${p.creator.username}`} style={{ fontFamily: 'DM Mono, monospace', fontSize: '9px', color: getRoleColor(p.creator.role), textDecoration: 'none' }}>
+                                  <Link href={`/profile/${p.creator.username}`} style={{ fontFamily: 'DM Mono, monospace', fontSize: '11px', color: getRoleColor(p.creator.role), textDecoration: 'none' }}>
                                     @{p.creator.username}
                                   </Link>
                                 )}
                                 {p.reviewer && (
-                                  <span style={{ fontFamily: 'DM Mono, monospace', fontSize: '9px', color: 'var(--ink-faint)' }}>
+                                  <span style={{ fontFamily: 'DM Mono, monospace', fontSize: '11px', color: 'var(--ink-faint)' }}>
                                     → revu par <Link href={`/profile/${p.reviewer.username}`} style={{ color: getRoleColor(p.reviewer.role), textDecoration: 'none' }}>@{p.reviewer.username}</Link>
                                   </span>
                                 )}
-                                <span style={{ fontFamily: 'DM Mono, monospace', fontSize: '9px', color: 'var(--ink-faint)', marginLeft: 'auto' }}>
+                                <span style={{ fontFamily: 'DM Mono, monospace', fontSize: '11px', color: 'var(--ink-faint)', marginLeft: 'auto' }}>
                                   {new Date(p.createdAt).toLocaleDateString('fr-FR')}
                                 </span>
                               </div>
@@ -1591,7 +1591,7 @@ export default function AdminPage() {
                                 {p.proposedText}
                               </div>
                               {p.reason && (
-                                <div style={{ fontFamily: 'DM Mono, monospace', fontSize: '9px', color: 'var(--red-soft)', marginTop: '3px' }}>
+                                <div style={{ fontFamily: 'DM Mono, monospace', fontSize: '11px', color: 'var(--red-soft)', marginTop: '3px' }}>
                                   Raison : {p.reason}
                                 </div>
                               )}
@@ -1632,7 +1632,7 @@ export default function AdminPage() {
                   { key: 'CONTRIBUTIONS', label: 'Contributions' },
                 ].map(f => (
                   <button key={f.key} onClick={() => { setLogActionFilter(f.key); setLogPage(1) }}
-                    style={{ padding: '4px 10px', borderRadius: '20px', border: `1px solid ${logActionFilter === f.key ? 'var(--gold)' : 'var(--border)'}`, background: logActionFilter === f.key ? 'var(--gold-pale)' : 'transparent', fontFamily: 'DM Mono, monospace', fontSize: '9px', color: logActionFilter === f.key ? 'var(--gold)' : 'var(--ink-muted)', cursor: 'pointer' }}>
+                    style={{ padding: '4px 10px', borderRadius: '20px', border: `1px solid ${logActionFilter === f.key ? 'var(--gold)' : 'var(--border)'}`, background: logActionFilter === f.key ? 'var(--gold-pale)' : 'transparent', fontFamily: 'DM Mono, monospace', fontSize: '11px', color: logActionFilter === f.key ? 'var(--gold)' : 'var(--ink-muted)', cursor: 'pointer' }}>
                     {f.label}
                   </button>
                 ))}
@@ -1663,11 +1663,11 @@ export default function AdminPage() {
                 <>
                   <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: '10px', overflow: 'hidden' }}>
                     <div style={{ padding: '12px 20px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span style={{ fontFamily: 'DM Mono, monospace', fontSize: '10px', letterSpacing: '0.1em', textTransform: 'uppercase' as const, color: 'var(--ink-muted)' }}>
+                      <span style={{ fontFamily: 'DM Mono, monospace', fontSize: '12px', letterSpacing: '0.1em', textTransform: 'uppercase' as const, color: 'var(--ink-muted)' }}>
                         {filtered.length} entrée{filtered.length !== 1 ? 's' : ''}
                       </span>
                       <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-                        <span style={{ fontFamily: 'DM Mono, monospace', fontSize: '9px', color: 'var(--ink-faint)' }}>
+                        <span style={{ fontFamily: 'DM Mono, monospace', fontSize: '11px', color: 'var(--ink-faint)' }}>
                           Page {logPage} / {Math.max(totalPages, 1)}
                         </span>
                         <button
@@ -1677,7 +1677,7 @@ export default function AdminPage() {
                               setAdminLogs(logsRes.data)
                             } catch (e) { console.error(e) }
                           }}
-                          style={{ padding: '3px 8px', borderRadius: '4px', border: '1px solid var(--border)', background: 'transparent', fontFamily: 'DM Mono, monospace', fontSize: '9px', color: 'var(--ink-muted)', cursor: 'pointer' }}
+                          style={{ padding: '3px 8px', borderRadius: '4px', border: '1px solid var(--border)', background: 'transparent', fontFamily: 'DM Mono, monospace', fontSize: '11px', color: 'var(--ink-muted)', cursor: 'pointer' }}
                         >
                           ↻ Rafraîchir
                         </button>
@@ -1730,24 +1730,24 @@ export default function AdminPage() {
                           alignItems: 'center',
                           gap: '12px',
                         }}>
-                          <span style={{ fontFamily: 'DM Mono, monospace', fontSize: '9px', padding: '2px 8px', borderRadius: '20px', background: colors.bg, color: colors.color, textAlign: 'center', whiteSpace: 'nowrap' as const }}>
+                          <span style={{ fontFamily: 'DM Mono, monospace', fontSize: '11px', padding: '2px 8px', borderRadius: '20px', background: colors.bg, color: colors.color, textAlign: 'center', whiteSpace: 'nowrap' as const }}>
                             {actionLabel}
                           </span>
                           <div>
                             {log.user ? (
-                              <Link href={`/profile/${log.user.username}`} style={{ fontFamily: 'DM Mono, monospace', fontSize: '10px', color: getRoleColor(log.user.role), textDecoration: 'none' }}>
+                              <Link href={`/profile/${log.user.username}`} style={{ fontFamily: 'DM Mono, monospace', fontSize: '12px', color: getRoleColor(log.user.role), textDecoration: 'none' }}>
                                 @{log.user.username}
                               </Link>
                             ) : (
-                              <span style={{ fontFamily: 'DM Mono, monospace', fontSize: '10px', color: 'var(--ink-faint)' }}>compte supprimé</span>
+                              <span style={{ fontFamily: 'DM Mono, monospace', fontSize: '12px', color: 'var(--ink-faint)' }}>compte supprimé</span>
                             )}
                           </div>
-                          <div style={{ fontFamily: 'DM Mono, monospace', fontSize: '9px', color: 'var(--ink-soft)' }}>
+                          <div style={{ fontFamily: 'DM Mono, monospace', fontSize: '11px', color: 'var(--ink-soft)' }}>
                             {log.metadata && Object.keys(log.metadata).filter(k => !['forced', 'by', 'action'].includes(k)).length > 0
                               ? Object.entries(log.metadata).filter(([k]) => !['forced', 'by', 'action'].includes(k)).map(([k, v]) => `${k} : ${v}`).join(' · ')
                               : ''}
                           </div>
-                          <span style={{ fontFamily: 'DM Mono, monospace', fontSize: '9px', color: 'var(--ink-faint)', textAlign: 'right' }}>
+                          <span style={{ fontFamily: 'DM Mono, monospace', fontSize: '11px', color: 'var(--ink-faint)', textAlign: 'right' }}>
                             {new Date(log.createdAt).toLocaleDateString('fr-FR')} {new Date(log.createdAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
                           </span>
                         </div>
@@ -1761,18 +1761,18 @@ export default function AdminPage() {
                       <button
                         onClick={() => setLogPage(p => Math.max(1, p - 1))}
                         disabled={logPage === 1}
-                        style={{ padding: '6px 12px', borderRadius: '6px', border: '1px solid var(--border)', background: 'transparent', fontFamily: 'DM Mono, monospace', fontSize: '10px', color: logPage === 1 ? 'var(--ink-faint)' : 'var(--ink-muted)', cursor: logPage === 1 ? 'not-allowed' : 'pointer' }}
+                        style={{ padding: '6px 12px', borderRadius: '6px', border: '1px solid var(--border)', background: 'transparent', fontFamily: 'DM Mono, monospace', fontSize: '12px', color: logPage === 1 ? 'var(--ink-faint)' : 'var(--ink-muted)', cursor: logPage === 1 ? 'not-allowed' : 'pointer' }}
                       >
                         ← Précédent
                       </button>
                       {Array.from({ length: totalPages }, (_, i) => i + 1).filter(p => p === 1 || p === totalPages || Math.abs(p - logPage) <= 2).map((p, idx, arr) => (
                         <React.Fragment key={p}>
                           {idx > 0 && arr[idx - 1] !== p - 1 && (
-                            <span style={{ fontFamily: 'DM Mono, monospace', fontSize: '10px', color: 'var(--ink-faint)' }}>...</span>
+                            <span style={{ fontFamily: 'DM Mono, monospace', fontSize: '12px', color: 'var(--ink-faint)' }}>...</span>
                           )}
                           <button
                             onClick={() => setLogPage(p)}
-                            style={{ padding: '6px 10px', borderRadius: '6px', border: `1px solid ${logPage === p ? 'var(--gold)' : 'var(--border)'}`, background: logPage === p ? 'var(--gold-pale)' : 'transparent', fontFamily: 'DM Mono, monospace', fontSize: '10px', color: logPage === p ? 'var(--gold)' : 'var(--ink-muted)', cursor: 'pointer' }}
+                            style={{ padding: '6px 10px', borderRadius: '6px', border: `1px solid ${logPage === p ? 'var(--gold)' : 'var(--border)'}`, background: logPage === p ? 'var(--gold-pale)' : 'transparent', fontFamily: 'DM Mono, monospace', fontSize: '12px', color: logPage === p ? 'var(--gold)' : 'var(--ink-muted)', cursor: 'pointer' }}
                           >
                             {p}
                           </button>
@@ -1781,7 +1781,7 @@ export default function AdminPage() {
                       <button
                         onClick={() => setLogPage(p => Math.min(totalPages, p + 1))}
                         disabled={logPage === totalPages}
-                        style={{ padding: '6px 12px', borderRadius: '6px', border: '1px solid var(--border)', background: 'transparent', fontFamily: 'DM Mono, monospace', fontSize: '10px', color: logPage === totalPages ? 'var(--ink-faint)' : 'var(--ink-muted)', cursor: logPage === totalPages ? 'not-allowed' : 'pointer' }}
+                        style={{ padding: '6px 12px', borderRadius: '6px', border: '1px solid var(--border)', background: 'transparent', fontFamily: 'DM Mono, monospace', fontSize: '12px', color: logPage === totalPages ? 'var(--ink-faint)' : 'var(--ink-muted)', cursor: logPage === totalPages ? 'not-allowed' : 'pointer' }}
                       >
                         Suivant →
                       </button>

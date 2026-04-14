@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 interface ConfirmModalProps {
   message: string
@@ -38,7 +38,7 @@ export default function ConfirmModal({ message, onConfirm, onCancel }: ConfirmMo
         </div>
         <div style={{
           fontFamily: 'Spectral, serif',
-          fontSize: '15px',
+          fontSize: '16px',
           color: 'var(--ink-soft)',
           fontStyle: 'italic',
           lineHeight: '1.7',
@@ -58,7 +58,7 @@ export default function ConfirmModal({ message, onConfirm, onCancel }: ConfirmMo
               border: '1px solid var(--border-strong)',
               borderRadius: '6px',
               fontFamily: 'DM Mono, monospace',
-              fontSize: '10px',
+              fontSize: '12px',
               letterSpacing: '0.08em',
               textTransform: 'uppercase' as const,
               cursor: 'pointer',
@@ -76,7 +76,7 @@ export default function ConfirmModal({ message, onConfirm, onCancel }: ConfirmMo
               border: 'none',
               borderRadius: '6px',
               fontFamily: 'DM Mono, monospace',
-              fontSize: '10px',
+              fontSize: '12px',
               letterSpacing: '0.08em',
               textTransform: 'uppercase' as const,
               cursor: 'pointer',

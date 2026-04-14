@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useState, useEffect, useRef } from 'react'
 import api from '@/lib/api'
@@ -131,11 +131,11 @@ function OccurrencesList({ occurrences, activeWord }: {
               onMouseEnter={e => (e.currentTarget as HTMLElement).style.opacity = '0.7'}
               onMouseLeave={e => (e.currentTarget as HTMLElement).style.opacity = '1'}
             >
-              <div style={{ fontFamily: 'DM Mono, monospace', fontSize: '9px', color: 'var(--ink-muted)', marginBottom: '6px' }}>
+              <div style={{ fontFamily: 'DM Mono, monospace', fontSize: '11px', color: 'var(--ink-muted)', marginBottom: '6px' }}>
                 {verse.chapter.book.name} {verse.chapter.number}:{verse.number}
               </div>
               {trans ? (
-                <div style={{ fontFamily: 'Spectral, serif', fontSize: '13px', fontStyle: 'italic', color: 'var(--ink-soft)', lineHeight: '1.6', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' as const }}>
+                <div style={{ fontFamily: 'Spectral, serif', fontSize: '14px', fontStyle: 'italic', color: 'var(--ink-soft)', lineHeight: '1.6', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' as const }}>
                   {idx >= 0 ? (
                     <>
                       {trans.slice(0, idx)}
@@ -158,7 +158,7 @@ function OccurrencesList({ occurrences, activeWord }: {
       {occurrences.length > 5 && (
         <div
           onClick={e => { e.preventDefault(); setShowAll(!showAll) }}
-          style={{ fontFamily: 'DM Mono, monospace', fontSize: '9px', color: 'var(--gold)', padding: '8px 0', cursor: 'pointer', userSelect: 'none' as const }}
+          style={{ fontFamily: 'DM Mono, monospace', fontSize: '11px', color: 'var(--gold)', padding: '8px 0', cursor: 'pointer', userSelect: 'none' as const }}
         >
           {showAll ? '▼ Réduire' : `▶ Voir ${occurrences.length - 5} de plus`}
         </div>
@@ -338,7 +338,7 @@ export default function RightPanel({
                     display: 'inline-block',
                     marginBottom: '14px',
                     fontFamily: 'DM Mono, monospace',
-                    fontSize: '10px',
+                    fontSize: '12px',
                     color: 'var(--ink-muted)',
                     letterSpacing: '0.08em',
                     cursor: 'pointer',
@@ -363,7 +363,7 @@ export default function RightPanel({
               }}>
                 <div style={{
                   fontFamily: 'DM Mono, monospace',
-                  fontSize: '9px',
+                  fontSize: '11px',
                   letterSpacing: '0.12em',
                   textTransform: 'uppercase' as const,
                   color: 'rgba(255,255,255,0.35)',
@@ -401,7 +401,7 @@ export default function RightPanel({
                       }}>
                         <div style={{
                           fontFamily: 'DM Mono, monospace',
-                          fontSize: '9px',
+                          fontSize: '11px',
                           letterSpacing: '0.1em',
                           textTransform: 'uppercase' as const,
                           color: 'var(--green-valid)',
@@ -418,7 +418,7 @@ export default function RightPanel({
                         </div>
                         <div style={{
                           fontFamily: 'Spectral, serif',
-                          fontSize: '15px',
+                          fontSize: '16px',
                           fontStyle: 'italic',
                           color: 'var(--ink)',
                           lineHeight: '1.7',
@@ -445,7 +445,7 @@ export default function RightPanel({
                         }}>
                           <span style={{
                             fontFamily: 'DM Mono, monospace',
-                            fontSize: '9px',
+                            fontSize: '11px',
                             letterSpacing: '0.1em',
                             textTransform: 'uppercase' as const,
                             color: 'var(--ink-muted)',
@@ -469,7 +469,7 @@ export default function RightPanel({
                                 background: 'var(--green-light)',
                                 cursor: 'pointer',
                                 fontFamily: 'DM Mono, monospace',
-                                fontSize: '9px',
+                                fontSize: '11px',
                                 color: 'var(--green-valid)',
                               }}
                             >
@@ -511,7 +511,7 @@ export default function RightPanel({
                     }}>
                       <span style={{
                         fontFamily: 'DM Mono, monospace',
-                        fontSize: '9px',
+                        fontSize: '11px',
                         letterSpacing: '0.1em',
                         textTransform: 'uppercase' as const,
                         color: 'var(--ink-muted)',
@@ -535,7 +535,7 @@ export default function RightPanel({
                             background: 'var(--green-light)',
                             cursor: 'pointer',
                             fontFamily: 'DM Mono, monospace',
-                            fontSize: '9px',
+                            fontSize: '11px',
                             color: 'var(--green-valid)',
                           }}
                         >
@@ -559,7 +559,7 @@ export default function RightPanel({
               {/* Titre Propositions */}
               <div style={{
                 fontFamily: 'DM Mono, monospace',
-                fontSize: '10px',
+                fontSize: '12px',
                 letterSpacing: '0.1em',
                 textTransform: 'uppercase' as const,
                 color: 'var(--ink-muted)',
@@ -573,7 +573,7 @@ export default function RightPanel({
                 {proposals.filter(p => p.status === 'PENDING').length > 0 && (
                   <span style={{
                     fontFamily: 'DM Mono, monospace',
-                    fontSize: '9px',
+                    fontSize: '11px',
                     padding: '1px 6px',
                     borderRadius: '20px',
                     background: 'var(--amber-light)',
@@ -619,7 +619,7 @@ export default function RightPanel({
                     }}>
                       <Link href={p.creator ? `/profile/${p.creator.username}` : '#'} style={{
                         fontFamily: 'DM Mono, monospace',
-                        fontSize: '10px',
+                        fontSize: '12px',
                         color: p.creator ? getRoleColor(p.creator.role) : 'var(--ink-muted)',
                         textDecoration: 'none',
                       }}>
@@ -628,7 +628,7 @@ export default function RightPanel({
                       <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                         <span style={{
                           fontFamily: 'DM Mono, monospace',
-                          fontSize: '9px',
+                          fontSize: '11px',
                           padding: '2px 8px',
                           borderRadius: '20px',
                           background: p.status === 'ACCEPTED' ? 'var(--green-light)' : 'var(--amber-light)',
@@ -659,7 +659,7 @@ export default function RightPanel({
                               background: 'var(--green-light)',
                               cursor: 'pointer',
                               fontFamily: 'DM Mono, monospace',
-                              fontSize: '9px',
+                              fontSize: '11px',
                               color: 'var(--green-valid)',
                             }}
                           >
@@ -687,7 +687,7 @@ export default function RightPanel({
                               background: 'transparent',
                               cursor: 'pointer',
                               fontFamily: 'DM Mono, monospace',
-                              fontSize: '9px',
+                              fontSize: '11px',
                               color: 'var(--red-soft)',
                             }}
                           >
@@ -738,7 +738,7 @@ export default function RightPanel({
                               background: hasVoted ? 'var(--gold-pale)' : 'transparent',
                               cursor: 'pointer',
                               fontFamily: 'DM Mono, monospace',
-                              fontSize: '10px',
+                              fontSize: '12px',
                               color: hasVoted ? 'var(--gold)' : 'var(--ink-soft)',
                             }}
                           >
@@ -747,7 +747,7 @@ export default function RightPanel({
                         )}
                         <span style={{
                           fontFamily: 'DM Mono, monospace',
-                          fontSize: '10px',
+                          fontSize: '12px',
                           color: 'var(--ink-muted)',
                         }}>
                           {voteCount} vote{voteCount !== 1 ? 's' : ''}
@@ -791,7 +791,7 @@ export default function RightPanel({
                                     border: '1px solid rgba(122,42,42,0.3)',
                                     borderRadius: '6px',
                                     fontFamily: 'DM Mono, monospace',
-                                    fontSize: '9px',
+                                    fontSize: '11px',
                                     cursor: 'pointer',
                                   }}
                                 >
@@ -806,7 +806,7 @@ export default function RightPanel({
                                     border: '1px solid var(--border)',
                                     borderRadius: '6px',
                                     fontFamily: 'DM Mono, monospace',
-                                    fontSize: '9px',
+                                    fontSize: '11px',
                                     cursor: 'pointer',
                                   }}
                                 >
@@ -831,7 +831,7 @@ export default function RightPanel({
                                     border: 'none',
                                     borderRadius: '4px',
                                     fontFamily: 'DM Mono, monospace',
-                                    fontSize: '9px',
+                                    fontSize: '11px',
                                     cursor: 'pointer',
                                   }}
                                 >
@@ -846,7 +846,7 @@ export default function RightPanel({
                                     border: '1px solid rgba(122,42,42,0.3)',
                                     borderRadius: '4px',
                                     fontFamily: 'DM Mono, monospace',
-                                    fontSize: '9px',
+                                    fontSize: '11px',
                                     cursor: 'pointer',
                                   }}
                                 >
@@ -877,7 +877,7 @@ export default function RightPanel({
                       borderRadius: '8px',
                       background: 'transparent',
                       fontFamily: 'Spectral, serif',
-                      fontSize: '13px',
+                      fontSize: '14px',
                       fontStyle: 'italic',
                       color: 'var(--ink-muted)',
                       cursor: 'pointer',
@@ -904,7 +904,7 @@ export default function RightPanel({
                   }}>
                     <div style={{
                       fontFamily: 'DM Mono, monospace',
-                      fontSize: '9px',
+                      fontSize: '11px',
                       letterSpacing: '0.1em',
                       textTransform: 'uppercase' as const,
                       color: 'var(--ink-muted)',
@@ -974,7 +974,7 @@ export default function RightPanel({
                           border: 'none',
                           borderRadius: '6px',
                           fontFamily: 'DM Mono, monospace',
-                          fontSize: '10px',
+                          fontSize: '12px',
                           letterSpacing: '0.08em',
                           textTransform: 'uppercase' as const,
                           cursor: submittingProposal ? 'not-allowed' : 'pointer',
@@ -992,7 +992,7 @@ export default function RightPanel({
                           border: '1px solid var(--border)',
                           borderRadius: '6px',
                           fontFamily: 'DM Mono, monospace',
-                          fontSize: '10px',
+                          fontSize: '12px',
                           cursor: 'pointer',
                         }}
                       >
@@ -1005,7 +1005,7 @@ export default function RightPanel({
                 <div style={{
                   marginTop: '16px',
                   fontFamily: 'Spectral, serif',
-                  fontSize: '13px',
+                  fontSize: '14px',
                   color: 'var(--ink-muted)',
                   fontStyle: 'italic',
                   textAlign: 'center',
@@ -1025,7 +1025,7 @@ export default function RightPanel({
                       gap: '8px',
                       cursor: 'pointer',
                       fontFamily: 'DM Mono, monospace',
-                      fontSize: '9px',
+                      fontSize: '11px',
                       letterSpacing: '0.1em',
                       textTransform: 'uppercase' as const,
                       color: 'var(--ink-faint)',
@@ -1055,7 +1055,7 @@ export default function RightPanel({
                       }}>
                         <span style={{
                           fontFamily: 'DM Mono, monospace',
-                          fontSize: '9px',
+                          fontSize: '11px',
                           color: 'var(--ink-muted)',
                         }}>
                           <Link href={p.creator ? `/profile/${p.creator.username}` : '#'} style={{ color: p.creator ? getRoleColor(p.creator.role) : 'var(--ink-muted)', textDecoration: 'none' }}>
@@ -1086,7 +1086,7 @@ export default function RightPanel({
                               border: 'none',
                               background: 'transparent',
                               cursor: 'pointer',
-                              fontSize: '10px',
+                              fontSize: '12px',
                               color: 'var(--red-soft)',
                             }}
                           >
@@ -1097,7 +1097,7 @@ export default function RightPanel({
                       <div style={{ padding: '10px 12px' }}>
                         <div style={{
                           fontFamily: 'Spectral, serif',
-                          fontSize: '13px',
+                          fontSize: '14px',
                           fontStyle: 'italic',
                           color: 'var(--ink-soft)',
                           lineHeight: '1.7',
@@ -1108,7 +1108,7 @@ export default function RightPanel({
                         {p.reason && (
                           <div style={{
                             fontFamily: 'DM Mono, monospace',
-                            fontSize: '9px',
+                            fontSize: '11px',
                             color: 'var(--red-soft)',
                             opacity: 0.8,
                           }}>
@@ -1163,7 +1163,7 @@ export default function RightPanel({
                 {activeWord.translit && (
                   <div style={{
                     fontFamily: 'DM Mono, monospace',
-                    fontSize: '13px',
+                    fontSize: '14px',
                     color: 'var(--gold)',
                     letterSpacing: '0.08em',
                     marginBottom: '12px',
@@ -1175,7 +1175,7 @@ export default function RightPanel({
                   {activeWord.strongNumber && (
                     <span style={{
                       fontFamily: 'DM Mono, monospace',
-                      fontSize: '10px',
+                      fontSize: '12px',
                       padding: '3px 10px',
                       borderRadius: '20px',
                       background: 'var(--blue-light)',
@@ -1188,7 +1188,7 @@ export default function RightPanel({
                   {activeWord.morphology && (
                     <span style={{
                       fontFamily: 'DM Mono, monospace',
-                      fontSize: '10px',
+                      fontSize: '12px',
                       padding: '3px 10px',
                       borderRadius: '20px',
                       background: 'var(--parchment-deep)',
@@ -1201,7 +1201,7 @@ export default function RightPanel({
                   {activeWord.lemma && (
                     <span style={{
                       fontFamily: 'DM Mono, monospace',
-                      fontSize: '10px',
+                      fontSize: '12px',
                       padding: '3px 10px',
                       borderRadius: '20px',
                       background: 'var(--parchment-deep)',
@@ -1216,7 +1216,7 @@ export default function RightPanel({
 
               <div style={{
                 fontFamily: 'DM Mono, monospace',
-                fontSize: '10px',
+                fontSize: '12px',
                 letterSpacing: '0.1em',
                 textTransform: 'uppercase' as const,
                 color: 'var(--ink-muted)',
@@ -1241,7 +1241,7 @@ export default function RightPanel({
                     <>
                       <div style={{
                         fontFamily: 'DM Mono, monospace',
-                        fontSize: '9px',
+                        fontSize: '11px',
                         letterSpacing: '0.1em',
                         textTransform: 'uppercase' as const,
                         color: 'var(--green-valid)',
@@ -1266,7 +1266,7 @@ export default function RightPanel({
                           }}>
                             <div style={{
                               fontFamily: 'Spectral, serif',
-                              fontSize: '15px',
+                              fontSize: '16px',
                               fontStyle: 'italic',
                               color: 'var(--ink)',
                             }}>
@@ -1274,7 +1274,7 @@ export default function RightPanel({
                             </div>
                             <span style={{
                               fontFamily: 'DM Mono, monospace',
-                              fontSize: '9px',
+                              fontSize: '11px',
                               padding: '2px 8px',
                               borderRadius: '20px',
                               background: 'var(--green-light)',
@@ -1291,7 +1291,7 @@ export default function RightPanel({
                             alignItems: 'center',
                             gap: '12px',
                             fontFamily: 'DM Mono, monospace',
-                            fontSize: '10px',
+                            fontSize: '12px',
                             color: 'var(--ink-muted)',
                           }}>
                             {t.creator && (
@@ -1320,7 +1320,7 @@ export default function RightPanel({
                                   background: 'var(--red-light)',
                                   cursor: 'pointer',
                                   fontFamily: 'DM Mono, monospace',
-                                  fontSize: '10px',
+                                  fontSize: '12px',
                                   color: 'var(--red-soft)',
                                 }}
                               >
@@ -1337,7 +1337,7 @@ export default function RightPanel({
                     <>
                       <div style={{
                         fontFamily: 'DM Mono, monospace',
-                        fontSize: '9px',
+                        fontSize: '11px',
                         letterSpacing: '0.1em',
                         textTransform: 'uppercase' as const,
                         color: 'var(--amber-pending)',
@@ -1363,7 +1363,7 @@ export default function RightPanel({
                           }}>
                             <div style={{
                               fontFamily: 'Spectral, serif',
-                              fontSize: '15px',
+                              fontSize: '16px',
                               fontStyle: 'italic',
                               color: 'var(--ink)',
                             }}>
@@ -1371,7 +1371,7 @@ export default function RightPanel({
                             </div>
                             <span style={{
                               fontFamily: 'DM Mono, monospace',
-                              fontSize: '9px',
+                              fontSize: '11px',
                               padding: '2px 8px',
                               borderRadius: '20px',
                               background: 'var(--amber-light)',
@@ -1394,7 +1394,7 @@ export default function RightPanel({
                               alignItems: 'center',
                               gap: '8px',
                               fontFamily: 'DM Mono, monospace',
-                              fontSize: '10px',
+                              fontSize: '12px',
                               color: 'var(--ink-muted)',
                             }}>
                               <span>{t.voteCount} vote{t.voteCount !== 1 ? 's' : ''}</span>
@@ -1427,7 +1427,7 @@ export default function RightPanel({
                                     background: votedIds.has(t.id) ? 'var(--gold-pale)' : 'transparent',
                                     cursor: 'pointer',
                                     fontFamily: 'DM Mono, monospace',
-                                    fontSize: '9px',
+                                    fontSize: '11px',
                                     color: votedIds.has(t.id) ? 'var(--gold)' : 'var(--ink-soft)',
                                   }}
                                 >
@@ -1451,7 +1451,7 @@ export default function RightPanel({
                                     background: 'var(--green-light)',
                                     cursor: 'pointer',
                                     fontFamily: 'DM Mono, monospace',
-                                    fontSize: '9px',
+                                    fontSize: '11px',
                                     color: 'var(--green-valid)',
                                   }}
                                 >
@@ -1479,7 +1479,7 @@ export default function RightPanel({
                                     background: 'var(--red-light)',
                                     cursor: 'pointer',
                                     fontFamily: 'DM Mono, monospace',
-                                    fontSize: '9px',
+                                    fontSize: '11px',
                                     color: 'var(--red-soft)',
                                   }}
                                 >
@@ -1504,7 +1504,7 @@ export default function RightPanel({
                     borderRadius: '8px',
                     background: 'transparent',
                     fontFamily: 'Spectral, serif',
-                    fontSize: '13px',
+                    fontSize: '14px',
                     fontStyle: 'italic',
                     color: 'var(--ink-muted)',
                     cursor: 'pointer',
@@ -1575,7 +1575,7 @@ export default function RightPanel({
                         border: 'none',
                         borderRadius: '6px',
                         fontFamily: 'DM Mono, monospace',
-                        fontSize: '10px',
+                        fontSize: '12px',
                         letterSpacing: '0.08em',
                         textTransform: 'uppercase' as const,
                         cursor: submitting ? 'not-allowed' : 'pointer',
@@ -1593,7 +1593,7 @@ export default function RightPanel({
                         border: '1px solid var(--border)',
                         borderRadius: '6px',
                         fontFamily: 'DM Mono, monospace',
-                        fontSize: '10px',
+                        fontSize: '12px',
                         cursor: 'pointer',
                       }}
                     >
@@ -1607,7 +1607,7 @@ export default function RightPanel({
                 <div style={{ marginTop: '24px', borderTop: '1px solid var(--border)', paddingTop: '20px' }}>
                   <div style={{
                     fontFamily: 'DM Mono, monospace',
-                    fontSize: '10px',
+                    fontSize: '12px',
                     letterSpacing: '0.1em',
                     textTransform: 'uppercase' as const,
                     color: 'var(--ink-muted)',
@@ -1618,15 +1618,15 @@ export default function RightPanel({
                   }}>
                     Occurrences dans la Bible
                     {!loadingOccurrences && occurrences.length > 0 && (
-                      <span style={{ fontFamily: 'DM Mono, monospace', fontSize: '9px', padding: '1px 6px', borderRadius: '20px', background: 'var(--parchment-deep)', color: 'var(--ink-muted)', border: '1px solid var(--border)' }}>
+                      <span style={{ fontFamily: 'DM Mono, monospace', fontSize: '11px', padding: '1px 6px', borderRadius: '20px', background: 'var(--parchment-deep)', color: 'var(--ink-muted)', border: '1px solid var(--border)' }}>
                         {occurrences.length}
                       </span>
                     )}
                   </div>
                   {loadingOccurrences ? (
-                    <div style={{ fontFamily: 'Spectral, serif', fontSize: '13px', color: 'var(--ink-faint)', fontStyle: 'italic' }}>Chargement...</div>
+                    <div style={{ fontFamily: 'Spectral, serif', fontSize: '14px', color: 'var(--ink-faint)', fontStyle: 'italic' }}>Chargement...</div>
                   ) : occurrences.length === 0 ? (
-                    <div style={{ fontFamily: 'Spectral, serif', fontSize: '13px', color: 'var(--ink-faint)', fontStyle: 'italic' }}>Aucune autre occurrence trouvée.</div>
+                    <div style={{ fontFamily: 'Spectral, serif', fontSize: '14px', color: 'var(--ink-faint)', fontStyle: 'italic' }}>Aucune autre occurrence trouvée.</div>
                   ) : (
                     <OccurrencesList occurrences={occurrences} activeWord={activeWord} />
                   )}
@@ -1659,7 +1659,7 @@ export default function RightPanel({
             <div>
               <div style={{
                 fontFamily: 'DM Mono, monospace',
-                fontSize: '10px',
+                fontSize: '12px',
                 letterSpacing: '0.1em',
                 textTransform: 'uppercase' as const,
                 color: 'var(--ink-muted)',
@@ -1701,7 +1701,7 @@ export default function RightPanel({
                         alignItems: 'center',
                         justifyContent: 'center',
                         fontFamily: 'DM Mono, monospace',
-                        fontSize: '9px',
+                        fontSize: '11px',
                         color: 'white',
                         flexShrink: 0,
                       }}>
@@ -1709,7 +1709,7 @@ export default function RightPanel({
                       </div>
                       <Link href={c.creator ? `/profile/${c.creator.username}` : '#'} style={{
                         fontFamily: 'DM Mono, monospace',
-                        fontSize: '10px',
+                        fontSize: '12px',
                         color: c.creator ? getRoleColor(c.creator.role) : 'var(--ink-muted)',
                         textDecoration: 'none',
                       }}>
@@ -1718,7 +1718,7 @@ export default function RightPanel({
                       {c.creator?.role && (
                         <span style={{
                           fontFamily: 'DM Mono, monospace',
-                          fontSize: '9px',
+                          fontSize: '11px',
                           padding: '2px 6px',
                           borderRadius: '20px',
                           background: getRoleBackground(c.creator.role),
@@ -1747,7 +1747,7 @@ export default function RightPanel({
                               background: replyingToId === c.id ? 'var(--gold-pale)' : 'transparent',
                               cursor: 'pointer',
                               fontFamily: 'DM Mono, monospace',
-                              fontSize: '9px',
+                              fontSize: '11px',
                               color: replyingToId === c.id ? 'var(--gold)' : 'var(--ink-muted)',
                             }}
                           >
@@ -1775,7 +1775,7 @@ export default function RightPanel({
                               background: 'transparent',
                               cursor: 'pointer',
                               fontFamily: 'DM Mono, monospace',
-                              fontSize: '9px',
+                              fontSize: '11px',
                               color: 'var(--red-soft)',
                             }}
                           >
@@ -1810,7 +1810,7 @@ export default function RightPanel({
                             borderRadius: '6px',
                             background: 'var(--gold-pale)',
                             fontFamily: 'Spectral, serif',
-                            fontSize: '13px',
+                            fontSize: '14px',
                             color: 'var(--ink)',
                             resize: 'vertical',
                             minHeight: '60px',
@@ -1842,7 +1842,7 @@ export default function RightPanel({
                               border: 'none',
                               borderRadius: '4px',
                               fontFamily: 'DM Mono, monospace',
-                              fontSize: '9px',
+                              fontSize: '11px',
                               cursor: submittingReply ? 'not-allowed' : 'pointer',
                               opacity: submittingReply || !replyText.trim() ? 0.6 : 1,
                             }}
@@ -1858,7 +1858,7 @@ export default function RightPanel({
                               border: '1px solid var(--border)',
                               borderRadius: '4px',
                               fontFamily: 'DM Mono, monospace',
-                              fontSize: '9px',
+                              fontSize: '11px',
                               cursor: 'pointer',
                             }}
                           >
@@ -1897,7 +1897,7 @@ export default function RightPanel({
                               alignItems: 'center',
                               justifyContent: 'center',
                               fontFamily: 'DM Mono, monospace',
-                              fontSize: '8px',
+                              fontSize: '10px',
                               color: 'white',
                               flexShrink: 0,
                             }}>
@@ -1905,7 +1905,7 @@ export default function RightPanel({
                             </div>
                             <Link href={r.creator ? `/profile/${r.creator.username}` : '#'} style={{
                               fontFamily: 'DM Mono, monospace',
-                              fontSize: '10px',
+                              fontSize: '12px',
                               color: r.creator ? getRoleColor(r.creator.role) : 'var(--ink-muted)',
                               textDecoration: 'none',
                             }}>
@@ -1914,7 +1914,7 @@ export default function RightPanel({
                             {r.creator?.role && (
                               <span style={{
                                 fontFamily: 'DM Mono, monospace',
-                                fontSize: '9px',
+                                fontSize: '11px',
                                 padding: '2px 6px',
                                 borderRadius: '20px',
                                 background: getRoleBackground(r.creator.role),
@@ -1946,7 +1946,7 @@ export default function RightPanel({
                                   background: 'transparent',
                                   cursor: 'pointer',
                                   fontFamily: 'DM Mono, monospace',
-                                  fontSize: '9px',
+                                  fontSize: '11px',
                                   color: 'var(--red-soft)',
                                 }}
                               >
@@ -1956,7 +1956,7 @@ export default function RightPanel({
                           </div>
                           <div style={{
                             fontFamily: 'Spectral, serif',
-                            fontSize: '13px',
+                            fontSize: '14px',
                             color: 'var(--ink-soft)',
                             lineHeight: '1.65',
                           }}>
@@ -2000,7 +2000,7 @@ export default function RightPanel({
                         border: `1px solid ${insertMode === 'verse' ? 'var(--blue-sacred)' : 'var(--border)'}`,
                         background: insertMode === 'verse' ? 'var(--blue-light)' : 'transparent',
                         fontFamily: 'DM Mono, monospace',
-                        fontSize: '9px',
+                        fontSize: '11px',
                         color: insertMode === 'verse' ? 'var(--blue-sacred)' : 'var(--ink-muted)',
                         cursor: 'pointer',
                       }}
@@ -2015,7 +2015,7 @@ export default function RightPanel({
                         border: `1px solid ${insertMode === 'link' ? 'var(--gold)' : 'var(--border)'}`,
                         background: insertMode === 'link' ? 'var(--gold-pale)' : 'transparent',
                         fontFamily: 'DM Mono, monospace',
-                        fontSize: '9px',
+                        fontSize: '11px',
                         color: insertMode === 'link' ? 'var(--gold)' : 'var(--ink-muted)',
                         cursor: 'pointer',
                       }}
@@ -2038,7 +2038,7 @@ export default function RightPanel({
                         <div style={{ display: 'flex', gap: '4px' }}>
                           {(['AT', 'NT'] as const).map(t => (
                             <button key={t} onClick={() => { setInsertTestament(t); setInsertBook(''); setInsertChapter(''); setInsertVerse('') }}
-                              style={{ padding: '3px 8px', borderRadius: '20px', border: `1px solid ${insertTestament === t ? 'var(--blue-sacred)' : 'rgba(42,74,122,0.2)'}`, background: insertTestament === t ? 'var(--blue-sacred)' : 'transparent', fontFamily: 'DM Mono, monospace', fontSize: '9px', color: insertTestament === t ? 'white' : 'var(--blue-sacred)', cursor: 'pointer' }}>
+                              style={{ padding: '3px 8px', borderRadius: '20px', border: `1px solid ${insertTestament === t ? 'var(--blue-sacred)' : 'rgba(42,74,122,0.2)'}`, background: insertTestament === t ? 'var(--blue-sacred)' : 'transparent', fontFamily: 'DM Mono, monospace', fontSize: '11px', color: insertTestament === t ? 'white' : 'var(--blue-sacred)', cursor: 'pointer' }}>
                               {t}
                             </button>
                           ))}
@@ -2048,7 +2048,7 @@ export default function RightPanel({
                         <select
                           value={insertBook}
                           onChange={e => { setInsertBook(e.target.value); setInsertChapter(''); setInsertVerse('') }}
-                          style={{ padding: '3px 6px', border: '1px solid rgba(42,74,122,0.2)', borderRadius: '4px', background: 'white', fontFamily: 'DM Mono, monospace', fontSize: '9px', color: 'var(--ink)', outline: 'none' }}
+                          style={{ padding: '3px 6px', border: '1px solid rgba(42,74,122,0.2)', borderRadius: '4px', background: 'white', fontFamily: 'DM Mono, monospace', fontSize: '11px', color: 'var(--ink)', outline: 'none' }}
                         >
                           <option value="">Livre</option>
                           {booksByTestament[insertTestament].map(b => <option key={b} value={b}>{b}</option>)}
@@ -2062,7 +2062,7 @@ export default function RightPanel({
                             placeholder="Ch."
                             value={insertChapter}
                             onChange={e => { setInsertChapter(e.target.value); setInsertVerse('') }}
-                            style={{ width: '50px', padding: '3px 6px', border: '1px solid rgba(42,74,122,0.2)', borderRadius: '4px', background: 'white', fontFamily: 'DM Mono, monospace', fontSize: '9px', color: 'var(--ink)', outline: 'none' }}
+                            style={{ width: '50px', padding: '3px 6px', border: '1px solid rgba(42,74,122,0.2)', borderRadius: '4px', background: 'white', fontFamily: 'DM Mono, monospace', fontSize: '11px', color: 'var(--ink)', outline: 'none' }}
                           />
                         )}
 
@@ -2074,7 +2074,7 @@ export default function RightPanel({
                             placeholder="V."
                             value={insertVerse}
                             onChange={e => setInsertVerse(e.target.value)}
-                            style={{ width: '50px', padding: '3px 6px', border: '1px solid rgba(42,74,122,0.2)', borderRadius: '4px', background: 'white', fontFamily: 'DM Mono, monospace', fontSize: '9px', color: 'var(--ink)', outline: 'none' }}
+                            style={{ width: '50px', padding: '3px 6px', border: '1px solid rgba(42,74,122,0.2)', borderRadius: '4px', background: 'white', fontFamily: 'DM Mono, monospace', fontSize: '11px', color: 'var(--ink)', outline: 'none' }}
                           />
                         )}
 
@@ -2101,7 +2101,7 @@ export default function RightPanel({
                               setInsertChapter('')
                               setInsertVerse('')
                             }}
-                            style={{ padding: '3px 10px', borderRadius: '4px', border: 'none', background: 'var(--blue-sacred)', color: 'white', fontFamily: 'DM Mono, monospace', fontSize: '9px', cursor: 'pointer' }}
+                            style={{ padding: '3px 10px', borderRadius: '4px', border: 'none', background: 'var(--blue-sacred)', color: 'white', fontFamily: 'DM Mono, monospace', fontSize: '11px', cursor: 'pointer' }}
                           >
                             ✓ Insérer
                           </button>
@@ -2132,7 +2132,7 @@ export default function RightPanel({
                           placeholder="https://..."
                           value={insertLinkUrl}
                           onChange={e => setInsertLinkUrl(e.target.value)}
-                          style={{ flex: 2, minWidth: '150px', padding: '3px 6px', border: '1px solid rgba(184,132,58,0.2)', borderRadius: '4px', background: 'white', fontFamily: 'DM Mono, monospace', fontSize: '9px', color: 'var(--ink)', outline: 'none' }}
+                          style={{ flex: 2, minWidth: '150px', padding: '3px 6px', border: '1px solid rgba(184,132,58,0.2)', borderRadius: '4px', background: 'white', fontFamily: 'DM Mono, monospace', fontSize: '11px', color: 'var(--ink)', outline: 'none' }}
                         />
                         {insertLinkText && insertLinkUrl && (
                           <button
@@ -2155,7 +2155,7 @@ export default function RightPanel({
                               setInsertLinkText('')
                               setInsertLinkUrl('')
                             }}
-                            style={{ padding: '3px 10px', borderRadius: '4px', border: 'none', background: 'var(--gold)', color: 'white', fontFamily: 'DM Mono, monospace', fontSize: '9px', cursor: 'pointer' }}
+                            style={{ padding: '3px 10px', borderRadius: '4px', border: 'none', background: 'var(--gold)', color: 'white', fontFamily: 'DM Mono, monospace', fontSize: '11px', cursor: 'pointer' }}
                           >
                             ✓ Insérer
                           </button>
@@ -2185,7 +2185,7 @@ export default function RightPanel({
                       border: 'none',
                       borderRadius: '6px',
                       fontFamily: 'DM Mono, monospace',
-                      fontSize: '10px',
+                      fontSize: '12px',
                       letterSpacing: '0.08em',
                       textTransform: 'uppercase' as const,
                       cursor: submittingComment ? 'not-allowed' : 'pointer',
@@ -2199,7 +2199,7 @@ export default function RightPanel({
                 <div style={{
                   marginTop: '20px',
                   fontFamily: 'Spectral, serif',
-                  fontSize: '13px',
+                  fontSize: '14px',
                   color: 'var(--ink-muted)',
                   fontStyle: 'italic',
                   textAlign: 'center',

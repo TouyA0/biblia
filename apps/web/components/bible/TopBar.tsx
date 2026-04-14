@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 interface TopBarProps {
   testament?: 'AT' | 'NT'
@@ -106,7 +106,7 @@ export default function TopBar({ testament, book, chapter, showSearch = true, sh
               <a key={tab.short} href={tab.href} style={{
                 padding: '6px 12px',
                 fontFamily: 'DM Mono, monospace',
-                fontSize: '11px',
+                fontSize: '12px',
                 letterSpacing: '0.08em',
                 color: tab.active ? 'var(--gold-light)' : 'rgba(255,255,255,0.45)',
                 borderRadius: '4px',
@@ -140,7 +140,7 @@ export default function TopBar({ testament, book, chapter, showSearch = true, sh
           <>
             <span className="hide-narrow" style={{
               fontFamily: 'DM Mono, monospace',
-              fontSize: '10px',
+              fontSize: '12px',
               letterSpacing: '0.1em',
               textTransform: 'uppercase' as const,
               padding: '4px 10px',
@@ -155,7 +155,7 @@ export default function TopBar({ testament, book, chapter, showSearch = true, sh
             {user.role === 'ADMIN' && (
               <Link href="/admin" className="hide-narrow" style={{
                 fontFamily: 'DM Mono, monospace',
-                fontSize: '10px',
+                fontSize: '12px',
                 color: '#e88',
                 letterSpacing: '0.08em',
                 textDecoration: 'none',
@@ -170,7 +170,7 @@ export default function TopBar({ testament, book, chapter, showSearch = true, sh
             )}
             <Link href="/contributeurs" className="hide-narrow" style={{
               fontFamily: 'DM Mono, monospace',
-              fontSize: '10px',
+              fontSize: '12px',
               color: 'rgba(255,255,255,0.5)',
               textDecoration: 'none',
               letterSpacing: '0.08em',
@@ -181,7 +181,7 @@ export default function TopBar({ testament, book, chapter, showSearch = true, sh
             <NotificationBell />
             <Link href="/profile" style={{
               fontFamily: 'DM Mono, monospace',
-              fontSize: '10px',
+              fontSize: '12px',
               color: 'rgba(255,255,255,0.6)',
               letterSpacing: '0.08em',
               textDecoration: 'none',
@@ -202,7 +202,7 @@ export default function TopBar({ testament, book, chapter, showSearch = true, sh
               }}
               style={{
                 fontFamily: 'DM Mono, monospace',
-                fontSize: '10px',
+                fontSize: '12px',
                 color: 'rgba(255,255,255,0.4)',
                 background: 'transparent',
                 border: 'none',
@@ -218,7 +218,7 @@ export default function TopBar({ testament, book, chapter, showSearch = true, sh
           <>
             <span className="hide-mobile" style={{
               fontFamily: 'DM Mono, monospace',
-              fontSize: '10px',
+              fontSize: '12px',
               letterSpacing: '0.1em',
               textTransform: 'uppercase' as const,
               padding: '4px 10px',
@@ -231,7 +231,7 @@ export default function TopBar({ testament, book, chapter, showSearch = true, sh
             </span>
             <a href="/login" style={{
               fontFamily: 'DM Mono, monospace',
-              fontSize: '10px',
+              fontSize: '12px',
               color: 'rgba(255,255,255,0.5)',
               textDecoration: 'none',
               letterSpacing: '0.08em',

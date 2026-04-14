@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
@@ -54,7 +54,7 @@ export default function HomePage() {
             textDecoration: 'none',
             borderRadius: '6px',
             fontFamily: 'DM Mono, monospace',
-            fontSize: '11px',
+            fontSize: '12px',
             letterSpacing: '0.1em',
             textTransform: 'uppercase',
           }}>
@@ -67,7 +67,7 @@ export default function HomePage() {
             textDecoration: 'none',
             borderRadius: '6px',
             fontFamily: 'DM Mono, monospace',
-            fontSize: '11px',
+            fontSize: '12px',
             letterSpacing: '0.1em',
             textTransform: 'uppercase',
             border: '1px solid var(--border-strong)',

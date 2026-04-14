@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useState, useRef, useEffect, useCallback } from 'react'
 import api from '@/lib/api'
@@ -84,13 +84,13 @@ export default function SearchBar() {
             border: 'none',
             outline: 'none',
             fontFamily: 'Spectral, serif',
-            fontSize: '13px',
+            fontSize: '14px',
             color: 'rgba(255,255,255,0.8)',
             letterSpacing: '0.02em',
           }}
         />
         {loading && (
-          <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: '10px', flexShrink: 0 }}>…</span>
+          <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: '12px', flexShrink: 0 }}>…</span>
         )}
         {query && !loading && (
           <button
@@ -119,7 +119,7 @@ export default function SearchBar() {
           <div style={{
             padding: '8px 12px',
             fontFamily: 'DM Mono, monospace',
-            fontSize: '9px',
+            fontSize: '11px',
             letterSpacing: '0.1em',
             textTransform: 'uppercase' as const,
             color: 'var(--ink-muted)',
@@ -148,7 +148,7 @@ export default function SearchBar() {
               >
                 <div style={{
                   fontFamily: 'DM Mono, monospace',
-                  fontSize: '9px',
+                  fontSize: '11px',
                   color: 'var(--gold)',
                   marginBottom: '4px',
                 }}>
@@ -156,13 +156,13 @@ export default function SearchBar() {
                 </div>
                 {translation && (
                   <div
-                    style={{ fontFamily: 'Spectral, serif', fontSize: '13px', fontStyle: 'italic', color: 'var(--ink-soft)', lineHeight: '1.5', marginBottom: original ? '4px' : 0 }}
+                    style={{ fontFamily: 'Spectral, serif', fontSize: '14px', fontStyle: 'italic', color: 'var(--ink-soft)', lineHeight: '1.5', marginBottom: original ? '4px' : 0 }}
                     dangerouslySetInnerHTML={{ __html: highlight(translation, query) }}
                   />
                 )}
                 {original && (
                   <div
-                    style={{ fontFamily: 'DM Mono, monospace', fontSize: '11px', color: 'var(--ink-faint)', direction: verse.texts[0]?.language === 'HEB' ? 'rtl' : 'ltr' }}
+                    style={{ fontFamily: 'DM Mono, monospace', fontSize: '12px', color: 'var(--ink-faint)', direction: verse.texts[0]?.language === 'HEB' ? 'rtl' : 'ltr' }}
                     dangerouslySetInnerHTML={{ __html: highlight(original, query) }}
                   />
                 )}
@@ -170,7 +170,7 @@ export default function SearchBar() {
             )
           })}
           {results.length === 20 && (
-            <div style={{ padding: '8px 14px', fontFamily: 'DM Mono, monospace', fontSize: '9px', color: 'var(--ink-faint)', textAlign: 'center' }}>
+            <div style={{ padding: '8px 14px', fontFamily: 'DM Mono, monospace', fontSize: '11px', color: 'var(--ink-faint)', textAlign: 'center' }}>
               Affichage limité à 20 résultats — affinez votre recherche
             </div>
           )}
@@ -191,7 +191,7 @@ export default function SearchBar() {
           padding: '16px',
           textAlign: 'center',
           fontFamily: 'Spectral, serif',
-          fontSize: '13px',
+          fontSize: '14px',
           color: 'var(--ink-faint)',
           fontStyle: 'italic',
         }}>

@@ -46,10 +46,10 @@
   --font-mono:   'DM Mono', 'Courier New', monospace;
 
   /* ── Échelle de taille ── */
-  --text-xs:   11px;   /* Labels, metadata */
-  --text-sm:   13px;   /* Texte secondaire */
-  --text-base: 15px;   /* Texte courant */
-  --text-lg:   17px;   /* Titres de section */
+  --text-xs:   12px;   /* Labels, metadata */
+  --text-sm:   14px;   /* Texte secondaire */
+  --text-base: 16px;   /* Texte courant */
+  --text-lg:   18px;   /* Titres de section */
   --text-xl:   22px;   /* Titres */
   --text-2xl:  32px;   /* Grands titres */
   --text-3xl:  44px;   /* Titres héroïques */
@@ -156,7 +156,7 @@ body {
   color: var(--ink);
   font-family: var(--font-serif);
   font-size: var(--text-base);
-  line-height: 1.6;
+  line-height: 1.75;
   -webkit-font-smoothing: antialiased;
 }
 
@@ -211,7 +211,7 @@ textarea::placeholder {
   justify-content: space-between;
   padding: 7px 16px;
   font-family: var(--font-serif);
-  font-size: 13.5px;
+  font-size: 14px;
   color: var(--ink-soft);
   border-left: 2px solid transparent;
   text-decoration: none;
@@ -280,10 +280,10 @@ textarea::placeholder {
 
 .verse-french {
   font-family: var(--font-serif);
-  font-size: 15px;
+  font-size: 16px;
   color: var(--ink-soft);
   font-style: italic;
-  line-height: 1.75;
+  line-height: 1.8;
 }
 
 .word-token {
