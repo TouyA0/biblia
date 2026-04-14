@@ -1,7 +1,7 @@
 ﻿'use client'
 
 import { useEffect, useState } from 'react'
-import { useParams, useSearchParams } from 'next/navigation'
+import { useParams, useSearchParams, useRouter } from 'next/navigation'
 import api from '@/lib/api'
 import TopBar from './TopBar'
 import Sidebar from './Sidebar'
@@ -113,6 +113,7 @@ export default function BibleLayout({ testament }: BibleLayoutProps) {
   const book = params.book as string
   const chapter = params.chapter as string
   const searchParams = useSearchParams()
+  const router = useRouter()
 
   const [bookData, setBookData] = useState<Book | null>(null)
   const [chapterData, setChapterData] = useState<Chapter | null>(null)
@@ -405,52 +406,90 @@ export default function BibleLayout({ testament }: BibleLayoutProps) {
           />
         )}
 
-        {/* Bouton plein écran — desktop uniquement */}
-        {isDesktop && (
-          <button
-            onClick={() => setFullscreen(f => !f)}
-            title={fullscreen ? 'Quitter le mode lecture' : 'Mode lecture'}
-            style={{
-              position: 'fixed',
-              bottom: '24px',
-              right: fullscreen ? '24px' : '384px',
-              zIndex: 100,
-              width: '32px',
-              height: '32px',
-              borderRadius: '6px',
-              border: '1px solid var(--border)',
-              background: 'var(--parchment-dark)',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: 'var(--ink-muted)',
-              fontSize: '12px',
-              fontFamily: 'DM Mono, monospace',
-              letterSpacing: '-0.05em',
-              boxShadow: '0 2px 8px rgba(26,22,18,0.12)',
-              transition: 'right 0.3s ease',
-            }}
-            onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = 'var(--gold-pale)'}
-            onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = 'var(--parchment-dark)'}
-          >
-            {fullscreen ? (
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <polyline points="4 14 10 14 10 20"/>
-                <polyline points="20 10 14 10 14 4"/>
-                <line x1="10" y1="14" x2="3" y2="21"/>
-                <line x1="21" y1="3" x2="14" y2="10"/>
-              </svg>
-            ) : (
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <polyline points="15 3 21 3 21 9"/>
-                <polyline points="9 21 3 21 3 15"/>
-                <line x1="21" y1="3" x2="14" y2="10"/>
-                <line x1="3" y1="21" x2="10" y2="14"/>
-              </svg>
-            )}
-          </button>
-        )}
+        {/* Boutons navigation chapitre + plein écran */}
+        {bookData && (() => {
+          const chapterNum = Number(chapter)
+          const canGoPrev = chapterNum > 1
+          const canGoNext = chapterNum < bookData.chapterCount
+          const base = testament.toLowerCase()
+          // Décalage horizontal selon desktop/fullscreen
+          const offset = isDesktop ? (fullscreen ? 24 : 384) : 24
+          const btnStyle = (right: number, disabled?: boolean): React.CSSProperties => ({
+            position: 'fixed',
+            bottom: '24px',
+            right: `${right}px`,
+            zIndex: 100,
+            width: '32px',
+            height: '32px',
+            borderRadius: '6px',
+            border: '1px solid var(--border)',
+            background: 'var(--parchment-dark)',
+            cursor: disabled ? 'default' : 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: 'var(--ink-muted)',
+            boxShadow: '0 2px 8px rgba(26,22,18,0.12)',
+            transition: 'right 0.3s ease',
+            opacity: disabled ? 0.3 : 1,
+          })
+          return (
+            <>
+              {/* Précédent */}
+              <button
+                onClick={() => canGoPrev && router.push(`/${base}/${book}/${chapterNum - 1}`)}
+                title="Chapitre précédent"
+                style={btnStyle(offset + 80, !canGoPrev)}
+                onMouseEnter={e => { if (canGoPrev) (e.currentTarget as HTMLElement).style.background = 'var(--gold-pale)' }}
+                onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = 'var(--parchment-dark)'}
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                  <polyline points="15 18 9 12 15 6"/>
+                </svg>
+              </button>
+
+              {/* Suivant */}
+              <button
+                onClick={() => canGoNext && router.push(`/${base}/${book}/${chapterNum + 1}`)}
+                title="Chapitre suivant"
+                style={btnStyle(offset + 40, !canGoNext)}
+                onMouseEnter={e => { if (canGoNext) (e.currentTarget as HTMLElement).style.background = 'var(--gold-pale)' }}
+                onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = 'var(--parchment-dark)'}
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                  <polyline points="9 18 15 12 9 6"/>
+                </svg>
+              </button>
+
+              {/* Plein écran — desktop uniquement */}
+              {isDesktop && (
+                <button
+                  onClick={() => setFullscreen(f => !f)}
+                  title={fullscreen ? 'Quitter le mode lecture' : 'Mode lecture'}
+                  style={btnStyle(offset)}
+                  onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = 'var(--gold-pale)'}
+                  onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = 'var(--parchment-dark)'}
+                >
+                  {fullscreen ? (
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <polyline points="4 14 10 14 10 20"/>
+                      <polyline points="20 10 14 10 14 4"/>
+                      <line x1="10" y1="14" x2="3" y2="21"/>
+                      <line x1="21" y1="3" x2="14" y2="10"/>
+                    </svg>
+                  ) : (
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <polyline points="15 3 21 3 21 9"/>
+                      <polyline points="9 21 3 21 3 15"/>
+                      <line x1="21" y1="3" x2="14" y2="10"/>
+                      <line x1="3" y1="21" x2="10" y2="14"/>
+                    </svg>
+                  )}
+                </button>
+              )}
+            </>
+          )
+        })()}
 
         {/* RightPanel — dans la grille sur desktop, dans un drawer sinon */}
         {isDesktop ? (
