@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 
 type FontSize = 'S' | 'M' | 'L'
 
@@ -53,18 +53,51 @@ interface VerseListProps {
   chapter: string
   activeVerseId: string | null
   activeWordId: string | null
+  storageKey: string
   onVerseClick: (verse: Verse) => void
   onWordClick: (token: WordToken, x: number, y: number) => void
 }
 
-export default function VerseList({ verses, bookName, chapter, activeVerseId, activeWordId, onVerseClick, onWordClick }: VerseListProps) {
+export default function VerseList({ verses, bookName, chapter, activeVerseId, activeWordId, storageKey, onVerseClick, onWordClick }: VerseListProps) {
   const [copiedId, setCopiedId] = useState<string | null>(null)
   const [fontSize, setFontSizeState] = useState<FontSize>('S')
+  const scrollRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     const saved = localStorage.getItem('verse_font_size') as FontSize | null
     if (saved && ['S', 'M', 'L'].includes(saved)) setFontSizeState(saved)
   }, [])
+
+  // Sauvegarde de la position de lecture
+  useEffect(() => {
+    const el = scrollRef.current
+    if (!el) return
+    let timer: ReturnType<typeof setTimeout>
+    const onScroll = () => {
+      clearTimeout(timer)
+      timer = setTimeout(() => {
+        const containerTop = el.getBoundingClientRect().top
+        const verseEls = el.querySelectorAll('[id^="v"]')
+        for (const v of Array.from(verseEls)) {
+          const rect = v.getBoundingClientRect()
+          if (rect.bottom > containerTop + 10) {
+            const num = Number((v as HTMLElement).id.slice(1))
+            if (num > 1) {
+              localStorage.setItem(storageKey, String(num))
+            } else {
+              localStorage.removeItem(storageKey)
+            }
+            break
+          }
+        }
+      }, 400)
+    }
+    el.addEventListener('scroll', onScroll, { passive: true })
+    return () => {
+      el.removeEventListener('scroll', onScroll)
+      clearTimeout(timer)
+    }
+  }, [storageKey])
 
   function setFontSize(size: FontSize) {
     setFontSizeState(size)
@@ -72,7 +105,7 @@ export default function VerseList({ verses, bookName, chapter, activeVerseId, ac
   }
 
   return (
-    <div className="verse-list-scroll" data-verse-size={fontSize}>
+    <div ref={scrollRef} className="verse-list-scroll" data-verse-size={fontSize}>
       <div className="verse-list-inner">
 
         {/* En-tête : livre + chapitre + contrôle taille */}

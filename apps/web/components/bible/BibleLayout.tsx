@@ -139,6 +139,8 @@ export default function BibleLayout({ testament }: BibleLayoutProps) {
     loadData()
   }, [book, chapter])
 
+  const storageKey = `scroll_pos_${book}_${chapter}`
+
   useEffect(() => {
     if (loading || !chapterData) return
     const hash = window.location.hash
@@ -163,6 +165,16 @@ export default function BibleLayout({ testament }: BibleLayoutProps) {
             setVerseTranslations(proposalsRes.data.translations)
           }).catch(console.error)
         }
+      }
+    } else if (!searchParams.get('verse') && !searchParams.get('word')) {
+      // Restaurer la position de lecture sauvegardée
+      const saved = localStorage.getItem(storageKey)
+      if (saved) {
+        const verseNum = Number(saved)
+        setTimeout(() => {
+          const el = document.getElementById(`v${verseNum}`)
+          if (el) el.scrollIntoView({ behavior: 'instant', block: 'start' })
+        }, 100)
       }
     }
   }, [loading, chapterData])
@@ -366,6 +378,7 @@ export default function BibleLayout({ testament }: BibleLayoutProps) {
             chapter={chapter}
             activeVerseId={activeVerse?.id || null}
             activeWordId={activeWord?.id || null}
+            storageKey={storageKey}
             onVerseClick={async (verse) => {
               setActiveVerse(verse)
               setActiveTab('verse')
