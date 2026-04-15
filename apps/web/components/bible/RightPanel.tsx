@@ -354,7 +354,7 @@ export default function RightPanel({
 
               {/* Texte original */}
               <div style={{
-                background: 'var(--ink)',
+                background: 'var(--surface-dark)',
                 borderRadius: '10px',
                 padding: '18px 20px',
                 marginBottom: '20px',
@@ -500,7 +500,7 @@ export default function RightPanel({
                     border: '1px solid var(--border)',
                     borderRadius: '8px',
                     padding: '12px 14px',
-                    background: 'white',
+                    background: 'var(--card-bg)',
                     marginBottom: '8px',
                   }}>
                     <div style={{
@@ -607,7 +607,7 @@ export default function RightPanel({
                     borderRadius: '8px',
                     overflow: 'hidden',
                     marginBottom: '12px',
-                    background: 'white',
+                    background: 'var(--card-bg)',
                   }}>
                     <div style={{
                       display: 'flex',
@@ -899,7 +899,7 @@ export default function RightPanel({
                     border: '1px solid var(--border)',
                     borderRadius: '8px',
                     padding: '12px',
-                    background: 'white',
+                    background: 'var(--card-bg)',
                     marginTop: '4px',
                   }}>
                     <div style={{
@@ -1042,7 +1042,7 @@ export default function RightPanel({
                       borderRadius: '8px',
                       overflow: 'hidden',
                       marginBottom: '8px',
-                      background: 'white',
+                      background: 'var(--card-bg)',
                       opacity: 0.7,
                     }}>
                       <div style={{
@@ -1371,7 +1371,7 @@ export default function RightPanel({
                           borderRadius: '8px',
                           padding: '12px 14px',
                           marginBottom: '8px',
-                          background: 'white',
+                          background: 'var(--card-bg)',
                         }}>
                           <div style={{
                             display: 'flex',
@@ -1544,7 +1544,7 @@ export default function RightPanel({
                   border: '1px solid var(--border)',
                   borderRadius: '8px',
                   padding: '12px',
-                  background: 'white',
+                  background: 'var(--card-bg)',
                   marginTop: '4px',
                 }}>
                   {error && (
@@ -1998,7 +1998,7 @@ export default function RightPanel({
                       padding: '10px 12px',
                       border: '1px solid var(--border)',
                       borderRadius: '8px',
-                      background: 'white',
+                      background: 'var(--card-bg)',
                       fontFamily: 'Spectral, serif',
                       fontSize: '13.5px',
                       color: 'var(--ink)',
@@ -2066,7 +2066,7 @@ export default function RightPanel({
                         <select
                           value={insertBook}
                           onChange={e => { setInsertBook(e.target.value); setInsertChapter(''); setInsertVerse('') }}
-                          style={{ padding: '3px 6px', border: '1px solid rgba(42,74,122,0.2)', borderRadius: '4px', background: 'white', fontFamily: 'DM Mono, monospace', fontSize: '11px', color: 'var(--ink)', outline: 'none' }}
+                          style={{ padding: '3px 6px', border: '1px solid rgba(42,74,122,0.2)', borderRadius: '4px', background: 'var(--card-bg)', fontFamily: 'DM Mono, monospace', fontSize: '11px', color: 'var(--ink)', outline: 'none' }}
                         >
                           <option value="">Livre</option>
                           {booksByTestament[insertTestament].map(b => <option key={b} value={b}>{b}</option>)}
@@ -2080,7 +2080,7 @@ export default function RightPanel({
                             placeholder="Ch."
                             value={insertChapter}
                             onChange={e => { setInsertChapter(e.target.value); setInsertVerse('') }}
-                            style={{ width: '50px', padding: '3px 6px', border: '1px solid rgba(42,74,122,0.2)', borderRadius: '4px', background: 'white', fontFamily: 'DM Mono, monospace', fontSize: '11px', color: 'var(--ink)', outline: 'none' }}
+                            style={{ width: '50px', padding: '3px 6px', border: '1px solid rgba(42,74,122,0.2)', borderRadius: '4px', background: 'var(--card-bg)', fontFamily: 'DM Mono, monospace', fontSize: '11px', color: 'var(--ink)', outline: 'none' }}
                           />
                         )}
 
@@ -2092,7 +2092,7 @@ export default function RightPanel({
                             placeholder="V."
                             value={insertVerse}
                             onChange={e => setInsertVerse(e.target.value)}
-                            style={{ width: '50px', padding: '3px 6px', border: '1px solid rgba(42,74,122,0.2)', borderRadius: '4px', background: 'white', fontFamily: 'DM Mono, monospace', fontSize: '11px', color: 'var(--ink)', outline: 'none' }}
+                            style={{ width: '50px', padding: '3px 6px', border: '1px solid rgba(42,74,122,0.2)', borderRadius: '4px', background: 'var(--card-bg)', fontFamily: 'DM Mono, monospace', fontSize: '11px', color: 'var(--ink)', outline: 'none' }}
                           />
                         )}
 
@@ -2143,14 +2143,14 @@ export default function RightPanel({
                           placeholder="Texte du lien"
                           value={insertLinkText}
                           onChange={e => setInsertLinkText(e.target.value)}
-                          style={{ flex: 1, minWidth: '100px', padding: '3px 6px', border: '1px solid rgba(184,132,58,0.2)', borderRadius: '4px', background: 'white', fontFamily: 'Spectral, serif', fontSize: '12px', color: 'var(--ink)', outline: 'none' }}
+                          style={{ flex: 1, minWidth: '100px', padding: '3px 6px', border: '1px solid rgba(184,132,58,0.2)', borderRadius: '4px', background: 'var(--card-bg)', fontFamily: 'Spectral, serif', fontSize: '12px', color: 'var(--ink)', outline: 'none' }}
                         />
                         <input
                           type="url"
                           placeholder="https://..."
                           value={insertLinkUrl}
                           onChange={e => setInsertLinkUrl(e.target.value)}
-                          style={{ flex: 2, minWidth: '150px', padding: '3px 6px', border: '1px solid rgba(184,132,58,0.2)', borderRadius: '4px', background: 'white', fontFamily: 'DM Mono, monospace', fontSize: '11px', color: 'var(--ink)', outline: 'none' }}
+                          style={{ flex: 2, minWidth: '150px', padding: '3px 6px', border: '1px solid rgba(184,132,58,0.2)', borderRadius: '4px', background: 'var(--card-bg)', fontFamily: 'DM Mono, monospace', fontSize: '11px', color: 'var(--ink)', outline: 'none' }}
                         />
                         {insertLinkText && insertLinkUrl && (
                           <button

@@ -69,7 +69,7 @@ export default function ContributeursPage() {
               padding: '10px 14px',
               border: '1px solid var(--border)',
               borderRadius: '8px',
-              background: 'white',
+              background: 'var(--card-bg)',
               fontFamily: 'Spectral, serif',
               fontSize: '14px',
               color: 'var(--ink)',
@@ -87,14 +87,14 @@ export default function ContributeursPage() {
             { key: 'comments', label: 'Commentaires' },
           ] as const).map(s => (
             <button key={s.key} onClick={() => setSortBy(s.key)}
-              style={{ padding: '5px 12px', borderRadius: '20px', border: `1px solid ${sortBy === s.key ? 'var(--gold)' : 'var(--border)'}`, background: sortBy === s.key ? 'var(--gold-pale)' : 'white', fontFamily: 'DM Mono, monospace', fontSize: '11px', color: sortBy === s.key ? 'var(--gold)' : 'var(--ink-muted)', cursor: 'pointer' }}>
+              style={{ padding: '5px 12px', borderRadius: '20px', border: `1px solid ${sortBy === s.key ? 'var(--gold)' : 'var(--border)'}`, background: sortBy === s.key ? 'var(--gold-pale)' : 'var(--card-bg)', fontFamily: 'DM Mono, monospace', fontSize: '11px', color: sortBy === s.key ? 'var(--gold)' : 'var(--ink-muted)', cursor: 'pointer' }}>
               {s.label}
             </button>
           ))}
         </div>
 
         {/* Liste */}
-        <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: '10px', overflow: 'hidden' }}>
+        <div style={{ background: 'var(--card-bg)', border: '1px solid var(--border)', borderRadius: '10px', overflow: 'hidden' }}>
           {sorted.map((u, i) => {
             const total = u._count.wordTranslations + u._count.proposals + u._count.comments
             const max = sorted[0] ? sorted[0]._count.wordTranslations + sorted[0]._count.proposals + sorted[0]._count.comments : 1

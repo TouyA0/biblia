@@ -79,6 +79,54 @@
   /* ── Transitions ── */
   --transition-fast: 0.1s ease;
   --transition-base: 0.2s ease;
+
+  /* ── TopBar (reste sombre dans les deux modes) ── */
+  --topbar-bg: #1a1612;
+
+  /* ── Surface sombre permanente (popovers, texte original, boutons CTA) ── */
+  --surface-dark: #1a1612;
+
+  /* ── Surface de carte (fond blanc en clair) ── */
+  --card-bg: #ffffff;
+  --input-bg: var(--parchment);
+}
+
+/* ═══════════════════════════════════════
+   MODE NUIT
+   ═══════════════════════════════════════ */
+
+[data-theme="dark"] {
+  --parchment:      #1a1714;
+  --parchment-dark: #131110;
+  --parchment-deep: #222018;
+
+  --ink:       #ede8e0;
+  --ink-soft:  #c4b9ad;
+  --ink-muted: #7a6d63;
+  --ink-faint: #4a3f38;
+
+  --gold-pale:  rgba(184, 132, 58, 0.18);
+
+  --border:        rgba(200, 180, 150, 0.12);
+  --border-strong: rgba(200, 180, 150, 0.22);
+
+  --green-light:  rgba(45, 90, 58, 0.25);
+  --red-light:    rgba(122, 42, 42, 0.25);
+  --amber-light:  rgba(122, 90, 26, 0.28);
+  --blue-light:   rgba(42, 74, 122, 0.28);
+
+  --shadow-sm: 0 1px 4px rgba(0, 0, 0, 0.35);
+  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.45);
+  --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.55);
+
+  --topbar-bg: #0e0c0a;
+
+  /* ── Surface sombre permanente (en mode nuit, légèrement plus claire que le fond) ── */
+  --surface-dark: #2a2520;
+
+  /* ── Surface de carte (fond sombre en nuit) ── */
+  --card-bg: #1e1b17;
+  --input-bg: #2a2520;
 }
 
 /* ═══════════════════════════════════════

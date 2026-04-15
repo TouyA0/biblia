@@ -62,7 +62,7 @@ export default function ResetPasswordPage() {
   return (
     <div style={{
       minHeight: '100vh',
-      background: 'var(--parchment)',
+      background: 'var(--input-bg)',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
@@ -71,7 +71,7 @@ export default function ResetPasswordPage() {
         width: '100%',
         maxWidth: '400px',
         padding: '40px',
-        background: 'white',
+        background: 'var(--card-bg)',
         border: '1px solid var(--border)',
         borderRadius: '12px',
       }}>
@@ -136,7 +136,7 @@ export default function ResetPasswordPage() {
                 padding: '10px 12px',
                 border: '1px solid var(--border)',
                 borderRadius: '6px',
-                background: 'var(--parchment)',
+                background: 'var(--input-bg)',
                 fontFamily: 'Spectral, serif',
                 fontSize: '14px',
                 color: 'var(--ink)',

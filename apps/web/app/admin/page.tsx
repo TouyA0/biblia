@@ -7,7 +7,7 @@ import api from '@/lib/api'
 import { useAuthStore } from '@/store/auth'
 import CommentText from '@/components/bible/CommentText'
 import { getRoleColor, getRoleBackground, getRoleBorder } from '@/lib/roleColors'
-import NotificationBell from '@/components/bible/NotificationBell'
+import TopBar from '@/components/bible/TopBar'
 import React from 'react'
 import { BOOK_NAME_TO_SLUG } from '@/lib/bookSlugs'
 
@@ -384,72 +384,7 @@ export default function AdminPage() {
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--parchment)' }}>
-      {/* Topbar */}
-      <div style={{
-        background: 'var(--ink)',
-        padding: '0 24px',
-        height: '52px',
-        display: 'flex',
-        alignItems: 'center',
-        gap: '24px',
-      }}>
-        <Link href="/" style={{
-          fontFamily: 'Crimson Pro, serif',
-          fontSize: '22px',
-          fontWeight: '300',
-          color: 'var(--gold-light)',
-          letterSpacing: '0.06em',
-          textDecoration: 'none',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '10px',
-        }}>
-          <span style={{ opacity: 0.7, fontStyle: 'italic' }}>בּ</span>
-          Biblia
-        </Link>
-        <span style={{
-          fontFamily: 'DM Mono, monospace',
-          fontSize: '12px',
-          letterSpacing: '0.1em',
-          textTransform: 'uppercase' as const,
-          padding: '4px 10px',
-          borderRadius: '20px',
-          background: 'rgba(122,42,42,0.3)',
-          color: '#e88',
-          border: '1px solid rgba(122,42,42,0.3)',
-        }}>
-          Administration
-        </span>
-        <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '16px' }}>
-          <NotificationBell />
-          <Link href="/profile" style={{
-            fontFamily: 'DM Mono, monospace',
-            fontSize: '12px',
-            color: 'rgba(255,255,255,0.6)',
-            textDecoration: 'none',
-          }}>
-            {user?.username}
-          </Link>
-          <button
-            onClick={() => {
-              localStorage.removeItem('token')
-              localStorage.removeItem('refreshToken')
-              localStorage.removeItem('user')
-              router.push('/login')
-            }}
-            style={{
-              fontFamily: 'DM Mono, monospace',
-              fontSize: '12px',
-              color: 'rgba(255,255,255,0.4)',
-              background: 'transparent',
-              border: 'none',
-              cursor: 'pointer',
-            }}
-          >
-            Déconnexion
-          </button>
-        </div>
-      </div>
+      <TopBar showSearch={false} />
 
       <div style={{ maxWidth: '1000px', margin: '0 auto', padding: '40px 24px' }}>
         <div style={{
@@ -518,7 +453,7 @@ export default function AdminPage() {
                 { label: 'Commentaires', value: stats.comments },
               ].map(stat => (
                 <div key={stat.label} style={{
-                  background: 'white',
+                  background: 'var(--card-bg)',
                   border: '1px solid var(--border)',
                   borderRadius: '10px',
                   padding: '20px',
@@ -548,7 +483,7 @@ export default function AdminPage() {
 
             {/* Répartition des rôles */}
             <div style={{
-              background: 'white',
+              background: 'var(--card-bg)',
               border: '1px solid var(--border)',
               borderRadius: '10px',
               padding: '20px',
@@ -600,7 +535,7 @@ export default function AdminPage() {
 
             {/* Nouveaux membres */}
             <div style={{
-              background: 'white',
+              background: 'var(--card-bg)',
               border: '1px solid var(--border)',
               borderRadius: '10px',
               padding: '20px',
@@ -672,7 +607,7 @@ export default function AdminPage() {
               })}
             </div>
             {/* Graphique évolution */}
-            <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: '10px', padding: '20px', marginTop: '24px', marginBottom: '0' }}>
+            <div style={{ background: 'var(--card-bg)', border: '1px solid var(--border)', borderRadius: '10px', padding: '20px', marginTop: '24px', marginBottom: '0' }}>
               <div style={{ fontFamily: 'DM Mono, monospace', fontSize: '12px', letterSpacing: '0.1em', textTransform: 'uppercase' as const, color: 'var(--ink-muted)', marginBottom: '20px' }}>
                 Contributions par mois
               </div>
@@ -733,7 +668,7 @@ export default function AdminPage() {
 						}}>
               {/* Dernières traductions de mots */}
 							<div style={{
-								background: 'white',
+								background: 'var(--card-bg)',
 								border: '1px solid var(--border)',
 								borderRadius: '10px',
 								padding: '20px',
@@ -809,7 +744,7 @@ export default function AdminPage() {
 
 							{/* Dernières propositions */}
 							<div style={{
-								background: 'white',
+								background: 'var(--card-bg)',
 								border: '1px solid var(--border)',
 								borderRadius: '10px',
 								padding: '20px',
@@ -888,7 +823,7 @@ export default function AdminPage() {
 
 							{/* Derniers commentaires */}
 							<div style={{
-								background: 'white',
+								background: 'var(--card-bg)',
 								border: '1px solid var(--border)',
 								borderRadius: '10px',
 								padding: '20px',
@@ -985,7 +920,7 @@ export default function AdminPage() {
                     padding: '8px 12px',
                     border: '1px solid var(--border)',
                     borderRadius: '6px',
-                    background: 'white',
+                    background: 'var(--card-bg)',
                     fontFamily: 'Spectral, serif',
                     fontSize: '14px',
                     color: 'var(--ink)',
@@ -998,7 +933,7 @@ export default function AdminPage() {
                     top: '38px',
                     left: 0,
                     right: 0,
-                    background: 'white',
+                    background: 'var(--card-bg)',
                     border: '1px solid var(--border)',
                     borderRadius: '8px',
                     boxShadow: '0 8px 24px rgba(26,22,18,0.1)',
@@ -1068,7 +1003,7 @@ export default function AdminPage() {
               </div>
               <button
                 onClick={exportUsersCSV}
-                style={{ padding: '5px 12px', borderRadius: '6px', border: '1px solid var(--border)', background: 'white', fontFamily: 'DM Mono, monospace', fontSize: '11px', color: 'var(--ink-muted)', cursor: 'pointer', marginLeft: 'auto', flexShrink: 0 }}
+                style={{ padding: '5px 12px', borderRadius: '6px', border: '1px solid var(--border)', background: 'var(--card-bg)', fontFamily: 'DM Mono, monospace', fontSize: '11px', color: 'var(--ink-muted)', cursor: 'pointer', marginLeft: 'auto', flexShrink: 0 }}
               >
                 ↓ Exporter CSV ({filteredUsers.length})
               </button>
@@ -1076,7 +1011,7 @@ export default function AdminPage() {
 
             {/* Liste utilisateurs */}
             <div style={{
-              background: 'white',
+              background: 'var(--card-bg)',
               border: '1px solid var(--border)',
               borderRadius: '10px',
               overflow: 'hidden',
@@ -1353,7 +1288,7 @@ export default function AdminPage() {
                   setContribVerse('')
                   loadContributions(contribTestament, val, '', '')
                 }}
-                style={{ padding: '5px 10px', border: `1px solid ${contribBook ? 'var(--gold)' : 'var(--border)'}`, borderRadius: '6px', background: contribBook ? 'var(--gold-pale)' : 'white', fontFamily: 'DM Mono, monospace', fontSize: '11px', color: contribBook ? 'var(--gold)' : 'var(--ink-muted)', cursor: 'pointer', outline: 'none' }}
+                style={{ padding: '5px 10px', border: `1px solid ${contribBook ? 'var(--gold)' : 'var(--border)'}`, borderRadius: '6px', background: contribBook ? 'var(--gold-pale)' : 'var(--card-bg)', fontFamily: 'DM Mono, monospace', fontSize: '11px', color: contribBook ? 'var(--gold)' : 'var(--ink-muted)', cursor: 'pointer', outline: 'none' }}
               >
                 <option value="">Tous les livres</option>
                 {Object.keys(BOOK_NAME_TO_SLUG)
@@ -1372,7 +1307,7 @@ export default function AdminPage() {
                     setContribVerse('')
                     loadContributions(contribTestament, contribBook, e.target.value, '')
                   }}
-                  style={{ width: '80px', padding: '5px 10px', border: `1px solid ${contribChapter ? 'var(--gold)' : 'var(--border)'}`, borderRadius: '6px', background: contribChapter ? 'var(--gold-pale)' : 'white', fontFamily: 'DM Mono, monospace', fontSize: '11px', color: 'var(--ink)', outline: 'none' }}
+                  style={{ width: '80px', padding: '5px 10px', border: `1px solid ${contribChapter ? 'var(--gold)' : 'var(--border)'}`, borderRadius: '6px', background: contribChapter ? 'var(--gold-pale)' : 'var(--card-bg)', fontFamily: 'DM Mono, monospace', fontSize: '11px', color: 'var(--ink)', outline: 'none' }}
                 />
               )}
 
@@ -1386,7 +1321,7 @@ export default function AdminPage() {
                     setContribVerse(e.target.value)
                     loadContributions(contribTestament, contribBook, contribChapter, e.target.value)
                   }}
-                  style={{ width: '80px', padding: '5px 10px', border: `1px solid ${contribVerse ? 'var(--gold)' : 'var(--border)'}`, borderRadius: '6px', background: contribVerse ? 'var(--gold-pale)' : 'white', fontFamily: 'DM Mono, monospace', fontSize: '11px', color: 'var(--ink)', outline: 'none' }}
+                  style={{ width: '80px', padding: '5px 10px', border: `1px solid ${contribVerse ? 'var(--gold)' : 'var(--border)'}`, borderRadius: '6px', background: contribVerse ? 'var(--gold-pale)' : 'var(--card-bg)', fontFamily: 'DM Mono, monospace', fontSize: '11px', color: 'var(--ink)', outline: 'none' }}
                 />
               )}
 
@@ -1405,7 +1340,7 @@ export default function AdminPage() {
               {contribData && (
                 <button
                   onClick={exportCSV}
-                  style={{ marginLeft: 'auto', padding: '5px 12px', borderRadius: '6px', border: '1px solid var(--border)', background: 'white', fontFamily: 'DM Mono, monospace', fontSize: '11px', color: 'var(--ink-muted)', cursor: 'pointer' }}
+                  style={{ marginLeft: 'auto', padding: '5px 12px', borderRadius: '6px', border: '1px solid var(--border)', background: 'var(--card-bg)', fontFamily: 'DM Mono, monospace', fontSize: '11px', color: 'var(--ink-muted)', cursor: 'pointer' }}
                 >
                   ↓ Exporter CSV ({contribData.wordTranslations.length + contribData.proposals.length + contribData.comments.length})
                 </button>
@@ -1428,7 +1363,7 @@ export default function AdminPage() {
               <div>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px' }}>
                 {/* Traductions de mots */}
-                <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: '10px', padding: '20px' }}>
+                <div style={{ background: 'var(--card-bg)', border: '1px solid var(--border)', borderRadius: '10px', padding: '20px' }}>
                   <div style={{ fontFamily: 'DM Mono, monospace', fontSize: '12px', letterSpacing: '0.1em', textTransform: 'uppercase' as const, color: 'var(--ink-muted)', marginBottom: '16px' }}>
                     Traductions de mots ({contribData.wordTranslations.length})
                   </div>
@@ -1466,7 +1401,7 @@ export default function AdminPage() {
                 </div>
 
                 {/* Propositions */}
-                <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: '10px', padding: '20px' }}>
+                <div style={{ background: 'var(--card-bg)', border: '1px solid var(--border)', borderRadius: '10px', padding: '20px' }}>
                   <div style={{ fontFamily: 'DM Mono, monospace', fontSize: '12px', letterSpacing: '0.1em', textTransform: 'uppercase' as const, color: 'var(--ink-muted)', marginBottom: '16px' }}>
                     Reformulations de versets ({contribData.proposals.length})
                   </div>
@@ -1504,7 +1439,7 @@ export default function AdminPage() {
                 </div>
 
                 {/* Commentaires */}
-                <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: '10px', padding: '20px' }}>
+                <div style={{ background: 'var(--card-bg)', border: '1px solid var(--border)', borderRadius: '10px', padding: '20px' }}>
                   <div style={{ fontFamily: 'DM Mono, monospace', fontSize: '12px', letterSpacing: '0.1em', textTransform: 'uppercase' as const, color: 'var(--ink-muted)', marginBottom: '16px' }}>
                     Commentaires ({contribData.comments.length})
                   </div>
@@ -1539,7 +1474,7 @@ export default function AdminPage() {
               </div>
               {/* Historique des traductions */}
               {contribVerse && (
-                <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: '10px', padding: '20px', marginTop: '16px' }}>
+                <div style={{ background: 'var(--card-bg)', border: '1px solid var(--border)', borderRadius: '10px', padding: '20px', marginTop: '16px' }}>
                   <div style={{ fontFamily: 'DM Mono, monospace', fontSize: '12px', letterSpacing: '0.1em', textTransform: 'uppercase' as const, color: 'var(--ink-muted)', marginBottom: '16px' }}>
                     Historique des traductions — {contribBook} {contribChapter}:{contribVerse}
                   </div>
@@ -1617,7 +1552,7 @@ export default function AdminPage() {
                 placeholder="Rechercher par utilisateur..."
                 value={logSearch}
                 onChange={e => { setLogSearch(e.target.value); setLogPage(1) }}
-                style={{ flex: 1, minWidth: '200px', padding: '8px 12px', border: '1px solid var(--border)', borderRadius: '6px', background: 'white', fontFamily: 'Spectral, serif', fontSize: '14px', color: 'var(--ink)', outline: 'none' }}
+                style={{ flex: 1, minWidth: '200px', padding: '8px 12px', border: '1px solid var(--border)', borderRadius: '6px', background: 'var(--card-bg)', fontFamily: 'Spectral, serif', fontSize: '14px', color: 'var(--ink)', outline: 'none' }}
               />
               <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
                 {[
@@ -1661,7 +1596,7 @@ export default function AdminPage() {
 
               return (
                 <>
-                  <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: '10px', overflow: 'hidden' }}>
+                  <div style={{ background: 'var(--card-bg)', border: '1px solid var(--border)', borderRadius: '10px', overflow: 'hidden' }}>
                     <div style={{ padding: '12px 20px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <span style={{ fontFamily: 'DM Mono, monospace', fontSize: '12px', letterSpacing: '0.1em', textTransform: 'uppercase' as const, color: 'var(--ink-muted)' }}>
                         {filtered.length} entrée{filtered.length !== 1 ? 's' : ''}

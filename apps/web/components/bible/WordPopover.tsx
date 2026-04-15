@@ -35,7 +35,7 @@ export default function WordPopover({ word, position, onClose, onOpenPanel, tran
         left: `${position.x - 130}px`,
         top: `${position.y + 10}px`,
         width: '260px',
-        background: 'var(--ink)',
+        background: 'var(--surface-dark)',
         borderRadius: '10px',
         padding: '16px 18px',
         boxShadow: '0 8px 40px rgba(26,22,18,0.3)',

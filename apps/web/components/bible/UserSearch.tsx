@@ -82,7 +82,7 @@ export default function UserSearch() {
           top: '40px',
           right: 0,
           width: '280px',
-          background: 'white',
+          background: 'var(--card-bg)',
           border: '1px solid var(--border)',
           borderRadius: '10px',
           boxShadow: '0 8px 32px rgba(26,22,18,0.15)',

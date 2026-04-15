@@ -77,7 +77,7 @@ export default function LoginPage() {
         width: '100%',
         maxWidth: '400px',
         padding: '40px',
-        background: 'white',
+        background: 'var(--card-bg)',
         borderRadius: '12px',
         border: '1px solid var(--border)',
         boxShadow: '0 4px 24px rgba(26,22,18,0.08)',
@@ -116,7 +116,7 @@ export default function LoginPage() {
                   type="password"
                   value={field.value}
                   onChange={e => field.setter(e.target.value)}
-                  style={{ width: '100%', padding: '10px 12px', border: '1px solid var(--border)', borderRadius: '6px', background: 'var(--parchment)', fontFamily: 'Spectral, serif', fontSize: '14px', color: 'var(--ink)', outline: 'none' }}
+                  style={{ width: '100%', padding: '10px 12px', border: '1px solid var(--border)', borderRadius: '6px', background: 'var(--input-bg)', fontFamily: 'Spectral, serif', fontSize: '14px', color: 'var(--ink)', outline: 'none' }}
                 />
               </div>
             ))}
@@ -156,7 +156,7 @@ export default function LoginPage() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
-                  style={{ width: '100%', padding: '10px 12px', border: '1px solid var(--border)', borderRadius: '6px', background: 'var(--parchment)', fontFamily: 'Spectral, serif', fontSize: '14px', color: 'var(--ink)', outline: 'none' }}
+                  style={{ width: '100%', padding: '10px 12px', border: '1px solid var(--border)', borderRadius: '6px', background: 'var(--input-bg)', fontFamily: 'Spectral, serif', fontSize: '14px', color: 'var(--ink)', outline: 'none' }}
                 />
               </div>
 
@@ -169,7 +169,7 @@ export default function LoginPage() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
-                  style={{ width: '100%', padding: '10px 12px', border: '1px solid var(--border)', borderRadius: '6px', background: 'var(--parchment)', fontFamily: 'Spectral, serif', fontSize: '14px', color: 'var(--ink)', outline: 'none' }}
+                  style={{ width: '100%', padding: '10px 12px', border: '1px solid var(--border)', borderRadius: '6px', background: 'var(--input-bg)', fontFamily: 'Spectral, serif', fontSize: '14px', color: 'var(--ink)', outline: 'none' }}
                 />
               </div>
 

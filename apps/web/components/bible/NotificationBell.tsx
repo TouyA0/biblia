@@ -179,7 +179,7 @@ export default function NotificationBell() {
           height: isMobile ? 'calc(100vh - 52px)' : 'auto',
           display: isMobile ? 'flex' : 'block',
           flexDirection: 'column',
-          background: 'white',
+          background: 'var(--card-bg)',
           border: '1px solid var(--border)',
           borderRadius: isMobile ? '0' : '10px',
           boxShadow: '0 8px 32px rgba(26,22,18,0.15)',

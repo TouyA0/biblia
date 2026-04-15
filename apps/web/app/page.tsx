@@ -1,8 +1,7 @@
 ﻿'use client'
 
-import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import TopBar from '@/components/bible/TopBar'
 
 export default function HomePage() {
   return (
@@ -11,10 +10,10 @@ export default function HomePage() {
       background: 'var(--parchment)',
       display: 'flex',
       flexDirection: 'column',
-      alignItems: 'center',
-      justifyContent: 'center',
       fontFamily: 'Spectral, Georgia, serif',
     }}>
+      <TopBar showTestaments={false} showSearch={false} />
+      <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
       <div style={{ textAlign: 'center', maxWidth: '600px', padding: '40px' }}>
         <div style={{
           fontFamily: 'Crimson Pro, serif',
@@ -49,7 +48,7 @@ export default function HomePage() {
         <div style={{ display: 'flex', gap: '16px', justifyContent: 'center' }}>
           <Link href="/at/genese/1" style={{
             padding: '14px 32px',
-            background: 'var(--ink)',
+            background: 'var(--surface-dark)',
             color: 'var(--gold-light)',
             textDecoration: 'none',
             borderRadius: '6px',
@@ -75,6 +74,7 @@ export default function HomePage() {
             Nouveau Testament
           </Link>
         </div>
+      </div>
       </div>
     </div>
   )

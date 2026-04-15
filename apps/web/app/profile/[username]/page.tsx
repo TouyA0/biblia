@@ -8,7 +8,7 @@ import { useAuthStore } from '@/store/auth'
 import { getRoleColor, getRoleBackground, getRoleBorder } from '@/lib/roleColors'
 import ConfirmModal from '@/components/bible/ConfirmModal'
 import CommentText from '@/components/bible/CommentText'
-import NotificationBell from '@/components/bible/NotificationBell'
+import TopBar from '@/components/bible/TopBar'
 
 
 interface UserProfile {
@@ -225,7 +225,7 @@ function InlineField({ label, value, type, onSave }: {
   const [saving, setSaving] = useState(false)
 
   return (
-    <div style={{ marginBottom: '12px', padding: '12px 14px', border: '1px solid var(--border)', borderRadius: '8px', background: 'white' }}>
+    <div style={{ marginBottom: '12px', padding: '12px 14px', border: '1px solid var(--border)', borderRadius: '8px', background: 'var(--card-bg)' }}>
       <div style={{ fontFamily: 'DM Mono, monospace', fontSize: '11px', letterSpacing: '0.1em', textTransform: 'uppercase' as const, color: 'var(--ink-muted)', marginBottom: '6px' }}>
         {label}
       </div>
@@ -280,7 +280,7 @@ function PasswordField({ onSave }: { onSave: (current: string, newPwd: string) =
   const [err, setErr] = useState('')
 
   return (
-    <div style={{ marginBottom: '12px', padding: '12px 14px', border: '1px solid var(--border)', borderRadius: '8px', background: 'white' }}>
+    <div style={{ marginBottom: '12px', padding: '12px 14px', border: '1px solid var(--border)', borderRadius: '8px', background: 'var(--card-bg)' }}>
       <div style={{ fontFamily: 'DM Mono, monospace', fontSize: '11px', letterSpacing: '0.1em', textTransform: 'uppercase' as const, color: 'var(--ink-muted)', marginBottom: '6px' }}>
         Mot de passe
       </div>
@@ -558,32 +558,7 @@ export default function UserProfilePage() {
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--parchment)' }}>
-      {/* Topbar */}
-      <div style={{ background: 'var(--ink)', padding: '0 24px', height: '52px', display: 'flex', alignItems: 'center', gap: '24px' }}>
-        <Link href="/" style={{ fontFamily: 'Crimson Pro, serif', fontSize: '22px', fontWeight: '300', color: 'var(--gold-light)', letterSpacing: '0.06em', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <span style={{ opacity: 0.7, fontStyle: 'italic' }}>בּ</span>
-          Biblia
-        </Link>
-        <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '16px' }}>
-          {currentUser?.role === 'ADMIN' && (
-            <Link href="/admin" style={{ fontFamily: 'DM Mono, monospace', fontSize: '12px', color: '#e88', letterSpacing: '0.08em', textDecoration: 'none', padding: '3px 8px', borderRadius: '4px', border: '1px solid rgba(122,42,42,0.3)', background: 'rgba(122,42,42,0.15)' }}>
-              Administration
-            </Link>
-          )}
-          {currentUser && ['EXPERT', 'ADMIN'].includes(currentUser.role) && <NotificationBell />}
-          {currentUser && (
-            <Link href={`/profile/${currentUser.username}`} style={{ fontFamily: 'DM Mono, monospace', fontSize: '12px', color: 'rgba(255,255,255,0.6)', textDecoration: 'none' }}>
-              {currentUser.username}
-            </Link>
-          )}
-          {currentUser && (
-            <button onClick={() => { localStorage.removeItem('token'); localStorage.removeItem('refreshToken'); localStorage.removeItem('user'); router.push('/login') }}
-              style={{ fontFamily: 'DM Mono, monospace', fontSize: '12px', color: 'rgba(255,255,255,0.4)', background: 'transparent', border: 'none', cursor: 'pointer' }}>
-              Déconnexion
-            </button>
-          )}
-        </div>
-      </div>
+      <TopBar showSearch={false} />
 
       <div style={{ maxWidth: '800px', margin: '0 auto', padding: '40px 24px' }}>
         {/* Header */}
@@ -623,7 +598,7 @@ export default function UserProfilePage() {
         )}
 
         {/* Graphique d'activité */}
-        <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: '10px', padding: '20px', marginBottom: '24px' }}>
+        <div style={{ background: 'var(--card-bg)', border: '1px solid var(--border)', borderRadius: '10px', padding: '20px', marginBottom: '24px' }}>
           <div style={{ fontFamily: 'DM Mono, monospace', fontSize: '12px', letterSpacing: '0.1em', textTransform: 'uppercase' as const, color: 'var(--ink-muted)', marginBottom: '16px' }}>
             Activité — 12 derniers mois
           </div>
@@ -660,7 +635,7 @@ export default function UserProfilePage() {
                 <select
                   value={filterBook}
                   onChange={e => { setFilterBook(e.target.value); setFilterChapter(''); setFilterVerse(''); setWordPage(1); setProposalPage(1); setCommentPage(1) }}
-                  style={{ padding: '5px 10px', border: `1px solid ${filterBook ? 'var(--gold)' : 'var(--border)'}`, borderRadius: '6px', background: filterBook ? 'var(--gold-pale)' : 'white', fontFamily: 'DM Mono, monospace', fontSize: '11px', color: filterBook ? 'var(--gold)' : 'var(--ink-muted)', cursor: 'pointer', outline: 'none' }}
+                  style={{ padding: '5px 10px', border: `1px solid ${filterBook ? 'var(--gold)' : 'var(--border)'}`, borderRadius: '6px', background: filterBook ? 'var(--gold-pale)' : 'var(--card-bg)', fontFamily: 'DM Mono, monospace', fontSize: '11px', color: filterBook ? 'var(--gold)' : 'var(--ink-muted)', cursor: 'pointer', outline: 'none' }}
                 >
                   <option value="">Tous les livres</option>
                   {availableBooks.map(b => <option key={b} value={b}>{b}</option>)}
@@ -672,7 +647,7 @@ export default function UserProfilePage() {
                 <select
                   value={filterChapter}
                   onChange={e => { setFilterChapter(e.target.value); setFilterVerse(''); setWordPage(1); setProposalPage(1); setCommentPage(1) }}
-                  style={{ padding: '5px 10px', border: `1px solid ${filterChapter ? 'var(--gold)' : 'var(--border)'}`, borderRadius: '6px', background: filterChapter ? 'var(--gold-pale)' : 'white', fontFamily: 'DM Mono, monospace', fontSize: '11px', color: filterChapter ? 'var(--gold)' : 'var(--ink-muted)', cursor: 'pointer', outline: 'none' }}
+                  style={{ padding: '5px 10px', border: `1px solid ${filterChapter ? 'var(--gold)' : 'var(--border)'}`, borderRadius: '6px', background: filterChapter ? 'var(--gold-pale)' : 'var(--card-bg)', fontFamily: 'DM Mono, monospace', fontSize: '11px', color: filterChapter ? 'var(--gold)' : 'var(--ink-muted)', cursor: 'pointer', outline: 'none' }}
                 >
                   <option value="">Tous les chapitres</option>
                   {availableChapters.map(c => <option key={c} value={c}>Chapitre {c}</option>)}
@@ -684,7 +659,7 @@ export default function UserProfilePage() {
                 <select
                   value={filterVerse}
                   onChange={e => { setFilterVerse(e.target.value); setWordPage(1); setProposalPage(1); setCommentPage(1) }}
-                  style={{ padding: '5px 10px', border: `1px solid ${filterVerse ? 'var(--gold)' : 'var(--border)'}`, borderRadius: '6px', background: filterVerse ? 'var(--gold-pale)' : 'white', fontFamily: 'DM Mono, monospace', fontSize: '11px', color: filterVerse ? 'var(--gold)' : 'var(--ink-muted)', cursor: 'pointer', outline: 'none' }}
+                  style={{ padding: '5px 10px', border: `1px solid ${filterVerse ? 'var(--gold)' : 'var(--border)'}`, borderRadius: '6px', background: filterVerse ? 'var(--gold-pale)' : 'var(--card-bg)', fontFamily: 'DM Mono, monospace', fontSize: '11px', color: filterVerse ? 'var(--gold)' : 'var(--ink-muted)', cursor: 'pointer', outline: 'none' }}
                 >
                   <option value="">Tous les versets</option>
                   {availableVerses.map(v => <option key={v} value={v}>Verset {v}</option>)}
@@ -723,7 +698,7 @@ export default function UserProfilePage() {
                     const url = getVerseUrl(verse.chapter.book, verse.chapter.number, verse.number, { wordId: t.wordToken.id, tab: 'word' })
                     return (
                       <Link key={t.id} href={url} style={{ textDecoration: 'none' }}>
-                        <div style={{ padding: '10px 14px', border: `1px solid ${t.isValidated ? 'rgba(45,90,58,0.3)' : 'var(--border)'}`, borderRadius: '8px', background: t.isValidated ? 'var(--green-light)' : 'white', marginBottom: '8px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', transition: 'opacity 0.15s' }}
+                        <div style={{ padding: '10px 14px', border: `1px solid ${t.isValidated ? 'rgba(45,90,58,0.3)' : 'var(--border)'}`, borderRadius: '8px', background: t.isValidated ? 'var(--green-light)' : 'var(--card-bg)', marginBottom: '8px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', transition: 'opacity 0.15s' }}
                           onMouseEnter={e => (e.currentTarget as HTMLElement).style.opacity = '0.8'}
                           onMouseLeave={e => (e.currentTarget as HTMLElement).style.opacity = '1'}>
                           <div>
@@ -778,7 +753,7 @@ export default function UserProfilePage() {
                     const url = getVerseUrl(verse.chapter.book, verse.chapter.number, verse.number, { verseId: verse.id, tab: 'verse' })
                     return (
                       <Link key={p.id} href={url} style={{ textDecoration: 'none' }}>
-                        <div style={{ padding: '10px 14px', border: `1px solid ${p.status === 'ACCEPTED' ? 'rgba(45,90,58,0.3)' : p.status === 'REJECTED' ? 'rgba(122,42,42,0.2)' : 'var(--border)'}`, borderRadius: '8px', background: p.status === 'ACCEPTED' ? 'var(--green-light)' : p.status === 'REJECTED' ? 'var(--red-light)' : 'white', marginBottom: '8px', cursor: 'pointer', transition: 'opacity 0.15s' }}
+                        <div style={{ padding: '10px 14px', border: `1px solid ${p.status === 'ACCEPTED' ? 'rgba(45,90,58,0.3)' : p.status === 'REJECTED' ? 'rgba(122,42,42,0.2)' : 'var(--border)'}`, borderRadius: '8px', background: p.status === 'ACCEPTED' ? 'var(--green-light)' : p.status === 'REJECTED' ? 'var(--red-light)' : 'var(--card-bg)', marginBottom: '8px', cursor: 'pointer', transition: 'opacity 0.15s' }}
                           onMouseEnter={e => (e.currentTarget as HTMLElement).style.opacity = '0.8'}
                           onMouseLeave={e => (e.currentTarget as HTMLElement).style.opacity = '1'}>
                           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
@@ -824,7 +799,7 @@ export default function UserProfilePage() {
                     const url = verse ? getVerseUrl(verse.chapter.book, verse.chapter.number, verse.number, { verseId: verse.id, tab: 'comments' }) : null
                     return url ? (
                       <Link key={c.id} href={url} style={{ textDecoration: 'none', display: 'block' }}>
-                        <div style={{ padding: '10px 14px', border: '1px solid var(--border)', borderRadius: '8px', background: 'white', marginBottom: '8px', transition: 'opacity 0.15s' }}
+                        <div style={{ padding: '10px 14px', border: '1px solid var(--border)', borderRadius: '8px', background: 'var(--card-bg)', marginBottom: '8px', transition: 'opacity 0.15s' }}
                           onMouseEnter={e => (e.currentTarget as HTMLElement).style.opacity = '0.8'}
                           onMouseLeave={e => (e.currentTarget as HTMLElement).style.opacity = '1'}>
                           {verse && (
@@ -846,7 +821,7 @@ export default function UserProfilePage() {
                         </div>
                       </Link>
                     ) : (
-                      <div key={c.id} style={{ padding: '10px 14px', border: '1px solid var(--border)', borderRadius: '8px', background: 'white', marginBottom: '8px' }}>
+                      <div key={c.id} style={{ padding: '10px 14px', border: '1px solid var(--border)', borderRadius: '8px', background: 'var(--card-bg)', marginBottom: '8px' }}>
                         <div style={{ fontFamily: 'Spectral, serif', fontSize: '14px', color: 'var(--ink-soft)', lineHeight: '1.6' }}>
                           <CommentText text={c.text} disableLinks />
                         </div>
@@ -953,7 +928,7 @@ export default function UserProfilePage() {
               <div key={field.label} style={{ marginBottom: '16px' }}>
                 <label style={{ display: 'block', fontFamily: 'DM Mono, monospace', fontSize: '12px', letterSpacing: '0.1em', textTransform: 'uppercase' as const, color: 'var(--ink-muted)', marginBottom: '6px' }}>{field.label}</label>
                 <input type="password" value={field.value} onChange={e => field.setter(e.target.value)}
-                  style={{ width: '100%', padding: '10px 12px', border: '1px solid var(--border)', borderRadius: '6px', background: 'white', fontFamily: 'Spectral, serif', fontSize: '14px', color: 'var(--ink)', outline: 'none' }} />
+                  style={{ width: '100%', padding: '10px 12px', border: '1px solid var(--border)', borderRadius: '6px', background: 'var(--card-bg)', fontFamily: 'Spectral, serif', fontSize: '14px', color: 'var(--ink)', outline: 'none' }} />
               </div>
             ))}
             <button onClick={handleChangePassword} style={{ padding: '10px 24px', background: 'var(--gold)', color: 'white', border: 'none', borderRadius: '6px', fontFamily: 'DM Mono, monospace', fontSize: '12px', letterSpacing: '0.08em', textTransform: 'uppercase' as const, cursor: 'pointer' }}>
@@ -1002,7 +977,7 @@ export default function UserProfilePage() {
             )}
 
             {/* Informations confidentielles */}
-            <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: '10px', padding: '20px', marginBottom: '24px' }}>
+            <div style={{ background: 'var(--card-bg)', border: '1px solid var(--border)', borderRadius: '10px', padding: '20px', marginBottom: '24px' }}>
               <div style={{ fontFamily: 'DM Mono, monospace', fontSize: '12px', letterSpacing: '0.1em', textTransform: 'uppercase' as const, color: 'var(--ink-muted)', marginBottom: '16px' }}>
                 Informations confidentielles
               </div>
@@ -1021,7 +996,7 @@ export default function UserProfilePage() {
             </div>
 
             {/* Actions admin */}
-            <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: '10px', padding: '20px', marginBottom: '24px' }}>
+            <div style={{ background: 'var(--card-bg)', border: '1px solid var(--border)', borderRadius: '10px', padding: '20px', marginBottom: '24px' }}>
               <div style={{ fontFamily: 'DM Mono, monospace', fontSize: '12px', letterSpacing: '0.1em', textTransform: 'uppercase' as const, color: 'var(--ink-muted)', marginBottom: '20px' }}>
                 Actions
               </div>
@@ -1113,7 +1088,7 @@ export default function UserProfilePage() {
               </div>
             </div>
             {/* Logs */}
-            <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: '10px', padding: '20px' }}>
+            <div style={{ background: 'var(--card-bg)', border: '1px solid var(--border)', borderRadius: '10px', padding: '20px' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
                 <div style={{ fontFamily: 'DM Mono, monospace', fontSize: '12px', letterSpacing: '0.1em', textTransform: 'uppercase' as const, color: 'var(--ink-muted)' }}>
                   Historique d&apos;activité
