@@ -336,10 +336,12 @@ export default function VerseList({ verses, bookName, chapter, activeVerseId, ac
                           const hasTranslation = token.translations && token.translations.length > 0
                           if (showMissing) {
                             return hasTranslation
-                              ? { borderBottom: '1px dotted var(--green-valid)', opacity: 0.45 }
+                              ? { textDecoration: 'underline dotted', textDecorationColor: 'var(--green-valid)', textDecorationThickness: '2px', textUnderlineOffset: '4px', opacity: 0.45 }
                               : { borderBottom: '2px solid var(--amber-pending)', background: 'var(--amber-light)', borderRadius: '2px' }
                           }
-                          return { borderBottom: hasTranslation ? '1px dotted rgba(26,22,18,0.35)' : 'none' }
+                          return hasTranslation
+                            ? { textDecoration: 'underline dotted', textDecorationColor: 'rgba(184,132,58,0.65)', textDecorationThickness: '2px', textUnderlineOffset: '4px' }
+                            : {}
                         })()}
                       >
                         {token.word}{i < originalText.wordTokens.length - 1 ? '\u00A0' : ''}
