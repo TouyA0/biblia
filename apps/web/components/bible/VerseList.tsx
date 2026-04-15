@@ -107,6 +107,9 @@ export default function VerseList({ verses, bookName, chapter, activeVerseId, ac
     }
   }, [storageKey])
 
+  const POETIC_BOOKS = ['Psaume', 'Proverbe', 'Job', 'Ecclésiaste', 'Cantique', 'Lamentation']
+  const isPoetic = POETIC_BOOKS.some(n => bookName?.includes(n))
+
   function setFontSize(size: FontSize) {
     setFontSizeState(size)
     localStorage.setItem('verse_font_size', size)
@@ -248,6 +251,7 @@ export default function VerseList({ verses, bookName, chapter, activeVerseId, ac
         {verses.map(verse => {
           const originalText = verse.texts.find(t => t.language === 'HEB' || t.language === 'GRK')
           const translation = verse.translations[0]
+          const hasSela = originalText?.wordTokens?.some(t => t.lemma === '5542')
 
           return (
             <div
@@ -256,6 +260,7 @@ export default function VerseList({ verses, bookName, chapter, activeVerseId, ac
               onClick={() => onVerseClick(verse)}
               className={`verse-block ${activeVerseId === verse.id ? 'active' : ''}`}
               style={{
+                marginBottom: isPoetic ? (hasSela ? '48px' : '28px') : undefined,
                 borderLeft: verse.hasContributions
                   ? '3px solid rgba(184,132,58,0.4)'
                   : '3px solid transparent',
@@ -323,7 +328,11 @@ export default function VerseList({ verses, bookName, chapter, activeVerseId, ac
                     fontWeight: '300',
                     letterSpacing: '0.02em',
                   }}>
-                    {(originalText.wordTokens || []).map((token, i) => (
+                    {(originalText.wordTokens || []).map((token, i) => {
+                      // Séla — affiché séparément, on l'ignore ici
+                      if (token.lemma === '5542') return null
+
+                      return (
                       <span
                         key={token.id}
                         onClick={e => {
@@ -346,7 +355,23 @@ export default function VerseList({ verses, bookName, chapter, activeVerseId, ac
                       >
                         {token.word}{i < originalText.wordTokens.length - 1 ? '\u00A0' : ''}
                       </span>
-                    ))}
+                      )
+                    })}
+                  </div>
+                )}
+                {hasSela && (
+                  <div style={{
+                    textAlign: 'right',
+                    color: 'var(--gold)',
+                    fontFamily: 'var(--font-serif)',
+                    fontSize: '0.78em',
+                    fontStyle: 'italic',
+                    letterSpacing: '0.2em',
+                    fontWeight: '400',
+                    marginBottom: '6px',
+                    opacity: 0.75,
+                  }}>
+                    סֶלָה
                   </div>
                 )}
                 {showFrench && translation && (
