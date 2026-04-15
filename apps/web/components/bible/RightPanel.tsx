@@ -200,8 +200,6 @@ export default function RightPanel({
   const [showRejected, setShowRejected] = useState(false)
   const [proposalVotedIds, setProposalVotedIds] = useState<Set<string>>(new Set())
   const [replyingToId, setReplyingToId] = useState<string | null>(null)
-  const [replyText, setReplyText] = useState('')
-  const [submittingReply, setSubmittingReply] = useState(false)
 
   const [occurrences, setOccurrences] = useState<{
     id: string
@@ -229,6 +227,22 @@ export default function RightPanel({
   const booksByTestament = {
     AT: Object.keys(BOOK_NAME_TO_SLUG).slice(0, 46),
     NT: Object.keys(BOOK_NAME_TO_SLUG).slice(46),
+  }
+
+  useEffect(() => {
+    const ta = commentRef.current
+    if (ta) {
+      ta.style.height = 'auto'
+      ta.style.height = ta.scrollHeight + 'px'
+    }
+  }, [newComment])
+
+  const timeAgo = (dateStr: string) => {
+    const diff = Math.floor((Date.now() - new Date(dateStr).getTime()) / 1000)
+    if (diff < 60) return 'à l\'instant'
+    if (diff < 3600) return `il y a ${Math.floor(diff / 60)} min`
+    if (diff < 86400) return `il y a ${Math.floor(diff / 3600)} h`
+    return new Date(dateStr).toLocaleDateString('fr-FR')
   }
 
   const validatedTranslations = wordTranslations.filter(t => t.isValidated)
@@ -1675,309 +1689,92 @@ export default function RightPanel({
         {activeTab === 'comments' && (
           activeVerse ? (
             <div>
-              <div style={{
-                fontFamily: 'DM Mono, monospace',
-                fontSize: '12px',
-                letterSpacing: '0.1em',
-                textTransform: 'uppercase' as const,
-                color: 'var(--ink-muted)',
-                marginBottom: '16px',
-              }}>
+              <div style={{ fontFamily: 'DM Mono, monospace', fontSize: '12px', letterSpacing: '0.1em', textTransform: 'uppercase' as const, color: 'var(--ink-muted)', marginBottom: '20px' }}>
                 {comments.length} commentaire{comments.length !== 1 ? 's' : ''}
               </div>
 
               {comments.length === 0 && (
-                <div style={{
-                  fontFamily: 'Spectral, serif',
-                  fontSize: '14px',
-                  color: 'var(--ink-faint)',
-                  fontStyle: 'italic',
-                  marginBottom: '20px',
-                }}>
-                  Aucun commentaire pour ce verset.
+                <div style={{ fontFamily: 'Spectral, serif', fontSize: '14px', color: 'var(--ink-faint)', fontStyle: 'italic', marginBottom: '24px' }}>
+                  Soyez le premier à commenter ce verset.
                 </div>
               )}
 
+              <div style={{ marginBottom: '24px' }}>
               {comments.map(c => (
-                <div key={c.id} style={{
-                  borderBottom: '1px solid var(--border)',
-                }}>
+                <div key={c.id} style={{ borderBottom: '1px solid var(--border)' }}>
                   {/* Commentaire principal */}
                   <div style={{ padding: '12px 0' }}>
-                    <div style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '8px',
-                      marginBottom: '6px',
-                    }}>
-                      <div style={{
-                        width: '24px',
-                        height: '24px',
-                        borderRadius: '50%',
-                        background: c.creator ? getRoleColor(c.creator.role) : 'var(--blue-sacred)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontFamily: 'DM Mono, monospace',
-                        fontSize: '11px',
-                        color: 'white',
-                        flexShrink: 0,
-                      }}>
+                    {/* Meta ligne */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '7px', marginBottom: '8px', flexWrap: 'wrap' }}>
+                      <div style={{ width: '24px', height: '24px', borderRadius: '50%', background: c.creator ? getRoleColor(c.creator.role) : 'var(--blue-sacred)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'DM Mono, monospace', fontSize: '11px', color: 'white', flexShrink: 0 }}>
                         {c.creator?.username?.substring(0, 2).toUpperCase() || '??'}
                       </div>
-                      <Link href={c.creator ? `/profile/${c.creator.username}` : '#'} style={{
-                        fontFamily: 'DM Mono, monospace',
-                        fontSize: '12px',
-                        color: c.creator ? getRoleColor(c.creator.role) : 'var(--ink-muted)',
-                        textDecoration: 'none',
-                      }}>
+                      <Link href={c.creator ? `/profile/${c.creator.username}` : '#'} style={{ fontFamily: 'DM Mono, monospace', fontSize: '12px', color: c.creator ? getRoleColor(c.creator.role) : 'var(--ink-muted)', textDecoration: 'none', fontWeight: 500 }}>
                         {c.creator?.username || 'Anonyme'}
                       </Link>
                       {c.creator?.role && (
-                        <span style={{
-                          fontFamily: 'DM Mono, monospace',
-                          fontSize: '11px',
-                          padding: '2px 6px',
-                          borderRadius: '20px',
-                          background: getRoleBackground(c.creator.role),
-                          color: getRoleColor(c.creator.role),
-                          border: `1px solid ${getRoleBorder(c.creator.role)}`,
-                        }}>
+                        <span style={{ fontFamily: 'DM Mono, monospace', fontSize: '10px', padding: '1px 6px', borderRadius: '20px', background: getRoleBackground(c.creator.role), color: getRoleColor(c.creator.role), border: `1px solid ${getRoleBorder(c.creator.role)}` }}>
                           {c.creator.role}
                         </span>
                       )}
-                      <div style={{ marginLeft: 'auto', display: 'flex', gap: '6px', alignItems: 'center' }}>
+                      <span style={{ fontFamily: 'DM Mono, monospace', fontSize: '11px', color: 'var(--ink-faint)' }}>
+                        {timeAgo(c.createdAt)}
+                      </span>
+                      <div style={{ marginLeft: 'auto', display: 'flex', gap: '4px' }}>
                         {user && (
-                          <button
-                            onClick={() => {
-                              if (replyingToId === c.id) {
-                                setReplyingToId(null)
-                                setReplyText('')
-                              } else {
-                                setReplyingToId(c.id)
-                                setReplyText('')
-                              }
-                            }}
-                            style={{
-                              padding: '2px 6px',
-                              borderRadius: '4px',
-                              border: `1px solid ${replyingToId === c.id ? 'var(--gold)' : 'var(--border)'}`,
-                              background: replyingToId === c.id ? 'var(--gold-pale)' : 'transparent',
-                              cursor: 'pointer',
-                              fontFamily: 'DM Mono, monospace',
-                              fontSize: '11px',
-                              color: replyingToId === c.id ? 'var(--gold)' : 'var(--ink-muted)',
-                            }}
-                          >
-                            ↩ Répondre
+                          <button onClick={() => {
+                            if (replyingToId === c.id) {
+                              setReplyingToId(null)
+                            } else {
+                              setReplyingToId(c.id)
+                              setNewComment('')
+                              setInsertMode(null)
+                              setTimeout(() => commentRef.current?.focus(), 50)
+                            }
+                          }} style={{ padding: '2px 7px', borderRadius: '4px', border: `1px solid ${replyingToId === c.id ? 'var(--gold)' : 'var(--border)'}`, background: replyingToId === c.id ? 'var(--gold-pale)' : 'transparent', cursor: 'pointer', fontFamily: 'DM Mono, monospace', fontSize: '11px', color: replyingToId === c.id ? 'var(--gold)' : 'var(--ink-muted)' }}>
+                            ↩
                           </button>
                         )}
                         {user && (['EXPERT', 'ADMIN'].includes(user.role) || user.id === c.createdBy) && (
-                          <button
-                            onClick={() => setConfirmModal({
-                              message: 'Supprimer ce commentaire et ses réponses ?',
-                              onConfirm: async () => {
-                                try {
-                                  await api.delete(`/api/comments/${c.id}`)
-                                  setConfirmModal(null)
-                                  onCommentAdded()
-                                } catch (error) {
-                                  console.error(error)
-                                }
-                              }
-                            })}
-                            style={{
-                              padding: '2px 6px',
-                              borderRadius: '4px',
-                              border: '1px solid rgba(122,42,42,0.2)',
-                              background: 'transparent',
-                              cursor: 'pointer',
-                              fontFamily: 'DM Mono, monospace',
-                              fontSize: '11px',
-                              color: 'var(--red-soft)',
-                            }}
-                          >
+                          <button onClick={() => setConfirmModal({ message: 'Supprimer ce commentaire et ses réponses ?', onConfirm: async () => { try { await api.delete(`/api/comments/${c.id}`); setConfirmModal(null); onCommentAdded() } catch (error) { console.error(error) } } })} style={{ padding: '2px 6px', borderRadius: '4px', border: '1px solid rgba(122,42,42,0.2)', background: 'transparent', cursor: 'pointer', fontFamily: 'DM Mono, monospace', fontSize: '11px', color: 'var(--red-soft)' }}>
                             ✕
                           </button>
                         )}
                       </div>
                     </div>
-                    <div style={{
-                      fontFamily: 'Spectral, serif',
-                      fontSize: '13.5px',
-                      color: 'var(--ink-soft)',
-                      lineHeight: '1.65',
-                    }}>
+                    {/* Texte */}
+                    <div style={{ fontFamily: 'Spectral, serif', fontSize: '13.5px', color: 'var(--ink-soft)', lineHeight: '1.65', paddingLeft: '31px' }}>
                       <CommentText text={c.text} />
                     </div>
-
-                    {/* Formulaire de réponse */}
-                    {replyingToId === c.id && (
-                      <div style={{
-                        marginTop: '10px',
-                        paddingLeft: '32px',
-                      }}>
-                        <textarea
-                          value={replyText}
-                          onChange={e => setReplyText(e.target.value)}
-                          placeholder={`Répondre à ${c.creator?.username || 'ce commentaire'}…`}
-                          style={{
-                            width: '100%',
-                            padding: '8px 10px',
-                            border: '1px solid var(--gold)',
-                            borderRadius: '6px',
-                            background: 'var(--gold-pale)',
-                            fontFamily: 'Spectral, serif',
-                            fontSize: '14px',
-                            color: 'var(--ink)',
-                            resize: 'vertical',
-                            minHeight: '60px',
-                            outline: 'none',
-                            marginBottom: '6px',
-                          }}
-                        />
-                        <div style={{ display: 'flex', gap: '6px' }}>
-                          <button
-                            onClick={async () => {
-                              if (!replyText.trim()) return
-                              setSubmittingReply(true)
-                              try {
-                                await api.post(`/api/comments/${c.id}/reply`, { text: replyText.trim() })
-                                setReplyingToId(null)
-                                setReplyText('')
-                                onCommentAdded()
-                              } catch (error) {
-                                console.error(error)
-                              } finally {
-                                setSubmittingReply(false)
-                              }
-                            }}
-                            disabled={submittingReply || !replyText.trim()}
-                            style={{
-                              padding: '6px 12px',
-                              background: 'var(--gold)',
-                              color: 'white',
-                              border: 'none',
-                              borderRadius: '4px',
-                              fontFamily: 'DM Mono, monospace',
-                              fontSize: '11px',
-                              cursor: submittingReply ? 'not-allowed' : 'pointer',
-                              opacity: submittingReply || !replyText.trim() ? 0.6 : 1,
-                            }}
-                          >
-                            {submittingReply ? 'Envoi...' : 'Publier'}
-                          </button>
-                          <button
-                            onClick={() => { setReplyingToId(null); setReplyText('') }}
-                            style={{
-                              padding: '6px 12px',
-                              background: 'transparent',
-                              color: 'var(--ink-muted)',
-                              border: '1px solid var(--border)',
-                              borderRadius: '4px',
-                              fontFamily: 'DM Mono, monospace',
-                              fontSize: '11px',
-                              cursor: 'pointer',
-                            }}
-                          >
-                            Annuler
-                          </button>
-                        </div>
-                      </div>
-                    )}
                   </div>
 
                   {/* Réponses */}
                   {c.replies && c.replies.length > 0 && (
-                    <div style={{
-                      paddingLeft: '32px',
-                      borderLeft: '2px solid var(--border)',
-                      marginLeft: '12px',
-                      marginBottom: '8px',
-                    }}>
-                      {c.replies.map(r => (
-                        <div key={r.id} style={{
-                          padding: '10px 0',
-                          borderBottom: '1px solid var(--border)',
-                        }}>
-                          <div style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '8px',
-                            marginBottom: '6px',
-                          }}>
-                            <div style={{
-                              width: '20px',
-                              height: '20px',
-                              borderRadius: '50%',
-                              background: r.creator ? getRoleColor(r.creator.role) : 'var(--blue-sacred)',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              fontFamily: 'DM Mono, monospace',
-                              fontSize: '10px',
-                              color: 'white',
-                              flexShrink: 0,
-                            }}>
+                    <div style={{ marginLeft: '11px', paddingLeft: '20px', borderLeft: '2px solid var(--border)', marginBottom: '10px' }}>
+                      {c.replies.map((r, ri) => (
+                        <div key={r.id} style={{ padding: '8px 0', borderBottom: ri < c.replies.length - 1 ? '1px solid var(--border)' : 'none' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '7px', marginBottom: '6px', flexWrap: 'wrap' }}>
+                            <div style={{ width: '20px', height: '20px', borderRadius: '50%', background: r.creator ? getRoleColor(r.creator.role) : 'var(--blue-sacred)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'DM Mono, monospace', fontSize: '10px', color: 'white', flexShrink: 0 }}>
                               {r.creator?.username?.substring(0, 2).toUpperCase() || '??'}
                             </div>
-                            <Link href={r.creator ? `/profile/${r.creator.username}` : '#'} style={{
-                              fontFamily: 'DM Mono, monospace',
-                              fontSize: '12px',
-                              color: r.creator ? getRoleColor(r.creator.role) : 'var(--ink-muted)',
-                              textDecoration: 'none',
-                            }}>
+                            <Link href={r.creator ? `/profile/${r.creator.username}` : '#'} style={{ fontFamily: 'DM Mono, monospace', fontSize: '12px', color: r.creator ? getRoleColor(r.creator.role) : 'var(--ink-muted)', textDecoration: 'none', fontWeight: 500 }}>
                               {r.creator?.username || 'Anonyme'}
                             </Link>
                             {r.creator?.role && (
-                              <span style={{
-                                fontFamily: 'DM Mono, monospace',
-                                fontSize: '11px',
-                                padding: '2px 6px',
-                                borderRadius: '20px',
-                                background: getRoleBackground(r.creator.role),
-                                color: getRoleColor(r.creator.role),
-                                border: `1px solid ${getRoleBorder(r.creator.role)}`,
-                              }}>
+                              <span style={{ fontFamily: 'DM Mono, monospace', fontSize: '10px', padding: '1px 6px', borderRadius: '20px', background: getRoleBackground(r.creator.role), color: getRoleColor(r.creator.role), border: `1px solid ${getRoleBorder(r.creator.role)}` }}>
                                 {r.creator.role}
                               </span>
                             )}
+                            <span style={{ fontFamily: 'DM Mono, monospace', fontSize: '11px', color: 'var(--ink-faint)' }}>
+                              {timeAgo(r.createdAt)}
+                            </span>
                             {user && (['EXPERT', 'ADMIN'].includes(user.role) || user.id === r.createdBy) && (
-                              <button
-                                onClick={() => setConfirmModal({
-                                  message: 'Supprimer cette réponse ?',
-                                  onConfirm: async () => {
-                                    try {
-                                      await api.delete(`/api/comments/${r.id}`)
-                                      setConfirmModal(null)
-                                      onCommentAdded()
-                                    } catch (error) {
-                                      console.error(error)
-                                    }
-                                  }
-                                })}
-                                style={{
-                                  marginLeft: 'auto',
-                                  padding: '2px 6px',
-                                  borderRadius: '4px',
-                                  border: '1px solid rgba(122,42,42,0.2)',
-                                  background: 'transparent',
-                                  cursor: 'pointer',
-                                  fontFamily: 'DM Mono, monospace',
-                                  fontSize: '11px',
-                                  color: 'var(--red-soft)',
-                                }}
-                              >
+                              <button onClick={() => setConfirmModal({ message: 'Supprimer cette réponse ?', onConfirm: async () => { try { await api.delete(`/api/comments/${r.id}`); setConfirmModal(null); onCommentAdded() } catch (error) { console.error(error) } } })} style={{ marginLeft: 'auto', padding: '2px 6px', borderRadius: '4px', border: '1px solid rgba(122,42,42,0.2)', background: 'transparent', cursor: 'pointer', fontFamily: 'DM Mono, monospace', fontSize: '11px', color: 'var(--red-soft)' }}>
                                 ✕
                               </button>
                             )}
                           </div>
-                          <div style={{
-                            fontFamily: 'Spectral, serif',
-                            fontSize: '14px',
-                            color: 'var(--ink-soft)',
-                            lineHeight: '1.65',
-                          }}>
+                          <div style={{ fontFamily: 'Spectral, serif', fontSize: '13px', color: 'var(--ink-soft)', lineHeight: '1.65' }}>
                             <CommentText text={r.text} />
                           </div>
                         </div>
@@ -1986,141 +1783,101 @@ export default function RightPanel({
                   )}
                 </div>
               ))}
+              </div>
 
+              {/* ── Zone de rédaction ── */}
               {user ? (
-                <div style={{ marginTop: '20px' }}>
+                <div style={{ borderTop: '1px solid var(--border)', paddingTop: '16px' }}>
+                  {/* Bannière répondre */}
+                  {replyingToId && (() => {
+                    const target = comments.find(c => c.id === replyingToId)
+                    return (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 10px', background: 'var(--gold-pale)', border: '1px solid rgba(184,132,58,0.25)', borderRadius: '6px', marginBottom: '8px' }}>
+                        <span style={{ fontFamily: 'DM Mono, monospace', fontSize: '11px', color: 'var(--gold)', flex: 1 }}>
+                          ↩ Répondre à <strong>@{target?.creator?.username || 'ce commentaire'}</strong>
+                        </span>
+                        <button onClick={() => { setReplyingToId(null); setNewComment('') }} style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'DM Mono, monospace', fontSize: '14px', color: 'var(--gold)', lineHeight: 1, padding: '0 2px' }}>×</button>
+                      </div>
+                    )
+                  })()}
+
+                  {/* Textarea */}
                   <textarea
+                    ref={commentRef}
                     value={newComment}
                     onChange={e => setNewComment(e.target.value)}
-                    placeholder="Ajouter un commentaire…"
-                    style={{
-                      width: '100%',
-                      padding: '10px 12px',
-                      border: '1px solid var(--border)',
-                      borderRadius: '8px',
-                      background: 'var(--card-bg)',
-                      fontFamily: 'Spectral, serif',
-                      fontSize: '13.5px',
-                      color: 'var(--ink)',
-                      resize: 'vertical',
-                      minHeight: '80px',
-                      outline: 'none',
-                      marginBottom: '8px',
+                    onKeyDown={e => {
+                      if (e.key === 'Enter' && (e.metaKey || e.ctrlKey) && newComment.trim()) {
+                        e.preventDefault()
+                        e.currentTarget.form?.requestSubmit?.()
+                      }
                     }}
+                    placeholder={replyingToId ? 'Écrire une réponse…' : 'Ajouter un commentaire…'}
+                    style={{ width: '100%', padding: '10px 12px', border: `1px solid ${replyingToId ? 'rgba(184,132,58,0.4)' : 'var(--border)'}`, borderRadius: '8px', background: 'var(--card-bg)', fontFamily: 'Spectral, serif', fontSize: '13.5px', color: 'var(--ink)', resize: 'none', minHeight: '80px', overflow: 'hidden', outline: 'none', marginBottom: '8px', transition: 'border-color 0.15s' }}
                   />
-                  {/* Boutons d'insertion */}
-                  <div style={{ display: 'flex', gap: '6px', marginBottom: '8px' }}>
-                    <button
-                      onClick={() => setInsertMode(insertMode === 'verse' ? null : 'verse')}
-                      style={{
-                        padding: '4px 10px',
-                        borderRadius: '4px',
-                        border: `1px solid ${insertMode === 'verse' ? 'var(--blue-sacred)' : 'var(--border)'}`,
-                        background: insertMode === 'verse' ? 'var(--blue-light)' : 'transparent',
-                        fontFamily: 'DM Mono, monospace',
-                        fontSize: '11px',
-                        color: insertMode === 'verse' ? 'var(--blue-sacred)' : 'var(--ink-muted)',
-                        cursor: 'pointer',
-                      }}
-                    >
-                      📖 Insérer un verset
-                    </button>
-                    <button
-                      onClick={() => setInsertMode(insertMode === 'link' ? null : 'link')}
-                      style={{
-                        padding: '4px 10px',
-                        borderRadius: '4px',
-                        border: `1px solid ${insertMode === 'link' ? 'var(--gold)' : 'var(--border)'}`,
-                        background: insertMode === 'link' ? 'var(--gold-pale)' : 'transparent',
-                        fontFamily: 'DM Mono, monospace',
-                        fontSize: '11px',
-                        color: insertMode === 'link' ? 'var(--gold)' : 'var(--ink-muted)',
-                        cursor: 'pointer',
-                      }}
-                    >
-                      🔗 Insérer un lien
-                    </button>
-                  </div>
 
-                  {/* Panneau verset */}
+                  {/* Panneaux d'insertion */}
                   {insertMode === 'verse' && (
-                    <div style={{
-                      padding: '12px',
-                      background: 'var(--blue-light)',
-                      border: '1px solid rgba(42,74,122,0.2)',
-                      borderRadius: '8px',
-                      marginBottom: '8px',
-                    }}>
+                    <div style={{ padding: '10px 12px', background: 'var(--blue-light)', border: '1px solid rgba(42,74,122,0.2)', borderRadius: '8px', marginBottom: '8px' }}>
                       <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', alignItems: 'center' }}>
-                        {/* Testament */}
                         <div style={{ display: 'flex', gap: '4px' }}>
                           {(['AT', 'NT'] as const).map(t => (
                             <button key={t} onClick={() => { setInsertTestament(t); setInsertBook(''); setInsertChapter(''); setInsertVerse('') }}
-                              style={{ padding: '3px 8px', borderRadius: '20px', border: `1px solid ${insertTestament === t ? 'var(--blue-sacred)' : 'rgba(42,74,122,0.2)'}`, background: insertTestament === t ? 'var(--blue-sacred)' : 'transparent', fontFamily: 'DM Mono, monospace', fontSize: '11px', color: insertTestament === t ? 'white' : 'var(--blue-sacred)', cursor: 'pointer' }}>
+                              style={{ padding: '2px 8px', borderRadius: '20px', border: `1px solid ${insertTestament === t ? 'var(--blue-sacred)' : 'rgba(42,74,122,0.2)'}`, background: insertTestament === t ? 'var(--blue-sacred)' : 'transparent', fontFamily: 'DM Mono, monospace', fontSize: '11px', color: insertTestament === t ? 'white' : 'var(--blue-sacred)', cursor: 'pointer' }}>
                               {t}
                             </button>
                           ))}
                         </div>
-
-                        {/* Livre */}
-                        <select
-                          value={insertBook}
-                          onChange={e => { setInsertBook(e.target.value); setInsertChapter(''); setInsertVerse('') }}
-                          style={{ padding: '3px 6px', border: '1px solid rgba(42,74,122,0.2)', borderRadius: '4px', background: 'var(--card-bg)', fontFamily: 'DM Mono, monospace', fontSize: '11px', color: 'var(--ink)', outline: 'none' }}
-                        >
+                        <select value={insertBook} onChange={e => { setInsertBook(e.target.value); setInsertChapter(''); setInsertVerse('') }}
+                          style={{ padding: '3px 6px', border: '1px solid rgba(42,74,122,0.2)', borderRadius: '4px', background: 'var(--card-bg)', fontFamily: 'DM Mono, monospace', fontSize: '11px', color: 'var(--ink)', outline: 'none' }}>
                           <option value="">Livre</option>
                           {booksByTestament[insertTestament].map(b => <option key={b} value={b}>{b}</option>)}
                         </select>
-
-                        {/* Chapitre */}
                         {insertBook && (
-                          <input
-                            type="number"
-                            min={1}
-                            placeholder="Ch."
-                            value={insertChapter}
-                            onChange={e => { setInsertChapter(e.target.value); setInsertVerse('') }}
-                            style={{ width: '50px', padding: '3px 6px', border: '1px solid rgba(42,74,122,0.2)', borderRadius: '4px', background: 'var(--card-bg)', fontFamily: 'DM Mono, monospace', fontSize: '11px', color: 'var(--ink)', outline: 'none' }}
-                          />
+                          <input type="number" min={1} placeholder="Ch." value={insertChapter} onChange={e => { setInsertChapter(e.target.value); setInsertVerse('') }}
+                            style={{ width: '48px', padding: '3px 6px', border: '1px solid rgba(42,74,122,0.2)', borderRadius: '4px', background: 'var(--card-bg)', fontFamily: 'DM Mono, monospace', fontSize: '11px', color: 'var(--ink)', outline: 'none' }} />
                         )}
-
-                        {/* Verset */}
                         {insertChapter && (
-                          <input
-                            type="number"
-                            min={1}
-                            placeholder="V."
-                            value={insertVerse}
-                            onChange={e => setInsertVerse(e.target.value)}
-                            style={{ width: '50px', padding: '3px 6px', border: '1px solid rgba(42,74,122,0.2)', borderRadius: '4px', background: 'var(--card-bg)', fontFamily: 'DM Mono, monospace', fontSize: '11px', color: 'var(--ink)', outline: 'none' }}
-                          />
+                          <input type="number" min={1} placeholder="V." value={insertVerse} onChange={e => setInsertVerse(e.target.value)}
+                            style={{ width: '48px', padding: '3px 6px', border: '1px solid rgba(42,74,122,0.2)', borderRadius: '4px', background: 'var(--card-bg)', fontFamily: 'DM Mono, monospace', fontSize: '11px', color: 'var(--ink)', outline: 'none' }} />
                         )}
-
-                        {/* Insérer */}
                         {insertBook && insertChapter && insertVerse && (
-                          <button
-                            onClick={() => {
-                              const ref = `[${insertBook} ${insertChapter}:${insertVerse}]`
-                              const ta = commentRef.current
-                              if (ta) {
-                                const start = ta.selectionStart
-                                const end = ta.selectionEnd
-                                const newText = newComment.slice(0, start) + ref + newComment.slice(end)
-                                setNewComment(newText)
-                                setTimeout(() => {
-                                  ta.focus()
-                                  ta.setSelectionRange(start + ref.length, start + ref.length)
-                                }, 0)
-                              } else {
-                                setNewComment(prev => prev + ref)
-                              }
-                              setInsertMode(null)
-                              setInsertBook('')
-                              setInsertChapter('')
-                              setInsertVerse('')
-                            }}
-                            style={{ padding: '3px 10px', borderRadius: '4px', border: 'none', background: 'var(--blue-sacred)', color: 'white', fontFamily: 'DM Mono, monospace', fontSize: '11px', cursor: 'pointer' }}
-                          >
+                          <button onClick={() => {
+                            const ref = `[${insertBook} ${insertChapter}:${insertVerse}]`
+                            const ta = commentRef.current
+                            if (ta) {
+                              const start = ta.selectionStart; const end = ta.selectionEnd
+                              const newText = newComment.slice(0, start) + ref + newComment.slice(end)
+                              setNewComment(newText)
+                              setTimeout(() => { ta.focus(); ta.setSelectionRange(start + ref.length, start + ref.length) }, 0)
+                            } else { setNewComment(prev => prev + ref) }
+                            setInsertMode(null); setInsertBook(''); setInsertChapter(''); setInsertVerse('')
+                          }} style={{ padding: '3px 10px', borderRadius: '4px', border: 'none', background: 'var(--blue-sacred)', color: 'white', fontFamily: 'DM Mono, monospace', fontSize: '11px', cursor: 'pointer' }}>
+                            ✓ Insérer
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                  {insertMode === 'link' && (
+                    <div style={{ padding: '10px 12px', background: 'var(--gold-pale)', border: '1px solid rgba(184,132,58,0.2)', borderRadius: '8px', marginBottom: '8px' }}>
+                      <div style={{ display: 'flex', gap: '6px', alignItems: 'center', flexWrap: 'wrap' }}>
+                        <input type="text" placeholder="Texte affiché" value={insertLinkText} onChange={e => setInsertLinkText(e.target.value)}
+                          style={{ flex: 1, minWidth: '100px', padding: '3px 6px', border: '1px solid rgba(184,132,58,0.2)', borderRadius: '4px', background: 'var(--card-bg)', fontFamily: 'Spectral, serif', fontSize: '12px', color: 'var(--ink)', outline: 'none' }} />
+                        <input type="url" placeholder="https://..." value={insertLinkUrl} onChange={e => setInsertLinkUrl(e.target.value)}
+                          style={{ flex: 2, minWidth: '140px', padding: '3px 6px', border: '1px solid rgba(184,132,58,0.2)', borderRadius: '4px', background: 'var(--card-bg)', fontFamily: 'DM Mono, monospace', fontSize: '11px', color: 'var(--ink)', outline: 'none' }} />
+                        {insertLinkText && insertLinkUrl && (
+                          <button onClick={() => {
+                            const ref = `[${insertLinkText}](${insertLinkUrl})`
+                            const ta = commentRef.current
+                            if (ta) {
+                              const start = ta.selectionStart; const end = ta.selectionEnd
+                              const newText = newComment.slice(0, start) + ref + newComment.slice(end)
+                              setNewComment(newText)
+                              setTimeout(() => { ta.focus(); ta.setSelectionRange(start + ref.length, start + ref.length) }, 0)
+                            } else { setNewComment(prev => prev + ref) }
+                            setInsertMode(null); setInsertLinkText(''); setInsertLinkUrl('')
+                          }} style={{ padding: '3px 10px', borderRadius: '4px', border: 'none', background: 'var(--gold)', color: 'white', fontFamily: 'DM Mono, monospace', fontSize: '11px', cursor: 'pointer' }}>
                             ✓ Insérer
                           </button>
                         )}
@@ -2128,101 +1885,44 @@ export default function RightPanel({
                     </div>
                   )}
 
-                  {/* Panneau lien */}
-                  {insertMode === 'link' && (
-                    <div style={{
-                      padding: '12px',
-                      background: 'var(--gold-pale)',
-                      border: '1px solid rgba(184,132,58,0.2)',
-                      borderRadius: '8px',
-                      marginBottom: '8px',
-                    }}>
-                      <div style={{ display: 'flex', gap: '6px', alignItems: 'center', flexWrap: 'wrap' }}>
-                        <input
-                          type="text"
-                          placeholder="Texte du lien"
-                          value={insertLinkText}
-                          onChange={e => setInsertLinkText(e.target.value)}
-                          style={{ flex: 1, minWidth: '100px', padding: '3px 6px', border: '1px solid rgba(184,132,58,0.2)', borderRadius: '4px', background: 'var(--card-bg)', fontFamily: 'Spectral, serif', fontSize: '12px', color: 'var(--ink)', outline: 'none' }}
-                        />
-                        <input
-                          type="url"
-                          placeholder="https://..."
-                          value={insertLinkUrl}
-                          onChange={e => setInsertLinkUrl(e.target.value)}
-                          style={{ flex: 2, minWidth: '150px', padding: '3px 6px', border: '1px solid rgba(184,132,58,0.2)', borderRadius: '4px', background: 'var(--card-bg)', fontFamily: 'DM Mono, monospace', fontSize: '11px', color: 'var(--ink)', outline: 'none' }}
-                        />
-                        {insertLinkText && insertLinkUrl && (
-                          <button
-                            onClick={() => {
-                              const ref = `[${insertLinkText}](${insertLinkUrl})`
-                              const ta = commentRef.current
-                              if (ta) {
-                                const start = ta.selectionStart
-                                const end = ta.selectionEnd
-                                const newText = newComment.slice(0, start) + ref + newComment.slice(end)
-                                setNewComment(newText)
-                                setTimeout(() => {
-                                  ta.focus()
-                                  ta.setSelectionRange(start + ref.length, start + ref.length)
-                                }, 0)
-                              } else {
-                                setNewComment(prev => prev + ref)
-                              }
-                              setInsertMode(null)
-                              setInsertLinkText('')
-                              setInsertLinkUrl('')
-                            }}
-                            style={{ padding: '3px 10px', borderRadius: '4px', border: 'none', background: 'var(--gold)', color: 'white', fontFamily: 'DM Mono, monospace', fontSize: '11px', cursor: 'pointer' }}
-                          >
-                            ✓ Insérer
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  )}
-                  <button
-                    onClick={async () => {
-                      if (!newComment.trim() || !activeVerse) return
-                      setSubmittingComment(true)
-                      try {
-                        await api.post(`/api/verses/${activeVerse.id}/comments`, { text: newComment.trim() })
-                        setNewComment('')
-                        onCommentAdded()
-                      } catch (error) {
-                        console.error(error)
-                      } finally {
-                        setSubmittingComment(false)
-                      }
-                    }}
-                    disabled={submittingComment || !newComment.trim()}
-                    style={{
-                      padding: '8px 20px',
-                      background: 'var(--gold)',
-                      color: 'white',
-                      border: 'none',
-                      borderRadius: '6px',
-                      fontFamily: 'DM Mono, monospace',
-                      fontSize: '12px',
-                      letterSpacing: '0.08em',
-                      textTransform: 'uppercase' as const,
-                      cursor: submittingComment ? 'not-allowed' : 'pointer',
-                      opacity: submittingComment || !newComment.trim() ? 0.6 : 1,
-                    }}
-                  >
-                    {submittingComment ? 'Envoi...' : 'Publier'}
-                  </button>
+                  {/* Barre d'action */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                    <button onClick={() => setInsertMode(insertMode === 'verse' ? null : 'verse')} style={{ padding: '4px 10px', borderRadius: '4px', border: `1px solid ${insertMode === 'verse' ? 'var(--blue-sacred)' : 'var(--border)'}`, background: insertMode === 'verse' ? 'var(--blue-light)' : 'transparent', fontFamily: 'DM Mono, monospace', fontSize: '11px', color: insertMode === 'verse' ? 'var(--blue-sacred)' : 'var(--ink-muted)', cursor: 'pointer' }}>
+                      📖 Verset
+                    </button>
+                    <button onClick={() => setInsertMode(insertMode === 'link' ? null : 'link')} style={{ padding: '4px 10px', borderRadius: '4px', border: `1px solid ${insertMode === 'link' ? 'var(--gold)' : 'var(--border)'}`, background: insertMode === 'link' ? 'var(--gold-pale)' : 'transparent', fontFamily: 'DM Mono, monospace', fontSize: '11px', color: insertMode === 'link' ? 'var(--gold)' : 'var(--ink-muted)', cursor: 'pointer' }}>
+                      🔗 Lien
+                    </button>
+                    <button
+                      onClick={async () => {
+                        if (!newComment.trim() || !activeVerse) return
+                        setSubmittingComment(true)
+                        try {
+                          if (replyingToId) {
+                            await api.post(`/api/comments/${replyingToId}/reply`, { text: newComment.trim() })
+                            setReplyingToId(null)
+                          } else {
+                            await api.post(`/api/verses/${activeVerse.id}/comments`, { text: newComment.trim() })
+                          }
+                          setNewComment('')
+                          setInsertMode(null)
+                          onCommentAdded()
+                        } catch (error) {
+                          console.error(error)
+                        } finally {
+                          setSubmittingComment(false)
+                        }
+                      }}
+                      disabled={submittingComment || !newComment.trim()}
+                      style={{ marginLeft: 'auto', padding: '6px 18px', background: 'var(--gold)', color: 'white', border: 'none', borderRadius: '6px', fontFamily: 'DM Mono, monospace', fontSize: '11px', letterSpacing: '0.08em', textTransform: 'uppercase' as const, cursor: submittingComment ? 'not-allowed' : 'pointer', opacity: submittingComment || !newComment.trim() ? 0.6 : 1, flexShrink: 0 }}
+                    >
+                      {submittingComment ? 'Envoi…' : replyingToId ? 'Répondre' : 'Publier'}
+                    </button>
+                  </div>
                 </div>
               ) : (
-                <div style={{
-                  marginTop: '20px',
-                  fontFamily: 'Spectral, serif',
-                  fontSize: '14px',
-                  color: 'var(--ink-muted)',
-                  fontStyle: 'italic',
-                  textAlign: 'center',
-                }}>
-                  <a href="/login" style={{ color: 'var(--gold)' }}>Connectez-vous</a> pour commenter
+                <div style={{ marginTop: '8px', fontFamily: 'Spectral, serif', fontSize: '14px', color: 'var(--ink-faint)', fontStyle: 'italic', textAlign: 'center', padding: '20px', border: '1px solid var(--border)', borderRadius: '8px' }}>
+                  <a href="/login" style={{ color: 'var(--gold)', textDecoration: 'none' }}>Connectez-vous</a> pour participer à la discussion.
                 </div>
               )}
             </div>
