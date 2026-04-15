@@ -7,7 +7,9 @@ import { useState, useEffect } from 'react'
 function ThemeInitializer() {
   useEffect(() => {
     const saved = localStorage.getItem('theme')
-    if (saved === 'dark') {
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
+    const isDark = saved === 'dark' || (saved === null && prefersDark)
+    if (isDark) {
       document.documentElement.setAttribute('data-theme', 'dark')
     } else {
       document.documentElement.removeAttribute('data-theme')
