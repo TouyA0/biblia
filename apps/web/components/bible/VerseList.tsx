@@ -33,6 +33,7 @@ interface Translation {
   id: string
   textFr: string
   isActive: boolean
+  isReference?: boolean
 }
 
 interface Verse {
@@ -47,6 +48,7 @@ interface Verse {
   }
   proposalCount?: number
   hasContributions?: boolean
+  hasCommunityTranslation?: boolean
 }
 
 interface VerseListProps {
@@ -212,7 +214,7 @@ export default function VerseList({ verses, bookName, chapter, activeVerseId, ac
                   <div style={{ width: '1px', height: '16px', background: 'var(--border)', margin: '0 2px' }} />
                   <button
                     onClick={toggleMissing}
-                    title={showMissing ? 'Masquer les mots sans traduction' : 'Voir les mots sans traduction'}
+                    title={showMissing ? 'Masquer les contributions manquantes' : 'Voir les mots et versets sans traduction'}
                     style={{
                       width: '30px',
                       height: '26px',
@@ -262,6 +264,9 @@ export default function VerseList({ verses, bookName, chapter, activeVerseId, ac
               className={`verse-block ${activeVerseId === verse.id ? 'active' : ''}`}
               style={{
                 marginBottom: isPoetic ? (hasSela ? '48px' : '28px') : undefined,
+                borderLeft: showMissing && !verse.hasCommunityTranslation
+                  ? '3px solid var(--amber-pending)'
+                  : '3px solid transparent',
               }}
             >
               <div style={{
@@ -343,7 +348,7 @@ export default function VerseList({ verses, bookName, chapter, activeVerseId, ac
                           const hasTranslation = token.translations && token.translations.length > 0
                           if (showMissing) {
                             return hasTranslation
-                              ? { textDecoration: 'underline dotted', textDecorationColor: 'var(--green-valid)', textDecorationThickness: '2px', textUnderlineOffset: '4px', opacity: 0.45 }
+                              ? { textDecoration: 'underline dotted', textDecorationColor: 'rgba(184,132,58,0.65)', textDecorationThickness: '2px', textUnderlineOffset: '4px' }
                               : { borderBottom: '2px solid var(--amber-pending)', background: 'var(--amber-light)', borderRadius: '2px' }
                           }
                           return hasTranslation
@@ -383,6 +388,18 @@ export default function VerseList({ verses, bookName, chapter, activeVerseId, ac
                     fontWeight: '300',
                   }}>
                     {translation.textFr}
+                  </div>
+                )}
+                {showMissing && !verse.hasCommunityTranslation && (
+                  <div style={{
+                    fontFamily: 'var(--font-serif)',
+                    fontSize: 'var(--verse-fr-size)',
+                    color: 'var(--amber-pending)',
+                    fontStyle: 'italic',
+                    lineHeight: '1.8',
+                    opacity: 0.75,
+                  }}>
+                    — aucune traduction communautaire
                   </div>
                 )}
 

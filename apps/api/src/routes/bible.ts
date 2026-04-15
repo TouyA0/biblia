@@ -57,7 +57,7 @@ router.get('/books/:slug/chapters/:number', async (req: Request, res: Response) 
                 }
               }
             },
-            translations: { where: { isActive: true }, take: 1 },
+            translations: { where: { isActive: true }, take: 1, select: { id: true, textFr: true, isActive: true, isReference: true } },
             _count: {
               select: {
                 comments: true,
@@ -99,12 +99,20 @@ router.get('/books/:slug/chapters/:number', async (req: Request, res: Response) 
       }
     }
 
+    // Étape 3 : vérifier quels versets ont au moins une traduction communautaire (non référence)
+    const communityTranslations = await prisma.translation.findMany({
+      where: { verseId: { in: verseIds }, isReference: false },
+      select: { verseId: true }
+    })
+    const versesWithCommunityTranslation = new Set(communityTranslations.map((t: { verseId: string }) => t.verseId))
+
     const enriched = {
       ...chapter,
       verses: chapter.verses.map((v: { id: string; _count: { comments: number; translations: number } }) => ({
         ...v,
         proposalCount: proposalCountByVerse.get(v.id) || 0,
-        hasContributions: proposalCountByVerse.has(v.id) || v._count.comments > 0
+        hasContributions: proposalCountByVerse.has(v.id) || v._count.comments > 0,
+        hasCommunityTranslation: versesWithCommunityTranslation.has(v.id) || proposalCountByVerse.has(v.id)
       }))
     }
 
