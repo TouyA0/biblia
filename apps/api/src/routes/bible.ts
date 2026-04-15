@@ -70,22 +70,41 @@ router.get('/books/:slug/chapters/:number', async (req: Request, res: Response) 
     })
     if (!chapter) { res.status(404).json({ error: 'Chapitre non trouvé' }); return }
 
-    // Enrichir avec les propositions en attente
+    // Enrichir avec le compte de propositions actives par verset
     const verseIds = chapter.verses.map((v: { id: string }) => v.id)
-    const translationsWithProposals = await prisma.translation.findMany({
-      where: {
-        verseId: { in: verseIds },
-        proposals: { some: { status: { in: ['PENDING', 'ACCEPTED'] } } }
-      },
-      select: { verseId: true }
+
+    // Étape 1 : récupérer les translations actives du chapitre (requête simple, sans filtre imbriqué)
+    const chapterTranslations = await prisma.translation.findMany({
+      where: { verseId: { in: verseIds } },
+      select: { id: true, verseId: true }
     })
-    const versesWithProposals = new Set(translationsWithProposals.map((t: { verseId: string }) => t.verseId))
+    const translationIdToVerseId: Record<string, string> = {}
+    for (const t of chapterTranslations) {
+      translationIdToVerseId[t.id] = t.verseId
+    }
+
+    // Étape 2 : compter les proposals PENDING/ACCEPTED sur ces translations (requête simple)
+    const activeProposals = await prisma.proposal.findMany({
+      where: {
+        translationId: { in: Object.keys(translationIdToVerseId) },
+        status: { in: ['PENDING', 'ACCEPTED'] }
+      },
+      select: { translationId: true }
+    })
+    const proposalCountByVerse = new Map<string, number>()
+    for (const p of activeProposals) {
+      const verseId = translationIdToVerseId[p.translationId]
+      if (verseId) {
+        proposalCountByVerse.set(verseId, (proposalCountByVerse.get(verseId) || 0) + 1)
+      }
+    }
 
     const enriched = {
       ...chapter,
       verses: chapter.verses.map((v: { id: string; _count: { comments: number; translations: number } }) => ({
         ...v,
-        hasContributions: versesWithProposals.has(v.id) || v._count.comments > 0
+        proposalCount: proposalCountByVerse.get(v.id) || 0,
+        hasContributions: proposalCountByVerse.has(v.id) || v._count.comments > 0
       }))
     }
 

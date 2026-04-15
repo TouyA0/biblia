@@ -45,6 +45,7 @@ interface Verse {
     comments: number
     translations: number
   }
+  proposalCount?: number
   hasContributions?: boolean
 }
 
@@ -261,9 +262,6 @@ export default function VerseList({ verses, bookName, chapter, activeVerseId, ac
               className={`verse-block ${activeVerseId === verse.id ? 'active' : ''}`}
               style={{
                 marginBottom: isPoetic ? (hasSela ? '48px' : '28px') : undefined,
-                borderLeft: verse.hasContributions
-                  ? '3px solid rgba(184,132,58,0.4)'
-                  : '3px solid transparent',
               }}
             >
               <div style={{
@@ -385,6 +383,38 @@ export default function VerseList({ verses, bookName, chapter, activeVerseId, ac
                     fontWeight: '300',
                   }}>
                     {translation.textFr}
+                  </div>
+                )}
+
+                {/* Indicateurs de contributions */}
+                {((verse.proposalCount ?? 0) > 0 || (verse._count?.comments ?? 0) > 0) && (
+                  <div style={{ display: 'flex', gap: '5px', marginTop: '6px' }}>
+                    {(verse.proposalCount ?? 0) > 0 && (
+                      <span style={{
+                        display: 'inline-flex', alignItems: 'center', gap: '3px',
+                        fontFamily: 'DM Mono, monospace', fontSize: '10px',
+                        color: 'var(--gold)',
+                        padding: '1px 6px', borderRadius: '10px',
+                        background: 'var(--gold-pale)',
+                        border: '1px solid rgba(184,132,58,0.25)',
+                      }}>
+                        <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+                        {verse.proposalCount}
+                      </span>
+                    )}
+                    {(verse._count?.comments ?? 0) > 0 && (
+                      <span style={{
+                        display: 'inline-flex', alignItems: 'center', gap: '3px',
+                        fontFamily: 'DM Mono, monospace', fontSize: '10px',
+                        color: 'var(--blue-sacred)',
+                        padding: '1px 6px', borderRadius: '10px',
+                        background: 'var(--blue-light)',
+                        border: '1px solid rgba(42,74,122,0.2)',
+                      }}>
+                        <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                        {verse._count?.comments}
+                      </span>
+                    )}
                   </div>
                 )}
               </div>
