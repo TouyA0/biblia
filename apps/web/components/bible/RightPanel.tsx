@@ -1173,17 +1173,35 @@ export default function RightPanel({
                 )}
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', justifyContent: 'center' }}>
                   {activeWord.strongNumber && (
-                    <span style={{
-                      fontFamily: 'DM Mono, monospace',
-                      fontSize: '12px',
-                      padding: '3px 10px',
-                      borderRadius: '20px',
-                      background: 'var(--blue-light)',
-                      color: 'var(--blue-sacred)',
-                      border: '1px solid rgba(42,74,122,0.15)',
-                    }}>
+                    <a
+                      href={`https://www.blueletterbible.org/lexicon/${activeWord.strongNumber.toLowerCase()}/`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      title={`Dictionnaire Strong — ${activeWord.strongNumber}`}
+                      style={{
+                        fontFamily: 'DM Mono, monospace',
+                        fontSize: '12px',
+                        padding: '3px 10px',
+                        borderRadius: '20px',
+                        background: 'var(--blue-light)',
+                        color: 'var(--blue-sacred)',
+                        border: '1px solid rgba(42,74,122,0.15)',
+                        textDecoration: 'none',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        transition: 'background 0.15s',
+                      }}
+                      onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = '#c8d9f0'}
+                      onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = 'var(--blue-light)'}
+                    >
                       {activeWord.strongNumber}
-                    </span>
+                      <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                        <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+                        <polyline points="15 3 21 3 21 9"/>
+                        <line x1="10" y1="14" x2="21" y2="3"/>
+                      </svg>
+                    </a>
                   )}
                   {activeWord.morphology && (
                     <span style={{

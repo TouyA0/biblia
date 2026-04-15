@@ -78,17 +78,43 @@ export default function WordPopover({ word, position, onClose, onOpenPanel, tran
 
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginBottom: '12px' }}>
         {word.strongNumber && (
-          <span style={{
-            fontFamily: 'DM Mono, monospace',
-            fontSize: '11px',
-            padding: '2px 8px',
-            borderRadius: '20px',
-            background: 'rgba(255,255,255,0.1)',
-            color: 'rgba(255,255,255,0.65)',
-            border: '1px solid rgba(255,255,255,0.12)',
-          }}>
+          <a
+            href={`https://www.blueletterbible.org/lexicon/${word.strongNumber.toLowerCase()}/`}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={e => e.stopPropagation()}
+            title={`Dictionnaire Strong — ${word.strongNumber}`}
+            style={{
+              fontFamily: 'DM Mono, monospace',
+              fontSize: '11px',
+              padding: '2px 8px',
+              borderRadius: '20px',
+              background: 'rgba(255,255,255,0.1)',
+              color: 'rgba(255,255,255,0.65)',
+              border: '1px solid rgba(255,255,255,0.12)',
+              textDecoration: 'none',
+              cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '3px',
+              transition: 'background 0.15s, color 0.15s',
+            }}
+            onMouseEnter={e => {
+              (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.18)'
+              ;(e.currentTarget as HTMLElement).style.color = 'white'
+            }}
+            onMouseLeave={e => {
+              (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.1)'
+              ;(e.currentTarget as HTMLElement).style.color = 'rgba(255,255,255,0.65)'
+            }}
+          >
             {word.strongNumber}
-          </span>
+            <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+              <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+              <polyline points="15 3 21 3 21 9"/>
+              <line x1="10" y1="14" x2="21" y2="3"/>
+            </svg>
+          </a>
         )}
         {word.morphology && (
           <span style={{
