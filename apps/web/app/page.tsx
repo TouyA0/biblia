@@ -13,11 +13,11 @@ export default function HomePage() {
       fontFamily: 'Spectral, Georgia, serif',
     }}>
       <TopBar showTestaments={false} showSearch={false} />
-      <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <div style={{ textAlign: 'center', maxWidth: '600px', padding: '40px' }}>
+      <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '32px 16px' }}>
+      <div style={{ textAlign: 'center', maxWidth: '560px', width: '100%' }}>
         <div style={{
           fontFamily: 'Crimson Pro, serif',
-          fontSize: '72px',
+          fontSize: 'clamp(48px, 12vw, 72px)',
           fontWeight: '300',
           color: 'var(--gold)',
           marginBottom: '8px',
@@ -27,7 +27,7 @@ export default function HomePage() {
         </div>
         <div style={{
           fontFamily: 'Crimson Pro, serif',
-          fontSize: '48px',
+          fontSize: 'clamp(32px, 8vw, 48px)',
           fontWeight: '300',
           color: 'var(--ink)',
           marginBottom: '16px',
@@ -37,15 +37,15 @@ export default function HomePage() {
         </div>
         <div style={{
           fontFamily: 'Spectral, serif',
-          fontSize: '18px',
+          fontSize: 'clamp(15px, 3vw, 18px)',
           color: 'var(--ink-muted)',
           fontStyle: 'italic',
-          marginBottom: '48px',
+          marginBottom: '40px',
           lineHeight: '1.8',
         }}>
           Plateforme collaborative de traduction biblique
         </div>
-        <div style={{ display: 'flex', gap: '16px', justifyContent: 'center' }}>
+        <div style={{ display: 'flex', gap: '16px', justifyContent: 'center', flexWrap: 'wrap' }}>
           <Link href="/at/genese/1" style={{
             padding: '14px 32px',
             background: 'var(--surface-dark)',

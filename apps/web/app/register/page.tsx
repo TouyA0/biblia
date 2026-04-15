@@ -42,22 +42,8 @@ export default function RegisterPage() {
   ]
 
   return (
-    <div style={{
-      minHeight: '100vh',
-      background: 'var(--parchment)',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-    }}>
-      <div style={{
-        width: '100%',
-        maxWidth: '400px',
-        padding: '40px',
-        background: 'var(--card-bg)',
-        borderRadius: '12px',
-        border: '1px solid var(--border)',
-        boxShadow: '0 4px 24px rgba(26,22,18,0.08)',
-      }}>
+    <div className="auth-page">
+      <div className="auth-card">
         <div style={{ textAlign: 'center', marginBottom: '32px' }}>
           <div style={{
             fontFamily: 'Crimson Pro, serif',

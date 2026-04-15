@@ -130,6 +130,121 @@
 }
 
 /* ═══════════════════════════════════════
+   RESPONSIVE — Layouts pages
+   ═══════════════════════════════════════ */
+
+/* ── Page d'authentification (login / register / reset) ── */
+.auth-page {
+  min-height: 100vh;
+  background: var(--parchment);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 16px;
+}
+.auth-card {
+  width: 100%;
+  max-width: 400px;
+  padding: 40px;
+  background: var(--card-bg);
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-md);
+}
+@media (max-width: 767px) {
+  .auth-card { padding: 28px 20px; }
+}
+
+/* ── Contenu centré standard (contributeurs, profil, admin) ── */
+.page-content {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 40px 24px;
+}
+.page-content-wide {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 40px 24px;
+}
+@media (max-width: 767px) {
+  .page-content,
+  .page-content-wide { padding: 24px 16px; }
+}
+
+/* ── Grille de stats responsive ── */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-bottom: 32px;
+}
+@media (max-width: 767px) {
+  .stats-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+/* ── Onglets scrollables sur mobile ── */
+.tabs-scroll {
+  display: flex;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 32px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.tabs-scroll::-webkit-scrollbar { display: none; }
+
+/* ── Ligne de log responsive ── */
+.log-row {
+  display: grid;
+  grid-template-columns: 150px 160px 1fr 120px;
+  gap: 12px;
+  padding: 10px 20px;
+  align-items: center;
+  border-bottom: 1px solid var(--border);
+}
+@media (max-width: 767px) {
+  .log-row {
+    grid-template-columns: 1fr;
+    gap: 3px;
+    padding: 10px 12px;
+  }
+  .log-row-meta { display: none; }
+}
+
+/* ── Carte de contribution (profil / admin) ── */
+.contrib-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 8px;
+}
+.contrib-stats {
+  display: flex;
+  gap: 16px;
+  flex-shrink: 0;
+}
+@media (max-width: 600px) {
+  .contrib-stats { display: none; }
+}
+
+/* ── Grille 3 colonnes → 1 colonne sur mobile ── */
+.activity-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-top: 24px;
+}
+.activity-grid > * {
+  min-width: 0;
+  overflow: hidden;
+}
+@media (max-width: 900px) {
+  .activity-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ═══════════════════════════════════════
    RESPONSIVE — Utilitaires
    ═══════════════════════════════════════ */
 

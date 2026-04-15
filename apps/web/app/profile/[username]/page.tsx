@@ -560,7 +560,7 @@ export default function UserProfilePage() {
     <div style={{ minHeight: '100vh', background: 'var(--parchment)' }}>
       <TopBar showSearch={false} />
 
-      <div style={{ maxWidth: '800px', margin: '0 auto', padding: '40px 24px' }}>
+      <div className="page-content">
         {/* Header */}
         {profile && (
           <div style={{ display: 'flex', alignItems: 'center', gap: '20px', marginBottom: '32px', flexWrap: 'wrap' }}>
@@ -581,7 +581,7 @@ export default function UserProfilePage() {
                 </span>
               </div>
             </div>
-            <div style={{ marginLeft: 'auto', display: 'flex', gap: '24px', flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap', marginTop: '4px' }}>
               {[
                 { label: 'Traductions', value: profile._count.wordTranslations },
                 { label: 'Propositions', value: profile._count.proposals },
@@ -606,10 +606,10 @@ export default function UserProfilePage() {
         </div>
 
         {/* Onglets */}
-        <div style={{ display: 'flex', borderBottom: '1px solid var(--border)', marginBottom: '32px' }}>
+        <div className="tabs-scroll">
           {tabs.map(tab => (
             <div key={tab.key} onClick={() => setActiveTab(tab.key as typeof activeTab)}
-              style={{ padding: '12px 20px', fontFamily: 'DM Mono, monospace', fontSize: '12px', letterSpacing: '0.08em', textTransform: 'uppercase' as const, color: activeTab === tab.key ? 'var(--gold)' : 'var(--ink-muted)', cursor: 'pointer', borderBottom: activeTab === tab.key ? '2px solid var(--gold)' : '2px solid transparent', marginBottom: '-1px' }}>
+              style={{ padding: '12px 20px', fontFamily: 'DM Mono, monospace', fontSize: '12px', letterSpacing: '0.08em', textTransform: 'uppercase' as const, color: activeTab === tab.key ? 'var(--gold)' : 'var(--ink-muted)', cursor: 'pointer', borderBottom: activeTab === tab.key ? '2px solid var(--gold)' : '2px solid transparent', marginBottom: '-1px', whiteSpace: 'nowrap' as const, flexShrink: 0 }}>
               {tab.label}
             </div>
           ))}

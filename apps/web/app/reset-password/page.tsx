@@ -60,21 +60,8 @@ export default function ResetPasswordPage() {
 	}
 
   return (
-    <div style={{
-      minHeight: '100vh',
-      background: 'var(--input-bg)',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-    }}>
-      <div style={{
-        width: '100%',
-        maxWidth: '400px',
-        padding: '40px',
-        background: 'var(--card-bg)',
-        border: '1px solid var(--border)',
-        borderRadius: '12px',
-      }}>
+    <div className="auth-page">
+      <div className="auth-card">
         <div style={{
           fontFamily: 'Crimson Pro, serif',
           fontSize: '24px',

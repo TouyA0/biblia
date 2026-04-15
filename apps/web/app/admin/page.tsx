@@ -386,10 +386,10 @@ export default function AdminPage() {
     <div style={{ minHeight: '100vh', background: 'var(--parchment)' }}>
       <TopBar showSearch={false} />
 
-      <div style={{ maxWidth: '1000px', margin: '0 auto', padding: '40px 24px' }}>
+      <div className="page-content-wide">
         <div style={{
           fontFamily: 'Crimson Pro, serif',
-          fontSize: '32px',
+          fontSize: 'clamp(24px, 5vw, 32px)',
           fontWeight: '300',
           color: 'var(--ink)',
           marginBottom: '32px',
@@ -398,11 +398,7 @@ export default function AdminPage() {
         </div>
 
         {/* Onglets */}
-        <div style={{
-          display: 'flex',
-          borderBottom: '1px solid var(--border)',
-          marginBottom: '32px',
-        }}>
+        <div className="tabs-scroll">
           {([
             { key: 'stats', label: 'Statistiques' },
             { key: 'users', label: `Utilisateurs (${users.length})` },
@@ -427,6 +423,8 @@ export default function AdminPage() {
                 cursor: 'pointer',
                 borderBottom: activeTab === tab.key ? '2px solid var(--gold)' : '2px solid transparent',
                 marginBottom: '-1px',
+                whiteSpace: 'nowrap' as const,
+                flexShrink: 0,
               }}
             >
               {tab.label}
@@ -438,12 +436,7 @@ export default function AdminPage() {
         {activeTab === 'stats' && stats && (
           <div>
             {/* Chiffres clés */}
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(3, 1fr)',
-              gap: '16px',
-              marginBottom: '32px',
-            }}>
+            <div className="stats-grid">
               {[
                 { label: 'Utilisateurs', value: stats.users },
                 { label: 'Livres', value: stats.books },
@@ -660,12 +653,7 @@ export default function AdminPage() {
               })()}
             </div>
             {/* Dernières activités */}
-						<div style={{
-							display: 'grid',
-							gridTemplateColumns: 'repeat(3, 1fr)',
-							gap: '16px',
-							marginTop: '24px',
-						}}>
+						<div className="activity-grid">
               {/* Dernières traductions de mots */}
 							<div style={{
 								background: 'var(--card-bg)',
@@ -700,12 +688,17 @@ export default function AdminPage() {
 												<div style={{
 													display: 'flex',
 													justifyContent: 'space-between',
+													gap: '8px',
 													marginBottom: '2px',
 												}}>
 													<span style={{
 														fontFamily: 'DM Mono, monospace',
 														fontSize: '11px',
 														color: 'var(--ink-muted)',
+														overflow: 'hidden',
+														textOverflow: 'ellipsis',
+														whiteSpace: 'nowrap',
+														minWidth: 0,
 													}}>
 														{verse.chapter.book.name} {verse.chapter.number}:{verse.number}
 													</span>
@@ -713,6 +706,7 @@ export default function AdminPage() {
 														fontFamily: 'DM Mono, monospace',
 														fontSize: '11px',
 														color: t.isValidated ? 'var(--green-valid)' : 'var(--amber-pending)',
+														flexShrink: 0,
 													}}>
 														{t.isValidated ? 'Validée' : 'Proposée'}
 													</span>
@@ -723,6 +717,9 @@ export default function AdminPage() {
 													fontStyle: 'italic',
 													color: 'var(--ink-soft)',
 													marginBottom: '2px',
+													overflow: 'hidden',
+													textOverflow: 'ellipsis',
+													whiteSpace: 'nowrap',
 												}}>
 													{t.wordToken.word} → {t.translation}
 												</div>
@@ -776,12 +773,17 @@ export default function AdminPage() {
 												<div style={{
 													display: 'flex',
 													justifyContent: 'space-between',
+													gap: '8px',
 													marginBottom: '2px',
 												}}>
 													<span style={{
 														fontFamily: 'DM Mono, monospace',
 														fontSize: '11px',
 														color: 'var(--ink-muted)',
+														overflow: 'hidden',
+														textOverflow: 'ellipsis',
+														whiteSpace: 'nowrap',
+														minWidth: 0,
 													}}>
 														{verse.chapter.book.name} {verse.chapter.number}:{verse.number}
 													</span>
@@ -789,6 +791,7 @@ export default function AdminPage() {
 														fontFamily: 'DM Mono, monospace',
 														fontSize: '11px',
 														color: p.status === 'ACCEPTED' ? 'var(--green-valid)' : p.status === 'REJECTED' ? 'var(--red-soft)' : 'var(--amber-pending)',
+														flexShrink: 0,
 													}}>
 														{p.status === 'ACCEPTED' ? 'Acceptée' : p.status === 'REJECTED' ? 'Rejetée' : 'En attente'}
 													</span>
@@ -980,7 +983,7 @@ export default function AdminPage() {
                   </div>
                 )}
               </div>
-              <div style={{ display: 'flex', gap: '4px' }}>
+              <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
                 {(['ALL', ...ROLES, 'DISABLED'] as const).map(r => (
                   <button
                     key={r}
@@ -1014,9 +1017,10 @@ export default function AdminPage() {
               background: 'var(--card-bg)',
               border: '1px solid var(--border)',
               borderRadius: '10px',
-              overflow: 'hidden',
+              overflow: 'clip',
             }}>
               {/* Header */}
+              <div style={{ overflowX: 'auto' }}><div style={{ minWidth: '960px' }}>
               <div style={{
                 display: 'grid',
                 gridTemplateColumns: '1fr 200px 120px 80px 80px 80px 120px 100px',
@@ -1248,7 +1252,7 @@ export default function AdminPage() {
                   </div>
                 )
               })}
-            </div>
+            </div></div></div>
 
             <div style={{
               fontFamily: 'DM Mono, monospace',
@@ -1361,7 +1365,7 @@ export default function AdminPage() {
 
             {contribData && !contribLoading && (
               <div>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px' }}>
+                <div className="activity-grid">
                 {/* Traductions de mots */}
                 <div style={{ background: 'var(--card-bg)', border: '1px solid var(--border)', borderRadius: '10px', padding: '20px' }}>
                   <div style={{ fontFamily: 'DM Mono, monospace', fontSize: '12px', letterSpacing: '0.1em', textTransform: 'uppercase' as const, color: 'var(--ink-muted)', marginBottom: '16px' }}>
@@ -1377,15 +1381,15 @@ export default function AdminPage() {
                         <div style={{ padding: '8px 0', borderBottom: '1px solid var(--border)', cursor: 'pointer', transition: 'opacity 0.15s' }}
                           onMouseEnter={e => (e.currentTarget as HTMLElement).style.opacity = '0.7'}
                           onMouseLeave={e => (e.currentTarget as HTMLElement).style.opacity = '1'}>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '3px' }}>
-                            <span style={{ fontFamily: 'DM Mono, monospace', fontSize: '11px', color: 'var(--ink-muted)' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', gap: '8px', marginBottom: '3px' }}>
+                            <span style={{ fontFamily: 'DM Mono, monospace', fontSize: '11px', color: 'var(--ink-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }}>
                               {verse.chapter.book.name} {verse.chapter.number}:{verse.number} · {t.wordToken.word}
                             </span>
-                            <span style={{ fontFamily: 'DM Mono, monospace', fontSize: '11px', padding: '1px 6px', borderRadius: '20px', background: t.isValidated ? 'var(--green-light)' : 'var(--amber-light)', color: t.isValidated ? 'var(--green-valid)' : 'var(--amber-pending)' }}>
+                            <span style={{ fontFamily: 'DM Mono, monospace', fontSize: '11px', padding: '1px 6px', borderRadius: '20px', background: t.isValidated ? 'var(--green-light)' : 'var(--amber-light)', color: t.isValidated ? 'var(--green-valid)' : 'var(--amber-pending)', flexShrink: 0 }}>
                               {t.isValidated ? 'Validée' : 'Proposée'}
                             </span>
                           </div>
-                          <div style={{ fontFamily: 'Spectral, serif', fontSize: '14px', fontStyle: 'italic', color: 'var(--ink)', marginBottom: '3px' }}>
+                          <div style={{ fontFamily: 'Spectral, serif', fontSize: '14px', fontStyle: 'italic', color: 'var(--ink)', marginBottom: '3px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                             {t.translation}
                           </div>
                           <div style={{ fontFamily: 'DM Mono, monospace', fontSize: '11px', color: 'var(--ink-faint)' }}>
@@ -1415,11 +1419,11 @@ export default function AdminPage() {
                         <div style={{ padding: '8px 0', borderBottom: '1px solid var(--border)', cursor: 'pointer', transition: 'opacity 0.15s' }}
                           onMouseEnter={e => (e.currentTarget as HTMLElement).style.opacity = '0.7'}
                           onMouseLeave={e => (e.currentTarget as HTMLElement).style.opacity = '1'}>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '3px' }}>
-                            <span style={{ fontFamily: 'DM Mono, monospace', fontSize: '11px', color: 'var(--ink-muted)' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', gap: '8px', marginBottom: '3px' }}>
+                            <span style={{ fontFamily: 'DM Mono, monospace', fontSize: '11px', color: 'var(--ink-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }}>
                               {verse.chapter.book.name} {verse.chapter.number}:{verse.number}
                             </span>
-                            <span style={{ fontFamily: 'DM Mono, monospace', fontSize: '11px', padding: '1px 6px', borderRadius: '20px', background: p.status === 'ACCEPTED' ? 'var(--green-light)' : p.status === 'REJECTED' ? 'var(--red-light)' : 'var(--amber-light)', color: p.status === 'ACCEPTED' ? 'var(--green-valid)' : p.status === 'REJECTED' ? 'var(--red-soft)' : 'var(--amber-pending)' }}>
+                            <span style={{ fontFamily: 'DM Mono, monospace', fontSize: '11px', padding: '1px 6px', borderRadius: '20px', background: p.status === 'ACCEPTED' ? 'var(--green-light)' : p.status === 'REJECTED' ? 'var(--red-light)' : 'var(--amber-light)', color: p.status === 'ACCEPTED' ? 'var(--green-valid)' : p.status === 'REJECTED' ? 'var(--red-soft)' : 'var(--amber-pending)', flexShrink: 0 }}>
                               {p.status === 'ACCEPTED' ? 'Acceptée' : p.status === 'REJECTED' ? 'Rejetée' : 'En attente'}
                             </span>
                           </div>
@@ -1657,18 +1661,11 @@ export default function AdminPage() {
                         : { bg: 'var(--amber-light)', color: 'var(--amber-pending)' }
 
                       return (
-                        <div key={log.id} style={{
-                          display: 'grid',
-                          gridTemplateColumns: '150px 160px 1fr 120px',
-                          padding: '10px 20px',
-                          borderBottom: i < paged.length - 1 ? '1px solid var(--border)' : 'none',
-                          alignItems: 'center',
-                          gap: '12px',
-                        }}>
-                          <span style={{ fontFamily: 'DM Mono, monospace', fontSize: '11px', padding: '2px 8px', borderRadius: '20px', background: colors.bg, color: colors.color, textAlign: 'center', whiteSpace: 'nowrap' as const }}>
+                        <div key={log.id} className="log-row">
+                          <span style={{ fontFamily: 'DM Mono, monospace', fontSize: '11px', padding: '2px 8px', borderRadius: '20px', background: colors.bg, color: colors.color, textAlign: 'center', whiteSpace: 'nowrap' as const, display: 'inline-block' }}>
                             {actionLabel}
                           </span>
-                          <div>
+                          <div className="log-row-meta">
                             {log.user ? (
                               <Link href={`/profile/${log.user.username}`} style={{ fontFamily: 'DM Mono, monospace', fontSize: '12px', color: getRoleColor(log.user.role), textDecoration: 'none' }}>
                                 @{log.user.username}
@@ -1677,10 +1674,10 @@ export default function AdminPage() {
                               <span style={{ fontFamily: 'DM Mono, monospace', fontSize: '12px', color: 'var(--ink-faint)' }}>compte supprimé</span>
                             )}
                           </div>
-                          <div style={{ fontFamily: 'DM Mono, monospace', fontSize: '11px', color: 'var(--ink-soft)' }}>
+                          <div style={{ fontFamily: 'DM Mono, monospace', fontSize: '11px', color: 'var(--ink-soft)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                             {log.metadata && Object.keys(log.metadata).filter(k => !['forced', 'by', 'action'].includes(k)).length > 0
                               ? Object.entries(log.metadata).filter(([k]) => !['forced', 'by', 'action'].includes(k)).map(([k, v]) => `${k} : ${v}`).join(' · ')
-                              : ''}
+                              : log.user ? `@${log.user.username}` : ''}
                           </div>
                           <span style={{ fontFamily: 'DM Mono, monospace', fontSize: '11px', color: 'var(--ink-faint)', textAlign: 'right' }}>
                             {new Date(log.createdAt).toLocaleDateString('fr-FR')} {new Date(log.createdAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}

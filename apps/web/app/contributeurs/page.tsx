@@ -47,7 +47,7 @@ export default function ContributeursPage() {
   return (
     <div style={{ minHeight: '100vh', background: 'var(--parchment)' }}>
       <TopBar showSearch={false} />
-      <div style={{ maxWidth: '800px', margin: '0 auto', padding: '40px 24px' }}>
+      <div className="page-content">
         <div style={{ marginBottom: '32px' }}>
           <div style={{ fontFamily: 'Crimson Pro, serif', fontSize: '32px', fontWeight: '300', color: 'var(--ink)', marginBottom: '8px' }}>
             Contributeurs
@@ -125,7 +125,7 @@ export default function ContributeursPage() {
                       </span>
                     </div>
                     {/* Stats */}
-                    <div style={{ display: 'flex', gap: '16px', flexShrink: 0 }}>
+                    <div className="contrib-stats">
                       {[
                         { label: 'Mots', value: u._count.wordTranslations },
                         { label: 'Vers.', value: u._count.proposals },
@@ -139,7 +139,7 @@ export default function ContributeursPage() {
                     </div>
                   </div>
                   {/* Barre de progression */}
-                  <div style={{ marginLeft: '78px', height: '3px', background: 'var(--border)', borderRadius: '2px', overflow: 'hidden' }}>
+                  <div style={{ marginLeft: '42px', height: '3px', background: 'var(--border)', borderRadius: '2px', overflow: 'hidden' }}>
                     <div style={{ height: '100%', width: `${(sortedValue / sortedMax) * 100}%`, background: 'var(--gold)', borderRadius: '2px', opacity: 0.6, transition: 'width 0.3s' }} />
                   </div>
                 </div>
