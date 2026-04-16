@@ -65,6 +65,7 @@ interface VerseListProps {
 export default function VerseList({ verses, bookName, chapter, activeVerseId, activeWordId, storageKey, onVerseClick, onWordClick }: VerseListProps) {
   const { user } = useAuthStore()
   const [copiedId, setCopiedId] = useState<string | null>(null)
+  const [sharedId, setSharedId] = useState<string | null>(null)
   const [fontSize, setFontSizeState] = useState<FontSize>('S')
   const [showFrench, setShowFrenchState] = useState(true)
   const [showMissing, setShowMissingState] = useState(false)
@@ -278,8 +279,8 @@ export default function VerseList({ verses, bookName, chapter, activeVerseId, ac
                 fontWeight: '300',
                 position: 'relative',
               }}
-                onMouseEnter={e => { const btn = e.currentTarget.querySelector('.copy-btn') as HTMLElement; if (btn) btn.style.opacity = '1' }}
-                onMouseLeave={e => { const btn = e.currentTarget.querySelector('.copy-btn') as HTMLElement; if (btn) btn.style.opacity = '0' }}
+                onMouseEnter={e => { e.currentTarget.querySelectorAll('.copy-btn').forEach((btn) => (btn as HTMLElement).style.opacity = '1') }}
+                onMouseLeave={e => { e.currentTarget.querySelectorAll('.copy-btn').forEach((btn) => (btn as HTMLElement).style.opacity = '0') }}
               >
                 {verse.number}
                 <button
@@ -314,6 +315,40 @@ export default function VerseList({ verses, bookName, chapter, activeVerseId, ac
                     <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                       <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
                       <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                    </svg>
+                  )}
+                </button>
+                <button
+                  className="copy-btn"
+                  onClick={e => {
+                    e.stopPropagation()
+                    const url = `${window.location.origin}${window.location.pathname}?verse=${verse.id}&tab=verse#v${verse.number}`
+                    navigator.clipboard.writeText(url)
+                    setSharedId(verse.id)
+                    setTimeout(() => setSharedId(null), 2000)
+                  }}
+                  style={{
+                    position: 'absolute',
+                    top: '20px',
+                    right: '18px',
+                    opacity: 0,
+                    background: 'transparent',
+                    border: 'none',
+                    cursor: 'pointer',
+                    padding: '2px',
+                    color: 'var(--gold)',
+                    transition: 'opacity 0.15s',
+                  }}
+                  title="Copier le lien direct vers ce verset"
+                >
+                  {sharedId === verse.id ? (
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="var(--green-valid)" strokeWidth="2.5">
+                      <polyline points="20 6 9 17 4 12"/>
+                    </svg>
+                  ) : (
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+                      <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
                     </svg>
                   )}
                 </button>

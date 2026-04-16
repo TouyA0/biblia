@@ -347,7 +347,7 @@ export default function RightPanel({
               {bookName && chapterNumber && (
                 <div
                   onClick={() => navigator.clipboard.writeText(`${bookName} ${chapterNumber}:${activeVerse.number}`)}
-                  title="Cliquer pour copier"
+                  title="Copier la référence"
                   style={{
                     display: 'inline-block',
                     marginBottom: '14px',
