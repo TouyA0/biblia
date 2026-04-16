@@ -492,6 +492,7 @@ router.post('/comments/:id/reply', authenticateJWT, async (req: AuthRequest, res
         createdBy: req.user!.id,
         verseId: parent.verseId,
         parentId,
+        proposalId: parent.proposalId ?? undefined,
       },
       include: {
         creator: { select: { username: true, role: true } }
