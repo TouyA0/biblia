@@ -501,16 +501,29 @@ router.post('/comments/:id/reply', authenticateJWT, async (req: AuthRequest, res
 
     // Notifier le créateur du commentaire parent
     if (parent.createdBy && parent.createdBy !== req.user!.id) {
-      const verse = parent.verseId ? await prisma.verse.findUnique({
-        where: { id: parent.verseId },
-        include: { chapter: { include: { book: true } } }
-      }) : null
-      const link = verse ? `/${verse.chapter.book.testament === 'AT' ? 'at' : 'nt'}/${verse.chapter.book.slug}/${verse.chapter.number}?verse=${verse.id}&tab=comments#v${verse.number}` : undefined
+      let link: string | undefined = undefined
+      if (parent.verseId) {
+        const verse = await prisma.verse.findUnique({
+          where: { id: parent.verseId },
+          include: { chapter: { include: { book: true } } }
+        })
+        if (verse) link = `/${verse.chapter.book.testament === 'AT' ? 'at' : 'nt'}/${verse.chapter.book.slug}/${verse.chapter.number}?verse=${verse.id}&tab=comments#v${verse.number}`
+      } else if (parent.proposalId) {
+        const prop = await prisma.proposal.findUnique({
+          where: { id: parent.proposalId },
+          include: { translation: { include: { verse: { include: { chapter: { include: { book: true } } } } } } }
+        })
+        if (prop) {
+          const verse = prop.translation.verse
+          link = `/${verse.chapter.book.testament === 'AT' ? 'at' : 'nt'}/${verse.chapter.book.slug}/${verse.chapter.number}?verse=${verse.id}&tab=verse#v${verse.number}`
+        }
+      }
+      const replier = await prisma.user.findUnique({ where: { id: req.user!.id }, select: { username: true } })
       await prisma.notification.create({
         data: {
           userId: parent.createdBy,
           type: 'COMMENT_REPLY',
-          message: text.length > 80 ? text.slice(0, 80) + '…' : text,
+          message: `@${replier?.username ?? 'quelqu\'un'} : ${text.length > 70 ? text.slice(0, 70) + '…' : text}`,
           link,
         }
       })
@@ -974,11 +987,21 @@ router.post('/proposals/:id/vote', authenticateJWT, async (req: AuthRequest, res
     const THRESHOLD_ACCEPT = Number(acceptSetting?.value ?? 5)
     const THRESHOLD_REJECT = Number(rejectSetting?.value ?? -3)
 
-    const proposal = await prisma.proposal.findUnique({ where: { id } })
+    const proposal = await prisma.proposal.findUnique({
+      where: { id },
+      include: { translation: { include: { verse: { include: { chapter: { include: { book: true } } } } } } }
+    })
     if (!proposal) { res.status(404).json({ error: 'Proposition non trouvée' }); return }
     if (proposal.status === 'REJECTED') { res.status(400).json({ error: 'Impossible de voter sur une proposition rejetée' }); return }
 
     const existingVote = await prisma.vote.findFirst({ where: { proposalId: id, userId } })
+
+    // Avant de voter : compter les votes existants (hors créateur) pour détecter "premier vote"
+    const isNewVote = !existingVote
+    const isRemoval = !!existingVote && existingVote.value === value
+    const prevVoteCount = proposal.createdBy
+      ? await prisma.vote.count({ where: { proposalId: id, userId: { not: proposal.createdBy } } })
+      : 0
 
     if (existingVote) {
       if (existingVote.value === value) {
@@ -1046,6 +1069,25 @@ router.post('/proposals/:id/vote', authenticateJWT, async (req: AuthRequest, res
     }
 
     const statusChanged = newStatus !== proposal.status
+
+    // Notifier le créateur sur le premier vote (non-créateur, non-annulation, pas de changement de statut)
+    if (!statusChanged && !isRemoval && proposal.createdBy && proposal.createdBy !== userId) {
+      const isFirstVote = isNewVote && prevVoteCount === 0
+      if (isFirstVote) {
+        const verse = proposal.translation.verse
+        const verseLink = `/${verse.chapter.book.testament === 'AT' ? 'at' : 'nt'}/${verse.chapter.book.slug}/${verse.chapter.number}?verse=${verse.id}&tab=verse#v${verse.number}`
+        const voter = await prisma.user.findUnique({ where: { id: userId }, select: { username: true } })
+        await prisma.notification.create({
+          data: {
+            userId: proposal.createdBy,
+            type: 'PROPOSAL_VOTE',
+            message: `@${voter?.username ?? 'quelqu\'un'} a voté ${value === 1 ? 'pour' : 'contre'} votre proposition`,
+            link: verseLink,
+          }
+        })
+      }
+    }
+
     res.json({
       netScore: statusChanged ? 0 : netScore,
       status: newStatus,

@@ -1515,17 +1515,6 @@ export default function RightPanel({
                                 >▲ Pour</button>
                               )}
 
-                              {/* Score net — affiché seulement en attente (ACCEPTED l'affiche dans l'indicateur) */}
-                              {currentStatus === 'PENDING' && (
-                                <span style={{
-                                  fontFamily: 'DM Mono, monospace', fontSize: '13px', fontWeight: '500',
-                                  color: netScore > 0 ? 'var(--green-valid)' : netScore < 0 ? 'var(--red-soft)' : 'var(--ink-muted)',
-                                  minWidth: '24px', textAlign: 'center',
-                                }}>
-                                  {netScore > 0 ? '+' : ''}{netScore}
-                                </span>
-                              )}
-
                               {/* Bouton ▼ */}
                               <button
                                 onClick={async () => {

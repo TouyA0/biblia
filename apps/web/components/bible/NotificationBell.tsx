@@ -250,8 +250,24 @@ export default function NotificationBell() {
                         onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = n.isRead ? 'transparent' : 'rgba(184,132,58,0.04)'}
                       >
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                          <span style={{ fontFamily: 'DM Mono, monospace', fontSize: '11px', padding: '1px 6px', borderRadius: '20px', background: n.type === 'PROPOSAL_ACCEPTED' ? 'var(--green-light)' : n.type === 'PROPOSAL_REJECTED' ? 'var(--red-light)' : 'var(--blue-light)', color: n.type === 'PROPOSAL_ACCEPTED' ? 'var(--green-valid)' : n.type === 'PROPOSAL_REJECTED' ? 'var(--red-soft)' : 'var(--blue-sacred)' }}>
-                            {n.type === 'PROPOSAL_ACCEPTED' ? '✓ Acceptée' : n.type === 'PROPOSAL_REJECTED' ? '✕ Rejetée' : '↩ Réponse'}
+                          <span style={{
+                            fontFamily: 'DM Mono, monospace', fontSize: '11px', padding: '1px 6px', borderRadius: '20px',
+                            background: n.type === 'PROPOSAL_ACCEPTED' ? 'var(--green-light)'
+                              : n.type === 'PROPOSAL_REJECTED' ? 'var(--red-light)'
+                              : n.type === 'PROPOSAL_VOTE' ? 'var(--amber-light)'
+                              : n.type === 'PROPOSAL_COMMENT' ? 'rgba(42,74,122,0.1)'
+                              : 'var(--blue-light)',
+                            color: n.type === 'PROPOSAL_ACCEPTED' ? 'var(--green-valid)'
+                              : n.type === 'PROPOSAL_REJECTED' ? 'var(--red-soft)'
+                              : n.type === 'PROPOSAL_VOTE' ? 'var(--amber-pending)'
+                              : n.type === 'PROPOSAL_COMMENT' ? 'rgba(42,74,122,0.9)'
+                              : 'var(--blue-sacred)',
+                          }}>
+                            {n.type === 'PROPOSAL_ACCEPTED' ? '✓ Acceptée'
+                              : n.type === 'PROPOSAL_REJECTED' ? '✕ Rejetée'
+                              : n.type === 'PROPOSAL_VOTE' ? '▲ Vote'
+                              : n.type === 'PROPOSAL_COMMENT' ? '💬 Commentaire'
+                              : '↩ Réponse'}
                           </span>
                           {getRefFromLink(n.link) && (
                             <span style={{ fontFamily: 'DM Mono, monospace', fontSize: '11px', color: 'var(--gold)' }}>
