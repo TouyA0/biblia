@@ -1,0 +1,1 @@
+ALTER TABLE "Proposal" ADD COLUMN "tags" TEXT[] NOT NULL DEFAULT '{}';

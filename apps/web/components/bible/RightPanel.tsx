@@ -85,11 +85,20 @@ interface ProposalVersion {
   createdAt: string
 }
 
+const PROPOSAL_TAGS = [
+  { id: 'orthographe', label: 'Orthographe', color: 'var(--blue-sacred)', bg: 'var(--blue-light)', border: 'rgba(42,74,122,0.25)' },
+  { id: 'sens',        label: 'Sens',        color: '#7c4dbb',           bg: 'rgba(124,77,187,0.1)',  border: 'rgba(124,77,187,0.25)' },
+  { id: 'style',       label: 'Style',       color: 'var(--green-valid)', bg: 'var(--green-light)',   border: 'rgba(45,90,58,0.25)' },
+  { id: 'vocabulaire', label: 'Vocabulaire', color: 'var(--gold)',        bg: 'var(--gold-pale)',     border: 'rgba(184,132,58,0.25)' },
+  { id: 'syntaxe',     label: 'Syntaxe',     color: '#b05a20',           bg: 'rgba(176,90,32,0.1)',  border: 'rgba(176,90,32,0.25)' },
+] as const
+
 interface Proposal {
   id: string
   proposedText: string
   status: string
   reason: string | null
+  tags: string[]
   createdAt: string
   createdBy: string | null
   creator: { username: string; role: string } | null
@@ -210,6 +219,8 @@ export default function RightPanel({
   const [showProposalForm, setShowProposalForm] = useState(false)
   const [newProposal, setNewProposal] = useState('')
   const [proposalReason, setProposalReason] = useState('')
+  const [proposalTags, setProposalTags] = useState<string[]>([])
+  const [editingProposalTags, setEditingProposalTags] = useState<string[]>([])
   const [submittingProposal, setSubmittingProposal] = useState(false)
   const [proposalError, setProposalError] = useState('')
   const [rejectReason, setRejectReason] = useState('')
@@ -1068,6 +1079,29 @@ export default function RightPanel({
                               fontSize: '12px', color: 'var(--ink)', outline: 'none',
                             }}
                           />
+                          {/* Sélecteur de tags */}
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px' }}>
+                            {PROPOSAL_TAGS.map(tag => {
+                              const active = editingProposalTags.includes(tag.id)
+                              return (
+                                <button
+                                  key={tag.id}
+                                  type="button"
+                                  onClick={() => setEditingProposalTags(prev =>
+                                    prev.includes(tag.id) ? prev.filter(t => t !== tag.id) : [...prev, tag.id]
+                                  )}
+                                  style={{
+                                    padding: '2px 9px', borderRadius: '20px', cursor: 'pointer',
+                                    fontFamily: 'DM Mono, monospace', fontSize: '10px',
+                                    border: `1px solid ${active ? tag.border : 'var(--border)'}`,
+                                    background: active ? tag.bg : 'transparent',
+                                    color: active ? tag.color : 'var(--ink-faint)',
+                                    transition: 'all 0.15s',
+                                  }}
+                                >{tag.label}</button>
+                              )
+                            })}
+                          </div>
                           <div style={{ display: 'flex', gap: '6px' }}>
                             <button
                               disabled={savingEdit || !editingProposalText.trim()}
@@ -1077,6 +1111,7 @@ export default function RightPanel({
                                   await api.patch(`/api/proposals/${p.id}`, {
                                     proposedText: editingProposalText.trim(),
                                     reason: editingProposalReason.trim() || undefined,
+                                    tags: editingProposalTags,
                                   })
                                   setEditingProposalId(null)
                                   setProposalVersions(prev => { const n = {...prev}; delete n[p.id]; return n })
@@ -1206,6 +1241,7 @@ export default function RightPanel({
                                       setEditingProposalId(p.id)
                                       setEditingProposalText(p.proposedText)
                                       setEditingProposalReason(p.reason || '')
+                                      setEditingProposalTags(p.tags || [])
                                     }
                                   }}
                                   title="Modifier la proposition"
@@ -1227,6 +1263,25 @@ export default function RightPanel({
                                 </button>
                               )}
                             </div>
+                      )}
+
+                      {/* Tags */}
+                      {p.tags && p.tags.length > 0 && (
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginTop: '8px' }}>
+                          {p.tags.map(tagId => {
+                            const tag = PROPOSAL_TAGS.find(t => t.id === tagId)
+                            if (!tag) return null
+                            return (
+                              <span key={tagId} style={{
+                                padding: '1px 8px', borderRadius: '20px',
+                                fontFamily: 'DM Mono, monospace', fontSize: '10px',
+                                border: `1px solid ${tag.border}`,
+                                background: tag.bg,
+                                color: tag.color,
+                              }}>{tag.label}</span>
+                            )
+                          })}
+                        </div>
                       )}
 
                       {!viewingOldVersion && p.reason && (
@@ -1911,9 +1966,32 @@ export default function RightPanel({
                         color: 'var(--ink)',
                         background: 'var(--parchment)',
                         outline: 'none',
-                        marginBottom: '10px',
+                        marginBottom: '8px',
                       }}
                     />
+                    {/* Sélecteur de tags */}
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px', marginBottom: '10px' }}>
+                      {PROPOSAL_TAGS.map(tag => {
+                        const active = proposalTags.includes(tag.id)
+                        return (
+                          <button
+                            key={tag.id}
+                            type="button"
+                            onClick={() => setProposalTags(prev =>
+                              prev.includes(tag.id) ? prev.filter(t => t !== tag.id) : [...prev, tag.id]
+                            )}
+                            style={{
+                              padding: '2px 9px', borderRadius: '20px', cursor: 'pointer',
+                              fontFamily: 'DM Mono, monospace', fontSize: '10px',
+                              border: `1px solid ${active ? tag.border : 'var(--border)'}`,
+                              background: active ? tag.bg : 'transparent',
+                              color: active ? tag.color : 'var(--ink-faint)',
+                              transition: 'all 0.15s',
+                            }}
+                          >{tag.label}</button>
+                        )
+                      })}
+                    </div>
                     <div style={{ display: 'flex', gap: '8px' }}>
                       <button
                         onClick={async () => {
@@ -1924,10 +2002,12 @@ export default function RightPanel({
                             await api.post(`/api/verses/${activeVerse.id}/proposals`, {
                               proposedText: newProposal.trim(),
                               reason: proposalReason.trim() || undefined,
+                              tags: proposalTags,
                             })
                             setShowProposalForm(false)
                             setNewProposal('')
                             setProposalReason('')
+                            setProposalTags([])
                             onProposalUpdated()
                           } catch (err: unknown) {
                             const error = err as { response?: { data?: { error?: string } } }

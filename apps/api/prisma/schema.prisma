@@ -141,6 +141,7 @@ model Proposal {
   proposedText  String
   status        ProposalStatus @default(PENDING)
   reason        String?
+  tags          String[]       @default([])
   createdBy     String?
   reviewedBy    String?
   createdAt     DateTime       @default(now())

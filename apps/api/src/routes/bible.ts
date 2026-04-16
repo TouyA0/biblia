@@ -708,9 +708,10 @@ router.get('/verses/:id/proposals', async (req: Request, res: Response) => {
 router.post('/verses/:id/proposals', authenticateJWT, async (req: AuthRequest, res: Response) => {
   try {
     const id = req.params.id as string
-    const { proposedText, reason } = z.object({
+    const { proposedText, reason, tags } = z.object({
       proposedText: z.string().min(1).max(5000),
       reason: z.string().max(500).optional(),
+      tags: z.array(z.string().max(50)).max(5).optional().default([]),
     }).parse(req.body)
 
     const translation = await prisma.translation.findFirst({
@@ -731,6 +732,7 @@ router.post('/verses/:id/proposals', authenticateJWT, async (req: AuthRequest, r
         translationId: translation.id,
         proposedText,
         reason: reason || null,
+        tags: tags ?? [],
         createdBy: req.user!.id,
       },
       include: {
@@ -1106,9 +1108,10 @@ router.post('/proposals/:id/vote', authenticateJWT, async (req: AuthRequest, res
 router.patch('/proposals/:id', authenticateJWT, async (req: AuthRequest, res: Response) => {
   try {
     const id = req.params.id as string
-    const { proposedText, reason } = z.object({
+    const { proposedText, reason, tags } = z.object({
       proposedText: z.string().min(1).max(5000),
       reason: z.string().max(500).optional(),
+      tags: z.array(z.string().max(50)).max(5).optional(),
     }).parse(req.body)
 
     const proposal = await prisma.proposal.findUnique({ where: { id } })
@@ -1129,7 +1132,7 @@ router.patch('/proposals/:id', authenticateJWT, async (req: AuthRequest, res: Re
 
     const updated = await prisma.proposal.update({
       where: { id },
-      data: { proposedText, reason: reason ?? null },
+      data: { proposedText, reason: reason ?? null, ...(tags !== undefined && { tags }) },
     })
 
     await logAction('PROPOSAL_UPDATED', req.user!.id, { proposalId: id }, req.ip)
