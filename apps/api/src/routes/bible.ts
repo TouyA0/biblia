@@ -601,8 +601,9 @@ router.get('/verses/:id/proposals', async (req: Request, res: Response) => {
 router.post('/verses/:id/proposals', authenticateJWT, async (req: AuthRequest, res: Response) => {
   try {
     const id = req.params.id as string
-    const { proposedText } = z.object({
-      proposedText: z.string().min(1).max(5000)
+    const { proposedText, reason } = z.object({
+      proposedText: z.string().min(1).max(5000),
+      reason: z.string().max(500).optional(),
     }).parse(req.body)
 
     const translation = await prisma.translation.findFirst({
@@ -622,6 +623,7 @@ router.post('/verses/:id/proposals', authenticateJWT, async (req: AuthRequest, r
       data: {
         translationId: translation.id,
         proposedText,
+        reason: reason || null,
         createdBy: req.user!.id,
       },
       include: {
@@ -837,6 +839,9 @@ router.patch('/proposals/:id/reject', authenticateJWT, async (req: AuthRequest, 
 // POST /api/proposals/:id/vote
 router.post('/proposals/:id/vote', authenticateJWT, async (req: AuthRequest, res: Response) => {
   try {
+    if (!['INTERMEDIATE', 'EXPERT', 'ADMIN'].includes(req.user!.role)) {
+      res.status(403).json({ error: 'Vous devez être au moins Intermédiaire pour voter' }); return
+    }
     const id = req.params.id as string
     const userId = req.user!.id
 
