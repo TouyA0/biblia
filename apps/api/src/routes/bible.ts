@@ -680,7 +680,7 @@ router.get('/verses/:id/proposals', async (req: Request, res: Response) => {
         creator: { select: { username: true, role: true } },
         reviewer: { select: { username: true, role: true } },
         votes: true,
-        _count: { select: { comments: true } },
+        _count: { select: { comments: true, versions: true } },
       }
     })
 
@@ -1055,6 +1055,60 @@ router.post('/proposals/:id/vote', authenticateJWT, async (req: AuthRequest, res
     if (error instanceof z.ZodError) {
       res.status(400).json({ error: 'Valeur de vote invalide' }); return
     }
+    console.error(error)
+    res.status(500).json({ error: 'Erreur serveur' })
+  }
+})
+
+// PATCH /api/proposals/:id — modifier une proposition (créateur, PENDING uniquement)
+router.patch('/proposals/:id', authenticateJWT, async (req: AuthRequest, res: Response) => {
+  try {
+    const id = req.params.id as string
+    const { proposedText, reason } = z.object({
+      proposedText: z.string().min(1).max(5000),
+      reason: z.string().max(500).optional(),
+    }).parse(req.body)
+
+    const proposal = await prisma.proposal.findUnique({ where: { id } })
+    if (!proposal) { res.status(404).json({ error: 'Proposition non trouvée' }); return }
+    if (proposal.createdBy !== req.user!.id) { res.status(403).json({ error: 'Accès refusé' }); return }
+    if (proposal.status !== 'PENDING') { res.status(400).json({ error: 'Seules les propositions en attente peuvent être modifiées' }); return }
+
+    // Count existing versions then snapshot current text
+    const versionCount = await prisma.proposalVersion.count({ where: { proposalId: id } })
+    await prisma.proposalVersion.create({
+      data: {
+        proposalId: id,
+        proposedText: proposal.proposedText,
+        changeReason: reason ?? null,
+        versionNumber: versionCount + 1,
+      }
+    })
+
+    const updated = await prisma.proposal.update({
+      where: { id },
+      data: { proposedText, reason: reason ?? null },
+    })
+
+    await logAction('PROPOSAL_UPDATED', req.user!.id, { proposalId: id }, req.ip)
+    res.json(updated)
+  } catch (error) {
+    if (error instanceof z.ZodError) { res.status(400).json({ error: 'Données invalides', details: error.issues }); return }
+    console.error(error)
+    res.status(500).json({ error: 'Erreur serveur' })
+  }
+})
+
+// GET /api/proposals/:id/versions
+router.get('/proposals/:id/versions', async (req: Request, res: Response) => {
+  try {
+    const versions = await prisma.proposalVersion.findMany({
+      where: { proposalId: req.params.id as string },
+      orderBy: { versionNumber: 'asc' },
+      select: { id: true, proposedText: true, changeReason: true, versionNumber: true, createdAt: true }
+    })
+    res.json(versions)
+  } catch (error) {
     console.error(error)
     res.status(500).json({ error: 'Erreur serveur' })
   }

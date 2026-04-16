@@ -77,6 +77,14 @@ interface VerseTranslation {
   createdAt: string
 }
 
+interface ProposalVersion {
+  id: string
+  proposedText: string
+  changeReason: string | null
+  versionNumber: number
+  createdAt: string
+}
+
 interface Proposal {
   id: string
   proposedText: string
@@ -87,7 +95,7 @@ interface Proposal {
   creator: { username: string; role: string } | null
   reviewer: { username: string; role: string } | null
   votes: { id: string; userId: string; value: number }[]
-  _count?: { comments: number }
+  _count?: { comments: number; versions: number }
 }
 
 interface RightPanelProps {
@@ -206,10 +214,16 @@ export default function RightPanel({
   const [proposalError, setProposalError] = useState('')
   const [rejectReason, setRejectReason] = useState('')
   const [rejectingId, setRejectingId] = useState<string | null>(null)
+  const [editingProposalId, setEditingProposalId] = useState<string | null>(null)
+  const [editingProposalText, setEditingProposalText] = useState('')
+  const [editingProposalReason, setEditingProposalReason] = useState('')
+  const [savingEdit, setSavingEdit] = useState(false)
   const [showRejected, setShowRejected] = useState(false)
   const [proposalVoteOverrides, setProposalVoteOverrides] = useState<Record<string, { netScore: number; userVote: number; status: string }>>({})
   const [replyingToId, setReplyingToId] = useState<string | null>(null)
   const [pickerOpenId, setPickerOpenId] = useState<string | null>(null)
+  const [proposalVersions, setProposalVersions] = useState<Record<string, ProposalVersion[]>>({})
+  const [proposalVersionIdx, setProposalVersionIdx] = useState<Record<string, number>>({})
   const [diffIds, setDiffIds] = useState<Set<string>>(new Set())
   const toggleFullText = (id: string) => setDiffIds(prev => {
     const s = new Set(prev); s.has(id) ? s.delete(id) : s.add(id); return s
@@ -340,6 +354,17 @@ export default function RightPanel({
       .catch(console.error)
       .finally(() => setLoadingOccurrences(false))
   }, [activeWord?.id])
+
+  useEffect(() => {
+    if (!proposals) return
+    proposals.forEach(p => {
+      if ((p._count?.versions ?? 0) > 0 && proposalVersions[p.id] === undefined) {
+        api.get(`/api/proposals/${p.id}/versions`).then(res => {
+          setProposalVersions(prev => ({ ...prev, [p.id]: res.data }))
+        }).catch(() => {})
+      }
+    })
+  }, [proposals])
 
   const getReactions = (comment: { id: string; reactions?: CommentReaction[] }) => {
     return localReactions[comment.id] ?? comment.reactions ?? []
@@ -695,7 +720,15 @@ export default function RightPanel({
 
               {/* Anciennes traductions acceptées (non référence, non active) */}
               {verseTranslations
-                .filter(t => !t.isReference && !t.isActive && !proposals.some(p => p.proposedText === t.textFr))
+                .filter(t => {
+                  if (t.isReference || t.isActive) return false
+                  // Cacher si un proposal courant ou une version historique correspond à ce texte
+                  const allProposedTexts = new Set([
+                    ...proposals.map(p => p.proposedText),
+                    ...Object.values(proposalVersions).flat().map(v => v.proposedText),
+                  ])
+                  return !allProposedTexts.has(t.textFr)
+                })
                 .map(t => (
                   <div key={t.id} style={{
                     border: '1px solid var(--border)',
@@ -821,6 +854,13 @@ export default function RightPanel({
                 const diff = computeWordDiff(referenceText, p.proposedText)
                 const hasDiff = referenceText.length > 0 && diff.some(d => d.type !== 'same')
                 const showingDiff = hasDiff && diffIds.has(p.id)
+                // Version history
+                const pVersions = proposalVersions[p.id] || []
+                const totalV = pVersions.length + 1
+                const currentVIdx = proposalVersionIdx[p.id] ?? (totalV - 1)
+                const viewingOldVersion = currentVIdx < totalV - 1
+                const displayedText = viewingOldVersion ? pVersions[currentVIdx].proposedText : p.proposedText
+                const viewingVersionReason = viewingOldVersion ? pVersions[currentVIdx].changeReason : null
 
                 const borderColor = isActiveTrad
                   ? 'rgba(184,132,58,0.5)'
@@ -930,58 +970,197 @@ export default function RightPanel({
                       </div>
                     </div>
 
-                    {/* ── Corps : diff ou texte complet ── */}
+                    {/* ── Corps : édition inline ou affichage ── */}
                     <div style={{ padding: '12px 14px 10px' }}>
-                      <div style={{
-                        fontFamily: 'Spectral, serif',
-                        fontSize: '14px',
-                        fontStyle: 'italic',
-                        lineHeight: '1.9',
-                        color: 'var(--ink)',
-                      }}>
-                        {showingDiff ? diff.map((token, idx) => {
-                          if (token.type === 'removed') return (
-                            <span key={idx} style={{
-                              background: 'var(--red-light)',
-                              color: 'var(--red-soft)',
-                              textDecoration: 'line-through',
-                              borderRadius: '3px',
-                              padding: '0 2px',
-                            }}>{token.text}</span>
-                          )
-                          if (token.type === 'added') return (
-                            <span key={idx} style={{
-                              background: 'var(--green-light)',
-                              color: 'var(--green-valid)',
-                              borderRadius: '3px',
-                              padding: '0 2px',
-                              fontWeight: '500',
-                            }}>{token.text}</span>
-                          )
-                          return <span key={idx}>{token.text}</span>
-                        }) : p.proposedText}
-                      </div>
+                      {editingProposalId === p.id ? (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                          <textarea
+                            value={editingProposalText}
+                            onChange={e => setEditingProposalText(e.target.value)}
+                            onInput={e => { const t = e.target as HTMLTextAreaElement; t.style.height = 'auto'; t.style.height = t.scrollHeight + 'px' }}
+                            style={{
+                              width: '100%', padding: '8px 10px',
+                              border: '1px solid var(--gold)', borderRadius: '6px',
+                              background: 'var(--parchment)', fontFamily: 'Spectral, serif',
+                              fontSize: '14px', fontStyle: 'italic', color: 'var(--ink)',
+                              lineHeight: '1.9', resize: 'none', outline: 'none',
+                              minHeight: '60px', overflow: 'hidden',
+                            }}
+                          />
+                          <input
+                            type="text"
+                            value={editingProposalReason}
+                            onChange={e => setEditingProposalReason(e.target.value)}
+                            placeholder="Raison du changement (optionnel)"
+                            style={{
+                              width: '100%', padding: '6px 10px',
+                              border: '1px solid var(--border)', borderRadius: '6px',
+                              background: 'var(--parchment)', fontFamily: 'DM Mono, monospace',
+                              fontSize: '12px', color: 'var(--ink)', outline: 'none',
+                            }}
+                          />
+                          <div style={{ display: 'flex', gap: '6px' }}>
+                            <button
+                              disabled={savingEdit || !editingProposalText.trim()}
+                              onClick={async () => {
+                                setSavingEdit(true)
+                                try {
+                                  await api.patch(`/api/proposals/${p.id}`, {
+                                    proposedText: editingProposalText.trim(),
+                                    reason: editingProposalReason.trim() || undefined,
+                                  })
+                                  setEditingProposalId(null)
+                                  setProposalVersions(prev => { const n = {...prev}; delete n[p.id]; return n })
+                                  onProposalUpdated()
+                                } catch (e) { console.error(e) }
+                                finally { setSavingEdit(false) }
+                              }}
+                              style={{
+                                padding: '5px 14px', borderRadius: '5px', cursor: 'pointer',
+                                background: 'var(--gold)', border: 'none', color: 'white',
+                                fontFamily: 'DM Mono, monospace', fontSize: '12px',
+                                opacity: savingEdit || !editingProposalText.trim() ? 0.6 : 1,
+                              }}
+                            >{savingEdit ? 'Enregistrement…' : '✓ Sauvegarder'}</button>
+                            <button
+                              onClick={() => setEditingProposalId(null)}
+                              style={{
+                                padding: '5px 10px', borderRadius: '5px', cursor: 'pointer',
+                                background: 'transparent', border: '1px solid var(--border)', color: 'var(--ink-muted)',
+                                fontFamily: 'DM Mono, monospace', fontSize: '12px',
+                              }}
+                            >Annuler</button>
+                          </div>
+                        </div>
+                      ) : (
+                      <>
+                      <div style={{ position: 'relative', paddingTop: totalV > 1 ? '26px' : '0' }}>
+                            {totalV > 1 && (
+                              <div style={{
+                                position: 'absolute', top: '4px', right: '4px',
+                                display: 'flex', alignItems: 'center', gap: '2px',
+                              }}>
+                                <button
+                                  disabled={currentVIdx === 0}
+                                  onClick={() => setProposalVersionIdx(prev => ({ ...prev, [p.id]: Math.max(0, currentVIdx - 1) }))}
+                                  style={{
+                                    width: '20px', height: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                    background: 'transparent', border: '1px solid var(--border)', borderRadius: '3px',
+                                    cursor: currentVIdx === 0 ? 'default' : 'pointer',
+                                    color: currentVIdx === 0 ? 'var(--ink-faint)' : 'var(--ink-muted)',
+                                    fontSize: '11px', padding: 0, opacity: currentVIdx === 0 ? 0.3 : 1,
+                                  }}
+                                >←</button>
+                                <span
+                                  title={viewingVersionReason ? `Raison : ${viewingVersionReason}` : undefined}
+                                  style={{
+                                    fontFamily: 'DM Mono, monospace', fontSize: '9px', color: 'var(--ink-faint)',
+                                    padding: '0 4px', cursor: viewingVersionReason ? 'help' : 'default',
+                                    userSelect: 'none',
+                                  }}
+                                >
+                                  v{currentVIdx + 1}/{totalV}
+                                </span>
+                                <button
+                                  disabled={currentVIdx === totalV - 1}
+                                  onClick={() => setProposalVersionIdx(prev => ({ ...prev, [p.id]: Math.min(totalV - 1, currentVIdx + 1) }))}
+                                  style={{
+                                    width: '20px', height: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                    background: 'transparent', border: '1px solid var(--border)', borderRadius: '3px',
+                                    cursor: currentVIdx === totalV - 1 ? 'default' : 'pointer',
+                                    color: currentVIdx === totalV - 1 ? 'var(--ink-faint)' : 'var(--ink-muted)',
+                                    fontSize: '11px', padding: 0, opacity: currentVIdx === totalV - 1 ? 0.3 : 1,
+                                  }}
+                                >→</button>
+                              </div>
+                            )}
+                            <div style={{
+                              fontFamily: 'Spectral, serif',
+                              fontSize: '14px',
+                              fontStyle: 'italic',
+                              lineHeight: '1.9',
+                              color: 'var(--ink)',
+                              opacity: viewingOldVersion ? 0.75 : 1,
+                              background: viewingOldVersion ? 'var(--amber-light)' : 'transparent',
+                              borderRadius: viewingOldVersion ? '4px' : '0',
+                              padding: viewingOldVersion ? '4px 6px' : '0',
+                            }}>
+                              {(!viewingOldVersion && showingDiff) ? diff.map((token, idx) => {
+                                if (token.type === 'removed') return (
+                                  <span key={idx} style={{
+                                    background: 'var(--red-light)',
+                                    color: 'var(--red-soft)',
+                                    textDecoration: 'line-through',
+                                    borderRadius: '3px',
+                                    padding: '0 2px',
+                                  }}>{token.text}</span>
+                                )
+                                if (token.type === 'added') return (
+                                  <span key={idx} style={{
+                                    background: 'var(--green-light)',
+                                    color: 'var(--green-valid)',
+                                    borderRadius: '3px',
+                                    padding: '0 2px',
+                                    fontWeight: '500',
+                                  }}>{token.text}</span>
+                                )
+                                return <span key={idx}>{token.text}</span>
+                              }) : displayedText}
+                            </div>
+                          </div>
 
-                      {hasDiff && (
-                        <button
-                          onClick={() => toggleFullText(p.id)}
-                          style={{
-                            marginTop: '7px',
-                            padding: '2px 8px',
-                            background: 'transparent',
-                            border: '1px solid var(--border)',
-                            borderRadius: '4px',
-                            fontFamily: 'DM Mono, monospace',
-                            fontSize: '11px',
-                            color: 'var(--ink-faint)',
-                            cursor: 'pointer',
-                          }}
-                        >
-                          {showingDiff ? 'Texte complet' : '~ Voir diff'}
-                        </button>
+                      {!viewingOldVersion && (hasDiff || (user && p.createdBy === user.id && currentStatus === 'PENDING')) && (
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '7px' }}>
+                              {hasDiff && (
+                                <button
+                                  onClick={() => toggleFullText(p.id)}
+                                  style={{
+                                    padding: '2px 8px',
+                                    background: 'transparent',
+                                    border: '1px solid var(--border)',
+                                    borderRadius: '4px',
+                                    fontFamily: 'DM Mono, monospace',
+                                    fontSize: '11px',
+                                    color: 'var(--ink-faint)',
+                                    cursor: 'pointer',
+                                  }}
+                                >
+                                  {showingDiff ? 'Texte complet' : '~ Voir diff'}
+                                </button>
+                              )}
+                              {user && p.createdBy === user.id && currentStatus === 'PENDING' && (
+                                <button
+                                  onClick={() => {
+                                    if (editingProposalId === p.id) {
+                                      setEditingProposalId(null)
+                                    } else {
+                                      setEditingProposalId(p.id)
+                                      setEditingProposalText(p.proposedText)
+                                      setEditingProposalReason(p.reason || '')
+                                    }
+                                  }}
+                                  title="Modifier la proposition"
+                                  style={{
+                                    display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                                    width: '24px', height: '24px', padding: '0',
+                                    background: editingProposalId === p.id ? 'var(--gold-pale)' : 'transparent',
+                                    border: `1px solid ${editingProposalId === p.id ? 'var(--gold)' : 'var(--border)'}`,
+                                    borderRadius: '4px', cursor: 'pointer',
+                                    color: editingProposalId === p.id ? 'var(--gold)' : 'var(--ink-faint)',
+                                    transition: 'all 0.15s',
+                                  }}
+                                  onMouseEnter={e => { if (editingProposalId !== p.id) { e.currentTarget.style.borderColor = 'var(--ink-muted)'; e.currentTarget.style.color = 'var(--ink-muted)' }}}
+                                  onMouseLeave={e => { if (editingProposalId !== p.id) { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--ink-faint)' }}}
+                                >
+                                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/>
+                                  </svg>
+                                </button>
+                              )}
+                            </div>
                       )}
 
-                      {p.reason && (
+                      {!viewingOldVersion && p.reason && (
                         <div style={{
                           marginTop: '8px',
                           padding: '6px 10px',
@@ -995,6 +1174,8 @@ export default function RightPanel({
                         }}>
                           « {p.reason} »
                         </div>
+                      )}
+                      </>
                       )}
                     </div>
 

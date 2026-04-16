@@ -149,6 +149,17 @@ model Proposal {
   reviewer      User?          @relation("ProposalReviewer", fields: [reviewedBy], references: [id])
   votes         Vote[]
   comments    Comment[]
+  versions    ProposalVersion[]
+}
+
+model ProposalVersion {
+  id            String   @id @default(cuid())
+  proposalId    String
+  proposal      Proposal @relation(fields: [proposalId], references: [id], onDelete: Cascade)
+  proposedText  String
+  changeReason  String?
+  versionNumber Int
+  createdAt     DateTime @default(now())
 }
 
 model Vote {
