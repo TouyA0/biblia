@@ -214,6 +214,8 @@ export default function RightPanel({
   const [proposalError, setProposalError] = useState('')
   const [rejectReason, setRejectReason] = useState('')
   const [rejectingId, setRejectingId] = useState<string | null>(null)
+  const [proposalFilter, setProposalFilter] = useState<'ALL' | 'PENDING' | 'ACCEPTED'>('ALL')
+  const [proposalSort, setProposalSort] = useState<'default' | 'date_desc' | 'date_asc' | 'score'>('default')
   const [editingProposalId, setEditingProposalId] = useState<string | null>(null)
   const [editingProposalText, setEditingProposalText] = useState('')
   const [editingProposalReason, setEditingProposalReason] = useState('')
@@ -325,15 +327,29 @@ export default function RightPanel({
   const validatedTranslations = wordTranslations.filter(t => t.isValidated)
   const proposedTranslations = wordTranslations.filter(t => !t.isValidated)
   const activeProposals = proposals
-    .filter(p => p.status === 'PENDING' || p.status === 'ACCEPTED')
+    .filter(p => {
+      if (p.status === 'REJECTED') return false
+      if (proposalFilter === 'PENDING') return p.status === 'PENDING'
+      if (proposalFilter === 'ACCEPTED') return p.status === 'ACCEPTED'
+      return true
+    })
     .sort((a, b) => {
-      const aIsActive = a.proposedText === activeVerse?.translations[0]?.textFr
-      const bIsActive = b.proposedText === activeVerse?.translations[0]?.textFr
-      if (aIsActive && !bIsActive) return -1
-      if (!aIsActive && bIsActive) return 1
+      // La traduction active reste toujours en tête
+      const refText = activeVerse?.translations[0]?.textFr || ''
+      if (a.proposedText === refText) return -1
+      if (b.proposedText === refText) return 1
+      if (proposalSort === 'score') {
+        // Utiliser les overrides optimistes si disponibles
+        const scoreA = proposalVoteOverrides[a.id]?.netScore ?? (a.votes || []).reduce((s, v) => s + v.value, 0)
+        const scoreB = proposalVoteOverrides[b.id]?.netScore ?? (b.votes || []).reduce((s, v) => s + v.value, 0)
+        return scoreB - scoreA
+      }
+      if (proposalSort === 'date_asc') return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+      if (proposalSort === 'date_desc') return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      // default : statut (ACCEPTED en premier) puis date décroissante
       if (a.status === 'ACCEPTED' && b.status !== 'ACCEPTED') return -1
       if (a.status !== 'ACCEPTED' && b.status === 'ACCEPTED') return 1
-      return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
     })
   const closedProposals = proposals.filter(p => p.status === 'REJECTED')
 
@@ -818,6 +834,57 @@ export default function RightPanel({
                   </span>
                 )}
               </div>
+
+              {/* Barre filtre/tri — visible dès 3 propositions */}
+              {proposals.filter(p => p.status !== 'REJECTED').length >= 3 && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap', marginBottom: '12px' }}>
+                  {/* Filtre statut */}
+                  {(['ALL', 'PENDING', 'ACCEPTED'] as const).map(f => (
+                    <button key={f} onClick={() => setProposalFilter(f)} style={{
+                      padding: '2px 9px', borderRadius: '20px', cursor: 'pointer',
+                      fontFamily: 'DM Mono, monospace', fontSize: '11px',
+                      border: `1px solid ${proposalFilter === f ? 'var(--gold)' : 'var(--border)'}`,
+                      background: proposalFilter === f ? 'var(--gold-pale)' : 'transparent',
+                      color: proposalFilter === f ? 'var(--gold)' : 'var(--ink-faint)',
+                      transition: 'all 0.15s',
+                    }}>
+                      {f === 'ALL' ? 'Toutes' : f === 'PENDING' ? 'En attente' : 'Acceptées'}
+                    </button>
+                  ))}
+                  <div style={{ marginLeft: 'auto', display: 'flex', gap: '4px' }}>
+                    {/* Bouton Date cyclique : default → date_desc → date_asc → default */}
+                    <button
+                      onClick={() => setProposalSort(s =>
+                        s === 'date_desc' ? 'date_asc' : s === 'date_asc' ? 'default' : 'date_desc'
+                      )}
+                      style={{
+                        padding: '2px 7px', borderRadius: '4px', cursor: 'pointer',
+                        fontFamily: 'DM Mono, monospace', fontSize: '10px',
+                        border: `1px solid ${proposalSort === 'date_desc' || proposalSort === 'date_asc' ? 'var(--ink-muted)' : 'var(--border)'}`,
+                        background: proposalSort === 'date_desc' || proposalSort === 'date_asc' ? 'var(--parchment-dark)' : 'transparent',
+                        color: proposalSort === 'date_desc' || proposalSort === 'date_asc' ? 'var(--ink-muted)' : 'var(--ink-faint)',
+                        transition: 'all 0.15s',
+                      }}
+                    >
+                      {proposalSort === 'date_asc' ? 'Date ↑' : 'Date ↓'}
+                    </button>
+                    {/* Bouton Score */}
+                    <button
+                      onClick={() => setProposalSort(s => s === 'score' ? 'default' : 'score')}
+                      style={{
+                        padding: '2px 7px', borderRadius: '4px', cursor: 'pointer',
+                        fontFamily: 'DM Mono, monospace', fontSize: '10px',
+                        border: `1px solid ${proposalSort === 'score' ? 'var(--ink-muted)' : 'var(--border)'}`,
+                        background: proposalSort === 'score' ? 'var(--parchment-dark)' : 'transparent',
+                        color: proposalSort === 'score' ? 'var(--ink-muted)' : 'var(--ink-faint)',
+                        transition: 'all 0.15s',
+                      }}
+                    >
+                      Score
+                    </button>
+                  </div>
+                </div>
+              )}
 
               {activeProposals.length === 0 && (
                 <div style={{
