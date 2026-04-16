@@ -261,6 +261,8 @@ export default function RightPanel({
   const [insertLinkUrl, setInsertLinkUrl] = useState('')
   const [insertTestament, setInsertTestament] = useState<'AT' | 'NT'>('AT')
   const commentRef = useRef<HTMLTextAreaElement>(null)
+  const [proposalInsertMode, setProposalInsertMode] = useState<{ proposalId: string; mode: 'verse' | 'link' } | null>(null)
+  const proposalTextareaRefs = useRef<Record<string, HTMLTextAreaElement | null>>({})
 
   const booksByTestament = {
     AT: Object.keys(BOOK_NAME_TO_SLUG).slice(0, 46),
@@ -1462,32 +1464,144 @@ export default function RightPanel({
                                   <button onClick={() => setProposalReplyingTo(null)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--gold)', fontSize: '13px', lineHeight: 1, padding: '0 2px' }}>×</button>
                                 </div>
                               )}
-                              <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-end' }}>
-                                <textarea
-                                  value={proposalCommentText[p.id] || ''}
-                                  onChange={e => setProposalCommentText(prev => ({ ...prev, [p.id]: e.target.value }))}
-                                  onInput={e => {
-                                    const ta = e.target as HTMLTextAreaElement
-                                    ta.style.height = 'auto'
-                                    ta.style.height = ta.scrollHeight + 'px'
+
+                              {/* Textarea */}
+                              <textarea
+                                ref={el => { proposalTextareaRefs.current[p.id] = el }}
+                                value={proposalCommentText[p.id] || ''}
+                                onChange={e => setProposalCommentText(prev => ({ ...prev, [p.id]: e.target.value }))}
+                                onInput={e => {
+                                  const ta = e.target as HTMLTextAreaElement
+                                  ta.style.height = 'auto'
+                                  ta.style.height = ta.scrollHeight + 'px'
+                                }}
+                                placeholder={proposalReplyingTo?.proposalId === p.id
+                                  ? `Répondre à @${proposalReplyingTo.username}…`
+                                  : 'Votre avis…'
+                                }
+                                rows={1}
+                                style={{
+                                  width: '100%', padding: '7px 10px',
+                                  border: `1px solid ${proposalReplyingTo?.proposalId === p.id ? 'rgba(184,132,58,0.4)' : 'var(--border)'}`,
+                                  borderRadius: '8px',
+                                  fontFamily: 'Spectral, serif', fontSize: '13px',
+                                  color: 'var(--ink)', background: 'var(--input-bg)', outline: 'none',
+                                  resize: 'none', overflow: 'hidden', transition: 'border-color 0.15s',
+                                  minHeight: '36px', marginBottom: '6px', boxSizing: 'border-box',
+                                }}
+                                onFocus={e => (e.target as HTMLElement).style.borderColor = 'rgba(184,132,58,0.4)'}
+                                onBlur={e => (e.target as HTMLElement).style.borderColor = proposalReplyingTo?.proposalId === p.id ? 'rgba(184,132,58,0.4)' : 'var(--border)'}
+                              />
+
+                              {/* Panneau insertion verset */}
+                              {proposalInsertMode?.proposalId === p.id && proposalInsertMode.mode === 'verse' && (
+                                <div style={{ padding: '8px 10px', background: 'var(--blue-light)', border: '1px solid rgba(42,74,122,0.2)', borderRadius: '7px', marginBottom: '6px' }}>
+                                  <div style={{ display: 'flex', gap: '5px', flexWrap: 'wrap', alignItems: 'center' }}>
+                                    <div style={{ display: 'flex', gap: '3px' }}>
+                                      {(['AT', 'NT'] as const).map(t => (
+                                        <button key={t} onClick={() => { setInsertTestament(t); setInsertBook(''); setInsertChapter(''); setInsertVerse('') }}
+                                          style={{ padding: '2px 7px', borderRadius: '20px', border: `1px solid ${insertTestament === t ? 'var(--blue-sacred)' : 'rgba(42,74,122,0.2)'}`, background: insertTestament === t ? 'var(--blue-sacred)' : 'transparent', fontFamily: 'DM Mono, monospace', fontSize: '10px', color: insertTestament === t ? 'white' : 'var(--blue-sacred)', cursor: 'pointer' }}>
+                                          {t}
+                                        </button>
+                                      ))}
+                                    </div>
+                                    <select value={insertBook} onChange={e => { setInsertBook(e.target.value); setInsertChapter(''); setInsertVerse('') }}
+                                      style={{ padding: '2px 5px', border: '1px solid rgba(42,74,122,0.2)', borderRadius: '4px', background: 'var(--card-bg)', fontFamily: 'DM Mono, monospace', fontSize: '10px', color: 'var(--ink)', outline: 'none' }}>
+                                      <option value="">Livre</option>
+                                      {booksByTestament[insertTestament].map(b => <option key={b} value={b}>{b}</option>)}
+                                    </select>
+                                    {insertBook && (
+                                      <input type="number" min={1} placeholder="Ch." value={insertChapter} onChange={e => { setInsertChapter(e.target.value); setInsertVerse('') }}
+                                        style={{ width: '44px', padding: '2px 5px', border: '1px solid rgba(42,74,122,0.2)', borderRadius: '4px', background: 'var(--card-bg)', fontFamily: 'DM Mono, monospace', fontSize: '10px', color: 'var(--ink)', outline: 'none' }} />
+                                    )}
+                                    {insertChapter && (
+                                      <input type="number" min={1} placeholder="V." value={insertVerse} onChange={e => setInsertVerse(e.target.value)}
+                                        style={{ width: '44px', padding: '2px 5px', border: '1px solid rgba(42,74,122,0.2)', borderRadius: '4px', background: 'var(--card-bg)', fontFamily: 'DM Mono, monospace', fontSize: '10px', color: 'var(--ink)', outline: 'none' }} />
+                                    )}
+                                    {insertBook && insertChapter && insertVerse && (
+                                      <button onClick={() => {
+                                        const ref = `[${insertBook} ${insertChapter}:${insertVerse}]`
+                                        const ta = proposalTextareaRefs.current[p.id]
+                                        const cur = proposalCommentText[p.id] || ''
+                                        if (ta) {
+                                          const start = ta.selectionStart; const end = ta.selectionEnd
+                                          const newText = cur.slice(0, start) + ref + cur.slice(end)
+                                          setProposalCommentText(prev => ({ ...prev, [p.id]: newText }))
+                                          setTimeout(() => { ta.focus(); ta.setSelectionRange(start + ref.length, start + ref.length) }, 0)
+                                        } else {
+                                          setProposalCommentText(prev => ({ ...prev, [p.id]: cur + ref }))
+                                        }
+                                        setProposalInsertMode(null); setInsertBook(''); setInsertChapter(''); setInsertVerse('')
+                                      }} style={{ padding: '2px 9px', borderRadius: '4px', border: 'none', background: 'var(--blue-sacred)', color: 'white', fontFamily: 'DM Mono, monospace', fontSize: '10px', cursor: 'pointer' }}>
+                                        ✓ Insérer
+                                      </button>
+                                    )}
+                                  </div>
+                                </div>
+                              )}
+
+                              {/* Panneau insertion lien */}
+                              {proposalInsertMode?.proposalId === p.id && proposalInsertMode.mode === 'link' && (
+                                <div style={{ padding: '8px 10px', background: 'var(--gold-pale)', border: '1px solid rgba(184,132,58,0.2)', borderRadius: '7px', marginBottom: '6px' }}>
+                                  <div style={{ display: 'flex', gap: '5px', alignItems: 'center', flexWrap: 'wrap' }}>
+                                    <input type="text" placeholder="Texte affiché" value={insertLinkText} onChange={e => setInsertLinkText(e.target.value)}
+                                      style={{ flex: 1, minWidth: '90px', padding: '2px 6px', border: '1px solid rgba(184,132,58,0.2)', borderRadius: '4px', background: 'var(--card-bg)', fontFamily: 'Spectral, serif', fontSize: '11px', color: 'var(--ink)', outline: 'none' }} />
+                                    <input type="url" placeholder="https://…" value={insertLinkUrl} onChange={e => setInsertLinkUrl(e.target.value)}
+                                      style={{ flex: 2, minWidth: '120px', padding: '2px 6px', border: '1px solid rgba(184,132,58,0.2)', borderRadius: '4px', background: 'var(--card-bg)', fontFamily: 'DM Mono, monospace', fontSize: '10px', color: 'var(--ink)', outline: 'none' }} />
+                                    {insertLinkText && insertLinkUrl && (
+                                      <button onClick={() => {
+                                        const ref = `[${insertLinkText}](${insertLinkUrl})`
+                                        const ta = proposalTextareaRefs.current[p.id]
+                                        const cur = proposalCommentText[p.id] || ''
+                                        if (ta) {
+                                          const start = ta.selectionStart; const end = ta.selectionEnd
+                                          const newText = cur.slice(0, start) + ref + cur.slice(end)
+                                          setProposalCommentText(prev => ({ ...prev, [p.id]: newText }))
+                                          setTimeout(() => { ta.focus(); ta.setSelectionRange(start + ref.length, start + ref.length) }, 0)
+                                        } else {
+                                          setProposalCommentText(prev => ({ ...prev, [p.id]: cur + ref }))
+                                        }
+                                        setProposalInsertMode(null); setInsertLinkText(''); setInsertLinkUrl('')
+                                      }} style={{ padding: '2px 9px', borderRadius: '4px', border: 'none', background: 'var(--gold)', color: 'white', fontFamily: 'DM Mono, monospace', fontSize: '10px', cursor: 'pointer' }}>
+                                        ✓ Insérer
+                                      </button>
+                                    )}
+                                  </div>
+                                </div>
+                              )}
+
+                              {/* Barre d'action */}
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                                <button
+                                  onClick={() => {
+                                    setProposalInsertMode(prev =>
+                                      prev?.proposalId === p.id && prev.mode === 'verse' ? null : { proposalId: p.id, mode: 'verse' }
+                                    )
+                                    setInsertBook(''); setInsertChapter(''); setInsertVerse('')
                                   }}
-                                  placeholder={proposalReplyingTo?.proposalId === p.id
-                                    ? `Répondre à @${proposalReplyingTo.username}…`
-                                    : 'Votre avis…'
-                                  }
-                                  rows={1}
                                   style={{
-                                    flex: 1, padding: '7px 10px',
-                                    border: `1px solid ${proposalReplyingTo?.proposalId === p.id ? 'rgba(184,132,58,0.4)' : 'var(--border)'}`,
-                                    borderRadius: '8px',
-                                    fontFamily: 'Spectral, serif', fontSize: '13px',
-                                    color: 'var(--ink)', background: 'var(--input-bg)', outline: 'none',
-                                    resize: 'none', overflow: 'hidden', transition: 'border-color 0.15s',
-                                    minHeight: '36px',
+                                    padding: '3px 8px', borderRadius: '4px', cursor: 'pointer',
+                                    border: `1px solid ${proposalInsertMode?.proposalId === p.id && proposalInsertMode.mode === 'verse' ? 'var(--blue-sacred)' : 'var(--border)'}`,
+                                    background: proposalInsertMode?.proposalId === p.id && proposalInsertMode.mode === 'verse' ? 'var(--blue-light)' : 'transparent',
+                                    fontFamily: 'DM Mono, monospace', fontSize: '10px',
+                                    color: proposalInsertMode?.proposalId === p.id && proposalInsertMode.mode === 'verse' ? 'var(--blue-sacred)' : 'var(--ink-muted)',
                                   }}
-                                  onFocus={e => (e.target as HTMLElement).style.borderColor = 'rgba(184,132,58,0.4)'}
-                                  onBlur={e => (e.target as HTMLElement).style.borderColor = proposalReplyingTo?.proposalId === p.id ? 'rgba(184,132,58,0.4)' : 'var(--border)'}
-                                />
+                                >📖 Verset</button>
+                                <button
+                                  onClick={() => {
+                                    setProposalInsertMode(prev =>
+                                      prev?.proposalId === p.id && prev.mode === 'link' ? null : { proposalId: p.id, mode: 'link' }
+                                    )
+                                    setInsertLinkText(''); setInsertLinkUrl('')
+                                  }}
+                                  style={{
+                                    padding: '3px 8px', borderRadius: '4px', cursor: 'pointer',
+                                    border: `1px solid ${proposalInsertMode?.proposalId === p.id && proposalInsertMode.mode === 'link' ? 'var(--gold)' : 'var(--border)'}`,
+                                    background: proposalInsertMode?.proposalId === p.id && proposalInsertMode.mode === 'link' ? 'var(--gold-pale)' : 'transparent',
+                                    fontFamily: 'DM Mono, monospace', fontSize: '10px',
+                                    color: proposalInsertMode?.proposalId === p.id && proposalInsertMode.mode === 'link' ? 'var(--gold)' : 'var(--ink-muted)',
+                                  }}
+                                >🔗 Lien</button>
                                 <button
                                   disabled={submittingProposalComment.has(p.id) || !(proposalCommentText[p.id] || '').trim()}
                                   onClick={async () => {
@@ -1514,14 +1628,16 @@ export default function RightPanel({
                                         }))
                                       }
                                       setProposalCommentText(prev => ({ ...prev, [p.id]: '' }))
+                                      setProposalInsertMode(null)
                                     } catch (err) { console.error(err) } finally {
                                       setSubmittingProposalComment(prev => { const s = new Set(prev); s.delete(p.id); return s })
                                     }
                                   }}
                                   style={{
-                                    padding: '7px 14px', alignSelf: 'flex-end',
+                                    marginLeft: 'auto',
+                                    padding: '5px 14px',
                                     background: 'var(--gold)', color: 'white', border: 'none',
-                                    borderRadius: '8px', cursor: 'pointer',
+                                    borderRadius: '6px', cursor: 'pointer',
                                     fontFamily: 'DM Mono, monospace', fontSize: '11px',
                                     opacity: (!(proposalCommentText[p.id] || '').trim() || submittingProposalComment.has(p.id)) ? 0.5 : 1,
                                     transition: 'opacity 0.15s', whiteSpace: 'nowrap',
@@ -1646,25 +1762,28 @@ export default function RightPanel({
                             <div style={{ display: 'flex', gap: '6px', marginTop: '4px' }}>
                               <input
                                 type="text"
-                                placeholder="Raison du rejet..."
+                                placeholder="Raison du rejet (obligatoire)"
                                 value={rejectReason}
                                 onChange={e => setRejectReason(e.target.value)}
+                                onKeyDown={e => { if (e.key === 'Enter' && rejectReason.trim()) { e.preventDefault(); document.getElementById(`reject-confirm-${p.id}`)?.click() } }}
+                                autoFocus
                                 style={{
                                   flex: 1, padding: '5px 8px',
-                                  border: '1px solid var(--border)', borderRadius: '6px',
+                                  border: `1px solid ${rejectReason.trim() ? 'rgba(122,42,42,0.35)' : 'var(--border)'}`, borderRadius: '6px',
                                   fontFamily: 'Spectral, serif', fontSize: '12px',
                                   color: 'var(--ink)', background: 'var(--input-bg)', outline: 'none',
                                 }}
                               />
                               <button
+                                id={`reject-confirm-${p.id}`}
+                                disabled={!rejectReason.trim()}
                                 onClick={async () => {
-                                  if (!rejectReason.trim()) return
                                   try {
-                                    await api.patch(`/api/proposals/${p.id}/reject`, { reason: rejectReason })
+                                    await api.patch(`/api/proposals/${p.id}/reject`, { reason: rejectReason.trim() })
                                     setRejectingId(null); setRejectReason(''); onProposalUpdated()
                                   } catch (e) { console.error(e) }
                                 }}
-                                style={{ padding: '5px 10px', background: 'transparent', color: 'var(--red-soft)', border: '1px solid rgba(122,42,42,0.3)', borderRadius: '6px', fontFamily: 'DM Mono, monospace', fontSize: '11px', cursor: 'pointer' }}
+                                style={{ padding: '5px 10px', background: rejectReason.trim() ? 'var(--red-light)' : 'transparent', color: 'var(--red-soft)', border: '1px solid rgba(122,42,42,0.3)', borderRadius: '6px', fontFamily: 'DM Mono, monospace', fontSize: '11px', cursor: rejectReason.trim() ? 'pointer' : 'not-allowed', opacity: rejectReason.trim() ? 1 : 0.45, transition: 'all 0.15s' }}
                               >Rejeter</button>
                               <button
                                 onClick={() => { setRejectingId(null); setRejectReason('') }}

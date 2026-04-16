@@ -1,7 +1,7 @@
 import { z } from 'zod'
 import { Router, Request, Response } from 'express'
 import { prisma } from '../lib/prisma'
-import { authenticateJWT, AuthRequest } from '../middlewares/auth'
+import { authenticateJWT, AuthRequest, checkRole } from '../middlewares/auth'
 import { logAction } from '../lib/audit'
 
 const router = Router()
@@ -1317,6 +1317,73 @@ router.get('/pending', authenticateJWT, async (req: AuthRequest, res: Response) 
     ])
 
     res.json({ proposals, wordTranslations })
+  } catch (error) {
+    console.error(error)
+    res.status(500).json({ error: 'Erreur serveur' })
+  }
+})
+
+// ── File de révision ──────────────────────────────────────────────────────────
+
+// GET /api/review/proposals — propositions PENDING (EXPERT/ADMIN)
+router.get('/review/proposals', authenticateJWT, checkRole(['EXPERT', 'ADMIN']), async (req: AuthRequest, res: Response) => {
+  try {
+    const proposals = await prisma.proposal.findMany({
+      where: { status: 'PENDING' },
+      orderBy: { createdAt: 'asc' },
+      include: {
+        creator: { select: { username: true, role: true } },
+        votes: { select: { id: true, userId: true, value: true } },
+        _count: { select: { comments: true } },
+        translation: {
+          include: {
+            verse: {
+              include: {
+                chapter: {
+                  include: { book: { select: { name: true, slug: true, testament: true } } }
+                }
+              }
+            }
+          }
+        }
+      }
+    })
+    res.json(proposals)
+  } catch (error) {
+    console.error(error)
+    res.status(500).json({ error: 'Erreur serveur' })
+  }
+})
+
+// GET /api/review/words — traductions de mots non validées (EXPERT/ADMIN)
+router.get('/review/words', authenticateJWT, checkRole(['EXPERT', 'ADMIN']), async (req: AuthRequest, res: Response) => {
+  try {
+    const words = await prisma.wordTranslation.findMany({
+      where: { isValidated: false },
+      orderBy: { createdAt: 'asc' },
+      include: {
+        creator: { select: { username: true, role: true } },
+        wordToken: {
+          select: {
+            id: true,
+            word: true,
+            lemma: true,
+            verseText: {
+              include: {
+                verse: {
+                  include: {
+                    chapter: {
+                      include: { book: { select: { name: true, slug: true, testament: true } } }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    })
+    res.json(words)
   } catch (error) {
     console.error(error)
     res.status(500).json({ error: 'Erreur serveur' })

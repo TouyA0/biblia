@@ -354,6 +354,22 @@ export default function TopBar({ testament, book, chapter, showSearch = true, sh
                     Contributeurs
                   </Link>
 
+                  {['EXPERT', 'ADMIN'].includes(user.role) && (
+                    <Link
+                      href="/review"
+                      onClick={() => setMenuOpen(false)}
+                      style={{ ...dropdownItemStyle, color: 'rgba(184,132,58,0.85)' }}
+                      onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = 'rgba(184,132,58,0.07)'}
+                      onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = 'transparent'}
+                    >
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M9 11l3 3L22 4"/>
+                        <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+                      </svg>
+                      En attente
+                    </Link>
+                  )}
+
                   {user.role === 'ADMIN' && (
                     <Link
                       href="/admin"
