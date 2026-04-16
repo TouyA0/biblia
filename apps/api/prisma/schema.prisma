@@ -147,6 +147,7 @@ model Proposal {
   creator       User?          @relation("ProposalCreator", fields: [createdBy], references: [id])
   reviewer      User?          @relation("ProposalReviewer", fields: [reviewedBy], references: [id])
   votes         Vote[]
+  comments    Comment[]
 }
 
 model Vote {
@@ -174,6 +175,8 @@ model Comment {
   verseId     String?
   wordTokenId String?
   parentId    String?
+  proposalId  String?
+  proposal    Proposal? @relation(fields: [proposalId], references: [id], onDelete: Cascade)
   verse       Verse?    @relation(fields: [verseId], references: [id])
   wordToken   WordToken? @relation(fields: [wordTokenId], references: [id])
   creator     User?     @relation(fields: [createdBy], references: [id])

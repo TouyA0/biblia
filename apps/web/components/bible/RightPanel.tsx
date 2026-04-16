@@ -87,6 +87,7 @@ interface Proposal {
   creator: { username: string; role: string } | null
   reviewer: { username: string; role: string } | null
   votes: { id: string; userId: string }[]
+  _count?: { comments: number }
 }
 
 interface RightPanelProps {
@@ -213,6 +214,12 @@ export default function RightPanel({
   const toggleFullText = (id: string) => setDiffIds(prev => {
     const s = new Set(prev); s.has(id) ? s.delete(id) : s.add(id); return s
   })
+  const [openDiscussions, setOpenDiscussions] = useState<Set<string>>(new Set())
+  const [proposalComments, setProposalComments] = useState<Record<string, Comment[]>>({})
+  const [loadingDiscussion, setLoadingDiscussion] = useState<Set<string>>(new Set())
+  const [proposalCommentText, setProposalCommentText] = useState<Record<string, string>>({})
+  const [submittingProposalComment, setSubmittingProposalComment] = useState<Set<string>>(new Set())
+  const [proposalReplyingTo, setProposalReplyingTo] = useState<{ commentId: string; proposalId: string; username: string } | null>(null)
   const [localReactions, setLocalReactions] = useState<Record<string, CommentReaction[]>>({})
 
   const [occurrences, setOccurrences] = useState<{
@@ -281,6 +288,19 @@ export default function RightPanel({
     return result
   }
 
+  const loadProposalComments = async (proposalId: string) => {
+    if (proposalComments[proposalId] !== undefined) return // already loaded
+    setLoadingDiscussion(prev => new Set([...prev, proposalId]))
+    try {
+      const res = await api.get(`/api/proposals/${proposalId}/comments`)
+      setProposalComments(prev => ({ ...prev, [proposalId]: res.data }))
+    } catch (e) {
+      console.error(e)
+    } finally {
+      setLoadingDiscussion(prev => { const s = new Set(prev); s.delete(proposalId); return s })
+    }
+  }
+
   const validatedTranslations = wordTranslations.filter(t => t.isValidated)
   const proposedTranslations = wordTranslations.filter(t => !t.isValidated)
   const activeProposals = proposals
@@ -314,8 +334,8 @@ export default function RightPanel({
       .finally(() => setLoadingOccurrences(false))
   }, [activeWord?.id])
 
-  const getReactions = (comment: { id: string; reactions: CommentReaction[] }) => {
-    return localReactions[comment.id] ?? comment.reactions
+  const getReactions = (comment: { id: string; reactions?: CommentReaction[] }) => {
+    return localReactions[comment.id] ?? comment.reactions ?? []
   }
 
   useEffect(() => {
@@ -346,7 +366,7 @@ export default function RightPanel({
 
   const EMOJIS = ['👍', '❤️', '🙏', '💡']
 
-  const ReactionRow = ({ comment }: { comment: { id: string; reactions: CommentReaction[] } }) => {
+  const ReactionRow = ({ comment }: { comment: { id: string; reactions?: CommentReaction[] } }) => {
     const reactions = getReactions(comment)
     const counts: Record<string, number> = {}
     const userReacted: Record<string, boolean> = {}
@@ -933,6 +953,264 @@ export default function RightPanel({
                           fontStyle: 'italic',
                         }}>
                           « {p.reason} »
+                        </div>
+                      )}
+                    </div>
+
+                    {/* ── Discussion ── */}
+                    <div style={{ borderTop: '1px solid var(--border)' }}>
+                      <button
+                        onClick={() => {
+                          setOpenDiscussions(prev => {
+                            const s = new Set(prev)
+                            if (s.has(p.id)) {
+                              s.delete(p.id)
+                            } else {
+                              s.add(p.id)
+                              loadProposalComments(p.id)
+                            }
+                            return s
+                          })
+                        }}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          width: '100%',
+                          padding: '8px 14px',
+                          background: 'transparent',
+                          border: 'none',
+                          cursor: 'pointer',
+                          fontFamily: 'DM Mono, monospace',
+                          fontSize: '11px',
+                          color: 'var(--ink-muted)',
+                          textAlign: 'left' as const,
+                          transition: 'color 0.15s',
+                        }}
+                        onMouseEnter={e => (e.currentTarget as HTMLElement).style.color = 'var(--ink)'}
+                        onMouseLeave={e => (e.currentTarget as HTMLElement).style.color = 'var(--ink-muted)'}
+                      >
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                        </svg>
+                        Discussion
+                        {(p._count?.comments ?? 0) > 0 && (
+                          <span style={{
+                            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                            minWidth: '18px', height: '18px', padding: '0 5px',
+                            borderRadius: '9px',
+                            background: 'var(--blue-light)',
+                            color: 'var(--blue-sacred)',
+                            fontSize: '10px',
+                          }}>
+                            {p._count?.comments}
+                          </span>
+                        )}
+                        <span style={{ marginLeft: 'auto', fontSize: '10px', opacity: 0.6 }}>
+                          {openDiscussions.has(p.id) ? '▲' : '▼'}
+                        </span>
+                      </button>
+
+                      {openDiscussions.has(p.id) && (
+                        <div style={{
+                          borderTop: '1px solid var(--border)',
+                          background: 'var(--parchment)',
+                          padding: '12px 14px',
+                        }}>
+                          {loadingDiscussion.has(p.id) ? (
+                            <div style={{ fontFamily: 'DM Mono, monospace', fontSize: '11px', color: 'var(--ink-faint)', textAlign: 'center', padding: '8px 0' }}>
+                              Chargement…
+                            </div>
+                          ) : (proposalComments[p.id] || []).length === 0 ? (
+                            <div style={{ fontFamily: 'Spectral, serif', fontSize: '13px', color: 'var(--ink-faint)', fontStyle: 'italic', marginBottom: '10px' }}>
+                              Aucun commentaire — soyez le premier à donner votre avis.
+                            </div>
+                          ) : (
+                            <div style={{ marginBottom: '12px' }}>
+                              {(proposalComments[p.id] || []).map((c, ci) => (
+                                <div key={c.id} style={{
+                                  paddingBottom: '10px',
+                                  marginBottom: '10px',
+                                  borderBottom: ci < (proposalComments[p.id] || []).length - 1 ? '1px solid var(--border)' : 'none',
+                                }}>
+                                  {/* Comment header */}
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
+                                    <Link href={c.creator ? `/profile/${c.creator.username}` : '#'} style={{
+                                      fontFamily: 'DM Mono, monospace', fontSize: '11px',
+                                      color: c.creator ? getRoleColor(c.creator.role) : 'var(--ink-muted)',
+                                      textDecoration: 'none',
+                                    }}>
+                                      @{c.creator?.username || 'anonyme'}
+                                    </Link>
+                                    <span style={{ fontFamily: 'DM Mono, monospace', fontSize: '10px', color: 'var(--ink-faint)' }}>
+                                      · {timeAgo(c.createdAt)}
+                                    </span>
+                                  </div>
+                                  {/* Comment text */}
+                                  <div style={{ fontFamily: 'Spectral, serif', fontSize: '13px', color: 'var(--ink-soft)', lineHeight: '1.7', marginLeft: '0' }}>
+                                    <CommentText text={c.text} />
+                                  </div>
+                                  {/* Reactions */}
+                                  <ReactionRow comment={c} />
+                                  {/* Actions : répondre + supprimer */}
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '4px' }}>
+                                    {user && (
+                                      <button
+                                        onClick={() => {
+                                          setProposalReplyingTo(
+                                            proposalReplyingTo?.commentId === c.id
+                                              ? null
+                                              : { commentId: c.id, proposalId: p.id, username: c.creator?.username || 'anonyme' }
+                                          )
+                                        }}
+                                        style={{
+                                          background: 'transparent', border: 'none', cursor: 'pointer',
+                                          fontFamily: 'DM Mono, monospace', fontSize: '10px', padding: '0',
+                                          color: proposalReplyingTo?.commentId === c.id ? 'var(--gold)' : 'var(--ink-faint)',
+                                        }}
+                                      >↩ Répondre</button>
+                                    )}
+                                    {user && (c.createdBy === user.id || ['EXPERT', 'ADMIN'].includes(user.role)) && (
+                                      <button
+                                        onClick={async () => {
+                                          try {
+                                            await api.delete(`/api/comments/${c.id}`)
+                                            setProposalComments(prev => ({
+                                              ...prev,
+                                              [p.id]: (prev[p.id] || []).filter(x => x.id !== c.id)
+                                            }))
+                                          } catch (err) { console.error(err) }
+                                        }}
+                                        style={{
+                                          background: 'transparent', border: 'none', cursor: 'pointer',
+                                          fontFamily: 'DM Mono, monospace', fontSize: '10px', padding: '0',
+                                          color: 'var(--red-soft)', opacity: 0.6,
+                                        }}
+                                        title="Supprimer ce commentaire"
+                                      >✕ Supprimer</button>
+                                    )}
+                                  </div>
+                                  {/* Replies */}
+                                  {c.replies && c.replies.length > 0 && (
+                                    <div style={{ marginTop: '8px', paddingLeft: '14px', borderLeft: '2px solid var(--border)' }}>
+                                      {c.replies.map(r => (
+                                        <div key={r.id} style={{ marginBottom: '8px' }}>
+                                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '3px' }}>
+                                            <Link href={r.creator ? `/profile/${r.creator.username}` : '#'} style={{
+                                              fontFamily: 'DM Mono, monospace', fontSize: '11px',
+                                              color: r.creator ? getRoleColor(r.creator.role) : 'var(--ink-muted)',
+                                              textDecoration: 'none',
+                                            }}>
+                                              @{r.creator?.username || 'anonyme'}
+                                            </Link>
+                                            <span style={{ fontFamily: 'DM Mono, monospace', fontSize: '10px', color: 'var(--ink-faint)' }}>
+                                              · {timeAgo(r.createdAt)}
+                                            </span>
+                                          </div>
+                                          <div style={{ fontFamily: 'Spectral, serif', fontSize: '13px', color: 'var(--ink-soft)', lineHeight: '1.7' }}>
+                                            <CommentText text={r.text} />
+                                          </div>
+                                          <ReactionRow comment={r} />
+                                        </div>
+                                      ))}
+                                    </div>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          )}
+
+                          {/* New comment / reply input */}
+                          {user && (
+                            <div>
+                              {/* Bannière de réponse */}
+                              {proposalReplyingTo?.proposalId === p.id && (
+                                <div style={{
+                                  display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                                  padding: '5px 10px', marginBottom: '6px',
+                                  background: 'var(--gold-pale)', borderRadius: '6px',
+                                  border: '1px solid rgba(184,132,58,0.25)',
+                                  fontFamily: 'DM Mono, monospace', fontSize: '11px', color: 'var(--gold)',
+                                }}>
+                                  <span>↩ Répondre à @{proposalReplyingTo.username}</span>
+                                  <button onClick={() => setProposalReplyingTo(null)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--gold)', fontSize: '13px', lineHeight: 1, padding: '0 2px' }}>×</button>
+                                </div>
+                              )}
+                              <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-end' }}>
+                                <textarea
+                                  value={proposalCommentText[p.id] || ''}
+                                  onChange={e => setProposalCommentText(prev => ({ ...prev, [p.id]: e.target.value }))}
+                                  onInput={e => {
+                                    const ta = e.target as HTMLTextAreaElement
+                                    ta.style.height = 'auto'
+                                    ta.style.height = ta.scrollHeight + 'px'
+                                  }}
+                                  placeholder={proposalReplyingTo?.proposalId === p.id
+                                    ? `Répondre à @${proposalReplyingTo.username}…`
+                                    : 'Votre avis…'
+                                  }
+                                  rows={1}
+                                  style={{
+                                    flex: 1, padding: '7px 10px',
+                                    border: `1px solid ${proposalReplyingTo?.proposalId === p.id ? 'rgba(184,132,58,0.4)' : 'var(--border)'}`,
+                                    borderRadius: '8px',
+                                    fontFamily: 'Spectral, serif', fontSize: '13px',
+                                    color: 'var(--ink)', background: 'var(--input-bg)', outline: 'none',
+                                    resize: 'none', overflow: 'hidden', transition: 'border-color 0.15s',
+                                    minHeight: '36px',
+                                  }}
+                                  onFocus={e => (e.target as HTMLElement).style.borderColor = 'rgba(184,132,58,0.4)'}
+                                  onBlur={e => (e.target as HTMLElement).style.borderColor = proposalReplyingTo?.proposalId === p.id ? 'rgba(184,132,58,0.4)' : 'var(--border)'}
+                                />
+                                <button
+                                  disabled={submittingProposalComment.has(p.id) || !(proposalCommentText[p.id] || '').trim()}
+                                  onClick={async () => {
+                                    const text = (proposalCommentText[p.id] || '').trim()
+                                    if (!text) return
+                                    setSubmittingProposalComment(prev => new Set([...prev, p.id]))
+                                    try {
+                                      if (proposalReplyingTo?.proposalId === p.id) {
+                                        const res = await api.post(`/api/comments/${proposalReplyingTo.commentId}/reply`, { text })
+                                        setProposalComments(prev => ({
+                                          ...prev,
+                                          [p.id]: (prev[p.id] || []).map(c =>
+                                            c.id === proposalReplyingTo.commentId
+                                              ? { ...c, replies: [...(c.replies || []), { ...res.data, reactions: res.data.reactions ?? [] }] }
+                                              : c
+                                          )
+                                        }))
+                                        setProposalReplyingTo(null)
+                                      } else {
+                                        const res = await api.post(`/api/proposals/${p.id}/comments`, { text })
+                                        setProposalComments(prev => ({
+                                          ...prev,
+                                          [p.id]: [...(prev[p.id] || []), res.data]
+                                        }))
+                                      }
+                                      setProposalCommentText(prev => ({ ...prev, [p.id]: '' }))
+                                    } catch (err) { console.error(err) } finally {
+                                      setSubmittingProposalComment(prev => { const s = new Set(prev); s.delete(p.id); return s })
+                                    }
+                                  }}
+                                  style={{
+                                    padding: '7px 14px', alignSelf: 'flex-end',
+                                    background: 'var(--gold)', color: 'white', border: 'none',
+                                    borderRadius: '8px', cursor: 'pointer',
+                                    fontFamily: 'DM Mono, monospace', fontSize: '11px',
+                                    opacity: (!(proposalCommentText[p.id] || '').trim() || submittingProposalComment.has(p.id)) ? 0.5 : 1,
+                                    transition: 'opacity 0.15s', whiteSpace: 'nowrap',
+                                  }}
+                                >
+                                  {proposalReplyingTo?.proposalId === p.id ? 'Répondre' : 'Publier'}
+                                </button>
+                              </div>
+                            </div>
+                          )}
+                          {!user && (
+                            <div style={{ fontFamily: 'Spectral, serif', fontSize: '12px', color: 'var(--ink-faint)', fontStyle: 'italic', textAlign: 'center' }}>
+                              Connectez-vous pour participer à la discussion
+                            </div>
+                          )}
                         </div>
                       )}
                     </div>

@@ -509,6 +509,81 @@ router.post('/comments/:id/reply', authenticateJWT, async (req: AuthRequest, res
   }
 })
 
+// GET /api/proposals/:id/comments
+router.get('/proposals/:id/comments', async (req: Request, res: Response) => {
+  try {
+    const proposalId = req.params.id as string
+    const comments = await prisma.comment.findMany({
+      where: { proposalId, parentId: null },
+      orderBy: { createdAt: 'asc' },
+      include: {
+        creator: { select: { username: true, role: true } },
+        reactions: { select: { userId: true, emoji: true } },
+        replies: {
+          orderBy: { createdAt: 'asc' },
+          include: {
+            creator: { select: { username: true, role: true } },
+            reactions: { select: { userId: true, emoji: true } }
+          }
+        }
+      }
+    })
+    res.json(comments)
+  } catch (error) {
+    console.error(error)
+    res.status(500).json({ error: 'Erreur serveur' })
+  }
+})
+
+// POST /api/proposals/:id/comments
+router.post('/proposals/:id/comments', authenticateJWT, async (req: AuthRequest, res: Response) => {
+  try {
+    const proposalId = req.params.id as string
+    const { text } = z.object({ text: z.string().min(1).max(2000) }).parse(req.body)
+
+    const proposal = await prisma.proposal.findUnique({
+      where: { id: proposalId },
+      include: { creator: { select: { id: true, username: true } } }
+    })
+    if (!proposal) { res.status(404).json({ error: 'Proposition non trouvée' }); return }
+
+    const comment = await prisma.comment.create({
+      data: {
+        text,
+        proposalId,
+        createdBy: req.user!.id,
+      },
+      include: {
+        creator: { select: { username: true, role: true } },
+        reactions: { select: { userId: true, emoji: true } },
+        replies: { include: { creator: { select: { username: true, role: true } }, reactions: { select: { userId: true, emoji: true } } } }
+      }
+    })
+
+    // Notifier le créateur de la proposition
+    if (proposal.createdBy && proposal.createdBy !== req.user!.id) {
+      const commenter = await prisma.user.findUnique({ where: { id: req.user!.id }, select: { username: true } })
+      await prisma.notification.create({
+        data: {
+          userId: proposal.createdBy,
+          type: 'PROPOSAL_COMMENT',
+          message: `@${commenter?.username ?? 'quelqu\'un'} a commenté votre proposition`,
+        }
+      })
+    }
+
+    await logAction('COMMENT_ADDED', req.user!.id, { proposalId }, req.ip)
+    res.status(201).json(comment)
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      res.status(400).json({ error: 'Données invalides', details: error.issues })
+      return
+    }
+    console.error(error)
+    res.status(500).json({ error: 'Erreur serveur' })
+  }
+})
+
 // DELETE /api/comments/:id
 router.delete('/comments/:id', authenticateJWT, async (req: AuthRequest, res: Response) => {
   try {
@@ -587,6 +662,7 @@ router.get('/verses/:id/proposals', async (req: Request, res: Response) => {
         creator: { select: { username: true, role: true } },
         reviewer: { select: { username: true, role: true } },
         votes: true,
+        _count: { select: { comments: true } },
       }
     })
 
