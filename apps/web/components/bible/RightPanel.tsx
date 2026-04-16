@@ -46,18 +46,25 @@ interface Verse {
   translations: Translation[]
 }
 
+interface CommentReaction {
+  userId: string
+  emoji: string
+}
+
 interface Comment {
   id: string
   text: string
   createdAt: string
   createdBy: string | null
   creator: { username: string; role: string } | null
+  reactions: CommentReaction[]
   replies: {
     id: string
     text: string
     createdAt: string
     createdBy: string | null
     creator: { username: string; role: string } | null
+    reactions: CommentReaction[]
   }[]
 }
 
@@ -200,6 +207,8 @@ export default function RightPanel({
   const [showRejected, setShowRejected] = useState(false)
   const [proposalVotedIds, setProposalVotedIds] = useState<Set<string>>(new Set())
   const [replyingToId, setReplyingToId] = useState<string | null>(null)
+  const [pickerOpenId, setPickerOpenId] = useState<string | null>(null)
+  const [localReactions, setLocalReactions] = useState<Record<string, CommentReaction[]>>({})
 
   const [occurrences, setOccurrences] = useState<{
     id: string
@@ -278,6 +287,17 @@ export default function RightPanel({
       .finally(() => setLoadingOccurrences(false))
   }, [activeWord?.id])
 
+  const getReactions = (comment: { id: string; reactions: CommentReaction[] }) => {
+    return localReactions[comment.id] ?? comment.reactions
+  }
+
+  useEffect(() => {
+    if (!pickerOpenId) return
+    const close = () => setPickerOpenId(null)
+    document.addEventListener('click', close)
+    return () => document.removeEventListener('click', close)
+  }, [pickerOpenId])
+
   async function handleSubmitTranslation() {
     if (!activeWord || !newTranslation.trim()) return
     setSubmitting(true)
@@ -295,6 +315,119 @@ export default function RightPanel({
     } finally {
       setSubmitting(false)
     }
+  }
+
+  const EMOJIS = ['👍', '❤️', '🙏', '💡']
+
+  const ReactionRow = ({ comment }: { comment: { id: string; reactions: CommentReaction[] } }) => {
+    const reactions = getReactions(comment)
+    const counts: Record<string, number> = {}
+    const userReacted: Record<string, boolean> = {}
+    for (const r of reactions) {
+      counts[r.emoji] = (counts[r.emoji] || 0) + 1
+      if (user && r.userId === user.id) userReacted[r.emoji] = true
+    }
+    const usedEmojis = EMOJIS.filter(e => counts[e])
+
+    const toggle = async (emoji: string) => {
+      if (!user) return
+      setPickerOpenId(null)
+      try {
+        const res = await api.post(`/api/comments/${comment.id}/react`, { emoji })
+        setLocalReactions(prev => ({ ...prev, [comment.id]: res.data.reactions }))
+      } catch {}
+    }
+
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginTop: '6px', flexWrap: 'wrap' }}>
+        {usedEmojis.map(emoji => (
+          <button
+            key={emoji}
+            onClick={() => toggle(emoji)}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '3px',
+              padding: '2px 7px',
+              borderRadius: '10px',
+              border: userReacted[emoji]
+                ? '1px solid rgba(184,132,58,0.5)'
+                : '1px solid var(--border)',
+              background: userReacted[emoji] ? 'var(--gold-pale)' : 'var(--parchment-dark)',
+              cursor: user ? 'pointer' : 'default',
+              fontSize: '12px',
+              fontFamily: 'DM Mono, monospace',
+              color: userReacted[emoji] ? 'var(--gold)' : 'var(--ink-muted)',
+              transition: 'all 0.15s',
+            }}
+          >
+            <span style={{ fontSize: '13px' }}>{emoji}</span>
+            <span style={{ fontSize: '11px' }}>{counts[emoji]}</span>
+          </button>
+        ))}
+        {user && (
+          <div style={{ position: 'relative' }}>
+            <button
+              onClick={(e) => { e.stopPropagation(); setPickerOpenId(pickerOpenId === comment.id ? null : comment.id) }}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: '24px',
+                height: '24px',
+                borderRadius: '10px',
+                border: '1px solid var(--border)',
+                background: 'transparent',
+                cursor: 'pointer',
+                fontSize: '13px',
+                color: 'var(--ink-faint)',
+                transition: 'all 0.15s',
+                lineHeight: 1,
+              }}
+              title="Ajouter une réaction"
+            >
+              +
+            </button>
+            {pickerOpenId === comment.id && (
+              <div style={{
+                position: 'absolute',
+                bottom: '28px',
+                left: 0,
+                display: 'flex',
+                gap: '2px',
+                background: 'var(--card-bg)',
+                border: '1px solid var(--border)',
+                borderRadius: '10px',
+                padding: '5px 7px',
+                boxShadow: 'var(--shadow-md)',
+                zIndex: 10,
+              }}>
+                {EMOJIS.map(emoji => (
+                  <button
+                    key={emoji}
+                    onClick={() => toggle(emoji)}
+                    style={{
+                      background: 'transparent',
+                      border: 'none',
+                      cursor: 'pointer',
+                      fontSize: '18px',
+                      padding: '2px 4px',
+                      borderRadius: '6px',
+                      transition: 'transform 0.1s',
+                      lineHeight: 1,
+                    }}
+                    onMouseEnter={e => (e.currentTarget as HTMLElement).style.transform = 'scale(1.25)'}
+                    onMouseLeave={e => (e.currentTarget as HTMLElement).style.transform = 'scale(1)'}
+                  >
+                    {emoji}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    )
   }
 
   return (
@@ -1746,6 +1879,9 @@ export default function RightPanel({
                     <div style={{ fontFamily: 'Spectral, serif', fontSize: '13.5px', color: 'var(--ink-soft)', lineHeight: '1.65', paddingLeft: '31px' }}>
                       <CommentText text={c.text} />
                     </div>
+                    <div style={{ paddingLeft: '31px' }}>
+                      <ReactionRow comment={c} />
+                    </div>
                   </div>
 
                   {/* Réponses */}
@@ -1777,6 +1913,7 @@ export default function RightPanel({
                           <div style={{ fontFamily: 'Spectral, serif', fontSize: '13px', color: 'var(--ink-soft)', lineHeight: '1.65' }}>
                             <CommentText text={r.text} />
                           </div>
+                          <ReactionRow comment={r} />
                         </div>
                       ))}
                     </div>

@@ -409,10 +409,12 @@ router.get('/verses/:id/comments', async (req: Request, res: Response) => {
       orderBy: { createdAt: 'asc' },
       include: {
         creator: { select: { username: true, role: true } },
+        reactions: { select: { userId: true, emoji: true } },
         replies: {
           orderBy: { createdAt: 'asc' },
           include: {
-            creator: { select: { username: true, role: true } }
+            creator: { select: { username: true, role: true } },
+            reactions: { select: { userId: true, emoji: true } }
           }
         }
       }
@@ -525,6 +527,40 @@ router.delete('/comments/:id', authenticateJWT, async (req: AuthRequest, res: Re
     await prisma.comment.delete({ where: { id } })
     await logAction('COMMENT_DELETED', req.user!.id, { commentId: id }, req.ip)
     res.json({ message: 'Commentaire supprimé' })
+  } catch (error) {
+    console.error(error)
+    res.status(500).json({ error: 'Erreur serveur' })
+  }
+})
+
+// POST /api/comments/:id/react
+router.post('/comments/:id/react', authenticateJWT, async (req: AuthRequest, res: Response) => {
+  try {
+    const commentId = req.params.id as string
+    const userId = req.user!.id
+    const { emoji } = z.object({ emoji: z.string() }).parse(req.body)
+
+    const ALLOWED = ['👍', '❤️', '🙏', '💡']
+    if (!ALLOWED.includes(emoji)) {
+      res.status(400).json({ error: 'Emoji non autorisé' }); return
+    }
+
+    const existing = await prisma.commentReaction.findUnique({
+      where: { commentId_userId_emoji: { commentId, userId, emoji } }
+    })
+
+    if (existing) {
+      await prisma.commentReaction.delete({ where: { id: existing.id } })
+    } else {
+      await prisma.commentReaction.create({ data: { commentId, userId, emoji } })
+    }
+
+    const reactions = await prisma.commentReaction.findMany({
+      where: { commentId },
+      select: { userId: true, emoji: true }
+    })
+
+    res.json({ reactions })
   } catch (error) {
     console.error(error)
     res.status(500).json({ error: 'Erreur serveur' })

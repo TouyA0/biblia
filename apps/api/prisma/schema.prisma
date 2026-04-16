@@ -51,6 +51,7 @@ model User {
   forcePasswordReset Boolean @default(false)
   lastLoginAt      DateTime?
   notifications Notification[]
+  commentReactions CommentReaction[]
 }
 
 model Book {
@@ -178,6 +179,7 @@ model Comment {
   creator     User?     @relation(fields: [createdBy], references: [id])
   parent      Comment?  @relation("CommentReplies", fields: [parentId], references: [id])
   replies     Comment[] @relation("CommentReplies")
+  reactions   CommentReaction[]
 }
 
 model AuditLog {
@@ -213,4 +215,16 @@ model Notification {
   link      String?
   isRead    Boolean  @default(false)
   createdAt DateTime @default(now())
+}
+
+model CommentReaction {
+  id        String   @id @default(uuid())
+  commentId String
+  userId    String
+  emoji     String
+  createdAt DateTime @default(now())
+  comment   Comment  @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([commentId, userId, emoji])
 }
