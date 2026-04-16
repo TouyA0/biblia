@@ -1119,16 +1119,19 @@ router.patch('/proposals/:id', authenticateJWT, async (req: AuthRequest, res: Re
     if (proposal.createdBy !== req.user!.id) { res.status(403).json({ error: 'Accès refusé' }); return }
     if (proposal.status !== 'PENDING') { res.status(400).json({ error: 'Seules les propositions en attente peuvent être modifiées' }); return }
 
-    // Count existing versions then snapshot current text
-    const versionCount = await prisma.proposalVersion.count({ where: { proposalId: id } })
-    await prisma.proposalVersion.create({
-      data: {
-        proposalId: id,
-        proposedText: proposal.proposedText,
-        changeReason: reason ?? null,
-        versionNumber: versionCount + 1,
-      }
-    })
+    // Snapshot uniquement si le texte a réellement changé
+    const textChanged = proposedText.trim() !== proposal.proposedText.trim()
+    if (textChanged) {
+      const versionCount = await prisma.proposalVersion.count({ where: { proposalId: id } })
+      await prisma.proposalVersion.create({
+        data: {
+          proposalId: id,
+          proposedText: proposal.proposedText,
+          changeReason: reason ?? null,
+          versionNumber: versionCount + 1,
+        }
+      })
+    }
 
     const updated = await prisma.proposal.update({
       where: { id },
