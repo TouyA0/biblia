@@ -465,4 +465,46 @@ router.get('/verse-history', async (req: AuthRequest, res: Response) => {
   }
 })
 
+// GET /api/admin/settings
+router.get('/settings', async (_req: AuthRequest, res: Response) => {
+  try {
+    const settings = await prisma.setting.findMany()
+    const map: Record<string, string> = {}
+    for (const s of settings) map[s.key] = s.value
+    res.json({
+      vote_threshold_accept: Number(map['vote_threshold_accept'] ?? 5),
+      vote_threshold_reject: Number(map['vote_threshold_reject'] ?? -3),
+    })
+  } catch (error) {
+    res.status(500).json({ error: 'Erreur serveur' })
+  }
+})
+
+// PATCH /api/admin/settings
+router.patch('/settings', async (req: AuthRequest, res: Response) => {
+  try {
+    const { vote_threshold_accept, vote_threshold_reject } = req.body as { vote_threshold_accept?: number, vote_threshold_reject?: number }
+    const userId = req.user!.id
+    const updates: Promise<unknown>[] = []
+    if (vote_threshold_accept !== undefined) {
+      updates.push(prisma.setting.upsert({
+        where: { key: 'vote_threshold_accept' },
+        update: { value: String(vote_threshold_accept), updatedBy: userId },
+        create: { key: 'vote_threshold_accept', value: String(vote_threshold_accept), updatedBy: userId },
+      }))
+    }
+    if (vote_threshold_reject !== undefined) {
+      updates.push(prisma.setting.upsert({
+        where: { key: 'vote_threshold_reject' },
+        update: { value: String(vote_threshold_reject), updatedBy: userId },
+        create: { key: 'vote_threshold_reject', value: String(vote_threshold_reject), updatedBy: userId },
+      }))
+    }
+    await Promise.all(updates)
+    res.json({ success: true })
+  } catch (error) {
+    res.status(500).json({ error: 'Erreur serveur' })
+  }
+})
+
 export default router

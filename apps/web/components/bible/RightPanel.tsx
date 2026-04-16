@@ -86,7 +86,7 @@ interface Proposal {
   createdBy: string | null
   creator: { username: string; role: string } | null
   reviewer: { username: string; role: string } | null
-  votes: { id: string; userId: string }[]
+  votes: { id: string; userId: string; value: number }[]
   _count?: { comments: number }
 }
 
@@ -207,7 +207,7 @@ export default function RightPanel({
   const [rejectReason, setRejectReason] = useState('')
   const [rejectingId, setRejectingId] = useState<string | null>(null)
   const [showRejected, setShowRejected] = useState(false)
-  const [proposalVotedIds, setProposalVotedIds] = useState<Set<string>>(new Set())
+  const [proposalVoteOverrides, setProposalVoteOverrides] = useState<Record<string, { netScore: number; userVote: number; status: string }>>({})
   const [replyingToId, setReplyingToId] = useState<string | null>(null)
   const [pickerOpenId, setPickerOpenId] = useState<string | null>(null)
   const [diffIds, setDiffIds] = useState<Set<string>>(new Set())
@@ -221,6 +221,7 @@ export default function RightPanel({
   const [submittingProposalComment, setSubmittingProposalComment] = useState<Set<string>>(new Set())
   const [proposalReplyingTo, setProposalReplyingTo] = useState<{ commentId: string; proposalId: string; username: string } | null>(null)
   const [localReactions, setLocalReactions] = useState<Record<string, CommentReaction[]>>({})
+  const [voteThresholds, setVoteThresholds] = useState({ accept: 5, reject: -3 })
 
   const [occurrences, setOccurrences] = useState<{
     id: string
@@ -249,6 +250,12 @@ export default function RightPanel({
     AT: Object.keys(BOOK_NAME_TO_SLUG).slice(0, 46),
     NT: Object.keys(BOOK_NAME_TO_SLUG).slice(46),
   }
+
+  useEffect(() => {
+    api.get('/api/settings').then(res => {
+      setVoteThresholds({ accept: res.data.vote_threshold_accept, reject: res.data.vote_threshold_reject })
+    }).catch(() => {})
+  }, [])
 
   useEffect(() => {
     const ta = commentRef.current
@@ -793,8 +800,22 @@ export default function RightPanel({
 
               {/* Propositions actives et acceptées */}
               {activeProposals.map(p => {
-                const voteCount = p.votes?.length || 0
-                const hasVoted = proposalVotedIds.has(p.id)
+                const override = proposalVoteOverrides[p.id]
+                const currentStatus = override?.status ?? p.status
+                const netScore = override?.netScore ?? p.votes?.reduce((s, v) => s + v.value, 0) ?? 0
+                const baseVotes = p.votes || []
+                const prevUserVote = user ? (baseVotes.find(v => v.userId === user.id)?.value ?? 0) : 0
+                const userVote = override?.userVote ?? prevUserVote
+                let upvotes = baseVotes.filter(v => v.value > 0).length
+                let downvotes = baseVotes.filter(v => v.value < 0).length
+                if (override) {
+                  if (prevUserVote > 0) upvotes--
+                  else if (prevUserVote < 0) downvotes--
+                  if (override.userVote > 0) upvotes++
+                  else if (override.userVote < 0) downvotes++
+                }
+                const THRESHOLD_ACCEPT = voteThresholds.accept
+                const THRESHOLD_REJECT = voteThresholds.reject
                 const referenceText = activeVerse?.translations[0]?.textFr || ''
                 const isActiveTrad = p.proposedText === referenceText
                 const diff = computeWordDiff(referenceText, p.proposedText)
@@ -803,12 +824,12 @@ export default function RightPanel({
 
                 const borderColor = isActiveTrad
                   ? 'rgba(184,132,58,0.5)'
-                  : p.status === 'ACCEPTED'
+                  : currentStatus === 'ACCEPTED'
                   ? 'rgba(45,90,58,0.35)'
                   : 'var(--border)'
                 const headerBg = isActiveTrad
                   ? 'rgba(184,132,58,0.08)'
-                  : p.status === 'ACCEPTED'
+                  : currentStatus === 'ACCEPTED'
                   ? 'rgba(45,90,58,0.06)'
                   : 'var(--parchment-dark)'
 
@@ -846,20 +867,20 @@ export default function RightPanel({
                           · {timeAgo(p.createdAt)}
                         </span>
                       </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
                         <span style={{
                           fontFamily: 'DM Mono, monospace',
                           fontSize: '11px',
                           padding: '2px 9px',
                           borderRadius: '20px',
-                          background: isActiveTrad ? 'var(--gold-pale)' : p.status === 'ACCEPTED' ? 'var(--green-light)' : 'var(--amber-light)',
-                          color: isActiveTrad ? 'var(--gold)' : p.status === 'ACCEPTED' ? 'var(--green-valid)' : 'var(--amber-pending)',
-                          border: `1px solid ${isActiveTrad ? 'rgba(184,132,58,0.3)' : p.status === 'ACCEPTED' ? 'rgba(45,90,58,0.2)' : 'rgba(122,90,26,0.2)'}`,
+                          background: isActiveTrad ? 'var(--gold-pale)' : currentStatus === 'ACCEPTED' ? 'var(--green-light)' : 'var(--amber-light)',
+                          color: isActiveTrad ? 'var(--gold)' : currentStatus === 'ACCEPTED' ? 'var(--green-valid)' : 'var(--amber-pending)',
+                          border: `1px solid ${isActiveTrad ? 'rgba(184,132,58,0.3)' : currentStatus === 'ACCEPTED' ? 'rgba(45,90,58,0.2)' : 'rgba(122,90,26,0.2)'}`,
                           whiteSpace: 'nowrap',
                         }}>
-                          {isActiveTrad ? '★ Active' : p.status === 'ACCEPTED' ? 'Acceptée' : 'En attente'}
+                          {isActiveTrad ? '★ Active' : currentStatus === 'ACCEPTED' ? 'Acceptée' : 'En attente'}
                         </span>
-                        {p.status === 'ACCEPTED' && user && ['EXPERT', 'ADMIN'].includes(user.role) && !isActiveTrad && (
+                        {currentStatus === 'ACCEPTED' && user && ['EXPERT', 'ADMIN'].includes(user.role) && !isActiveTrad && (
                           <button
                             onClick={async () => {
                               try { await api.patch(`/api/proposals/${p.id}/activate`); onProposalUpdated() } catch (e) { console.error(e) }
@@ -870,6 +891,26 @@ export default function RightPanel({
                               cursor: 'pointer', fontFamily: 'DM Mono, monospace', fontSize: '11px', color: 'var(--green-valid)', whiteSpace: 'nowrap',
                             }}
                           >↑ Rendre active</button>
+                        )}
+                        {currentStatus === 'ACCEPTED' && user && user.role === 'ADMIN' && !isActiveTrad && (
+                          <button
+                            onClick={async () => {
+                              try {
+                                await api.patch(`/api/proposals/${p.id}/reopen`)
+                                setProposalVoteOverrides(prev => ({
+                                  ...prev,
+                                  [p.id]: { netScore: 0, userVote: 0, status: 'PENDING' }
+                                }))
+                                onProposalUpdated()
+                              } catch (e) { console.error(e) }
+                            }}
+                            style={{
+                              padding: '2px 8px', borderRadius: '4px',
+                              border: '1px solid rgba(122,90,26,0.3)', background: 'var(--amber-light)',
+                              cursor: 'pointer', fontFamily: 'DM Mono, monospace', fontSize: '11px',
+                              color: 'var(--amber-pending)', whiteSpace: 'nowrap' as const,
+                            }}
+                          >↩ En attente</button>
                         )}
                         {user && (['EXPERT', 'ADMIN'].includes(user.role) || (p.createdBy === user.id && p.status === 'PENDING')) && (
                           <button
@@ -994,18 +1035,23 @@ export default function RightPanel({
                           <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
                         </svg>
                         Discussion
-                        {(p._count?.comments ?? 0) > 0 && (
-                          <span style={{
-                            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                            minWidth: '18px', height: '18px', padding: '0 5px',
-                            borderRadius: '9px',
-                            background: 'var(--blue-light)',
-                            color: 'var(--blue-sacred)',
-                            fontSize: '10px',
-                          }}>
-                            {p._count?.comments}
-                          </span>
-                        )}
+                        {(() => {
+                          const total = proposalComments[p.id] !== undefined
+                            ? proposalComments[p.id].reduce((sum, c) => sum + 1 + (c.replies?.length || 0), 0)
+                            : (p._count?.comments ?? 0)
+                          return total > 0 ? (
+                            <span style={{
+                              display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                              minWidth: '18px', height: '18px', padding: '0 5px',
+                              borderRadius: '9px',
+                              background: 'var(--blue-light)',
+                              color: 'var(--blue-sacred)',
+                              fontSize: '10px',
+                            }}>
+                              {total}
+                            </span>
+                          ) : null
+                        })()}
                         <span style={{ marginLeft: 'auto', fontSize: '10px', opacity: 0.6 }}>
                           {openDiscussions.has(p.id) ? '▲' : '▼'}
                         </span>
@@ -1045,6 +1091,30 @@ export default function RightPanel({
                                     <span style={{ fontFamily: 'DM Mono, monospace', fontSize: '10px', color: 'var(--ink-faint)' }}>
                                       · {timeAgo(c.createdAt)}
                                     </span>
+                                    {user && (c.createdBy === user.id || ['EXPERT', 'ADMIN'].includes(user.role)) && (
+                                      <button
+                                        onClick={async () => {
+                                          try {
+                                            await api.delete(`/api/comments/${c.id}`)
+                                            setProposalComments(prev => ({
+                                              ...prev,
+                                              [p.id]: (prev[p.id] || []).filter(x => x.id !== c.id)
+                                            }))
+                                          } catch (err) { console.error(err) }
+                                        }}
+                                        style={{
+                                          marginLeft: 'auto',
+                                          background: 'transparent', border: 'none', cursor: 'pointer',
+                                          fontFamily: 'DM Mono, monospace', fontSize: '11px', padding: '1px 5px',
+                                          color: 'var(--red-soft)', opacity: 0.5,
+                                          borderRadius: '3px',
+                                          transition: 'opacity 0.15s',
+                                        }}
+                                        title="Supprimer ce commentaire"
+                                        onMouseEnter={e => (e.currentTarget.style.opacity = '1')}
+                                        onMouseLeave={e => (e.currentTarget.style.opacity = '0.5')}
+                                      >✕</button>
+                                    )}
                                   </div>
                                   {/* Comment text */}
                                   <div style={{ fontFamily: 'Spectral, serif', fontSize: '13px', color: 'var(--ink-soft)', lineHeight: '1.7', marginLeft: '0' }}>
@@ -1052,7 +1122,7 @@ export default function RightPanel({
                                   </div>
                                   {/* Reactions */}
                                   <ReactionRow comment={c} />
-                                  {/* Actions : répondre + supprimer */}
+                                  {/* Actions : répondre */}
                                   <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '4px' }}>
                                     {user && (
                                       <button
@@ -1069,25 +1139,6 @@ export default function RightPanel({
                                           color: proposalReplyingTo?.commentId === c.id ? 'var(--gold)' : 'var(--ink-faint)',
                                         }}
                                       >↩ Répondre</button>
-                                    )}
-                                    {user && (c.createdBy === user.id || ['EXPERT', 'ADMIN'].includes(user.role)) && (
-                                      <button
-                                        onClick={async () => {
-                                          try {
-                                            await api.delete(`/api/comments/${c.id}`)
-                                            setProposalComments(prev => ({
-                                              ...prev,
-                                              [p.id]: (prev[p.id] || []).filter(x => x.id !== c.id)
-                                            }))
-                                          } catch (err) { console.error(err) }
-                                        }}
-                                        style={{
-                                          background: 'transparent', border: 'none', cursor: 'pointer',
-                                          fontFamily: 'DM Mono, monospace', fontSize: '10px', padding: '0',
-                                          color: 'var(--red-soft)', opacity: 0.6,
-                                        }}
-                                        title="Supprimer ce commentaire"
-                                      >✕ Supprimer</button>
                                     )}
                                   </div>
                                   {/* Replies */}
@@ -1106,6 +1157,33 @@ export default function RightPanel({
                                             <span style={{ fontFamily: 'DM Mono, monospace', fontSize: '10px', color: 'var(--ink-faint)' }}>
                                               · {timeAgo(r.createdAt)}
                                             </span>
+                                            {user && (r.createdBy === user.id || ['EXPERT', 'ADMIN'].includes(user.role)) && (
+                                              <button
+                                                onClick={async () => {
+                                                  try {
+                                                    await api.delete(`/api/comments/${r.id}`)
+                                                    setProposalComments(prev => ({
+                                                      ...prev,
+                                                      [p.id]: (prev[p.id] || []).map(cm =>
+                                                        cm.id === c.id
+                                                          ? { ...cm, replies: (cm.replies || []).filter(x => x.id !== r.id) }
+                                                          : cm
+                                                      )
+                                                    }))
+                                                  } catch (err) { console.error(err) }
+                                                }}
+                                                style={{
+                                                  marginLeft: 'auto',
+                                                  background: 'transparent', border: 'none', cursor: 'pointer',
+                                                  fontFamily: 'DM Mono, monospace', fontSize: '11px', padding: '1px 5px',
+                                                  color: 'var(--red-soft)', opacity: 0.5,
+                                                  borderRadius: '3px', transition: 'opacity 0.15s',
+                                                }}
+                                                title="Supprimer cette réponse"
+                                                onMouseEnter={e => (e.currentTarget.style.opacity = '1')}
+                                                onMouseLeave={e => (e.currentTarget.style.opacity = '0.5')}
+                                              >✕</button>
+                                            )}
                                           </div>
                                           <div style={{ fontFamily: 'Spectral, serif', fontSize: '13px', color: 'var(--ink-soft)', lineHeight: '1.7' }}>
                                             <CommentText text={r.text} />
@@ -1216,58 +1294,119 @@ export default function RightPanel({
                     </div>
 
                     {/* ── Pied : votes + actions ── */}
-                    {p.status === 'PENDING' && (
+                    {(currentStatus === 'PENDING' || currentStatus === 'ACCEPTED') && (
                       <div style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '8px',
                         padding: '8px 14px',
                         borderTop: '1px solid var(--border)',
-                        flexWrap: 'wrap',
                         background: 'var(--parchment-dark)',
                       }}>
-                        {user && ['INTERMEDIATE', 'EXPERT', 'ADMIN'].includes(user.role) && (
-                          <button
-                            onClick={async () => {
-                              try {
-                                const res = await api.post(`/api/proposals/${p.id}/vote`)
-                                if (res.data.voted) {
-                                  setProposalVotedIds(prev => new Set([...prev, p.id]))
-                                } else {
-                                  setProposalVotedIds(prev => { const s = new Set(prev); s.delete(p.id); return s })
-                                }
-                                onProposalUpdated()
-                              } catch (e) { console.error(e) }
-                            }}
-                            style={{
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: '4px',
-                              padding: '4px 10px',
-                              borderRadius: '5px',
-                              border: `1px solid ${hasVoted ? 'var(--gold)' : 'var(--border)'}`,
-                              background: hasVoted ? 'var(--gold-pale)' : 'transparent',
-                              cursor: 'pointer',
-                              fontFamily: 'DM Mono, monospace',
-                              fontSize: '12px',
-                              color: hasVoted ? 'var(--gold)' : 'var(--ink-soft)',
-                              transition: 'all 0.15s',
-                            }}
-                          >
-                            ▲ {hasVoted ? 'Voté' : 'Voter'}
-                          </button>
-                        )}
-                        <span style={{
-                          fontFamily: 'DM Mono, monospace',
-                          fontSize: '12px',
-                          color: 'var(--ink-muted)',
-                          marginRight: 'auto',
-                        }}>
-                          {voteCount} vote{voteCount !== 1 ? 's' : ''}
-                        </span>
-                        {user && ['EXPERT', 'ADMIN'].includes(user.role) && (
+                        {/* Ligne votes */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0, marginBottom: currentStatus === 'PENDING' && user && user.role === 'ADMIN' ? '8px' : '0' }}>
+                          {user && ['INTERMEDIATE', 'EXPERT', 'ADMIN'].includes(user.role) ? (
+                            <>
+                              {/* Bouton ▲ — masqué si déjà acceptée */}
+                              {currentStatus === 'PENDING' && (
+                                <button
+                                  onClick={async () => {
+                                    try {
+                                      const res = await api.post(`/api/proposals/${p.id}/vote`, { value: 1 })
+                                      const statusChanged = res.data.status !== (override?.status ?? p.status)
+                                      setProposalVoteOverrides(prev => ({
+                                        ...prev,
+                                        [p.id]: {
+                                          netScore: res.data.netScore,
+                                          userVote: statusChanged ? 0 : (userVote === 1 ? 0 : 1),
+                                          status: res.data.status
+                                        }
+                                      }))
+                                      if (res.data.status !== (override?.status ?? p.status)) onProposalUpdated()
+                                    } catch (e) { console.error(e) }
+                                  }}
+                                  style={{
+                                    display: 'inline-flex', alignItems: 'center', gap: '3px',
+                                    padding: '3px 8px', borderRadius: '5px', cursor: 'pointer',
+                                    fontFamily: 'DM Mono, monospace', fontSize: '12px', whiteSpace: 'nowrap',
+                                    border: `1px solid ${userVote === 1 ? 'var(--gold)' : 'var(--border)'}`,
+                                    background: userVote === 1 ? 'var(--gold-pale)' : 'transparent',
+                                    color: userVote === 1 ? 'var(--gold)' : 'var(--ink-soft)',
+                                    transition: 'all 0.15s',
+                                  }}
+                                >▲ Pour</button>
+                              )}
+
+                              {/* Score net — affiché seulement en attente (ACCEPTED l'affiche dans l'indicateur) */}
+                              {currentStatus === 'PENDING' && (
+                                <span style={{
+                                  fontFamily: 'DM Mono, monospace', fontSize: '13px', fontWeight: '500',
+                                  color: netScore > 0 ? 'var(--green-valid)' : netScore < 0 ? 'var(--red-soft)' : 'var(--ink-muted)',
+                                  minWidth: '24px', textAlign: 'center',
+                                }}>
+                                  {netScore > 0 ? '+' : ''}{netScore}
+                                </span>
+                              )}
+
+                              {/* Bouton ▼ */}
+                              <button
+                                onClick={async () => {
+                                  try {
+                                    const res = await api.post(`/api/proposals/${p.id}/vote`, { value: -1 })
+                                    const statusChanged = res.data.status !== (override?.status ?? p.status)
+                                    setProposalVoteOverrides(prev => ({
+                                      ...prev,
+                                      [p.id]: {
+                                        netScore: res.data.netScore,
+                                        userVote: statusChanged ? 0 : (userVote === -1 ? 0 : -1),
+                                        status: res.data.status
+                                      }
+                                    }))
+                                    if (res.data.status !== (override?.status ?? p.status)) onProposalUpdated()
+                                  } catch (e) { console.error(e) }
+                                }}
+                                style={{
+                                  display: 'inline-flex', alignItems: 'center', gap: '3px',
+                                  padding: '3px 8px', borderRadius: '5px', cursor: 'pointer',
+                                  fontFamily: 'DM Mono, monospace', fontSize: '12px', whiteSpace: 'nowrap',
+                                  border: `1px solid ${userVote === -1 ? 'rgba(122,42,42,0.5)' : 'var(--border)'}`,
+                                  background: userVote === -1 ? 'var(--red-light)' : 'transparent',
+                                  color: userVote === -1 ? 'var(--red-soft)' : 'var(--ink-soft)',
+                                  transition: 'all 0.15s',
+                                }}
+                              >▼ Contre</button>
+
+                              {/* Indicateur de progression */}
+                              {currentStatus === 'PENDING' && (
+                                <span style={{ marginLeft: 'auto', fontFamily: 'DM Mono, monospace', fontSize: '10px', opacity: 0.85, whiteSpace: 'nowrap' }}>
+                                  <span style={{ color: upvotes >= THRESHOLD_ACCEPT ? 'var(--green-valid)' : 'var(--ink-faint)' }}>
+                                    +{upvotes}/{THRESHOLD_ACCEPT} acc.
+                                  </span>
+                                  <span style={{ color: 'var(--ink-faint)', margin: '0 3px' }}>·</span>
+                                  <span style={{ color: downvotes >= Math.abs(THRESHOLD_REJECT) ? 'var(--red-soft)' : 'var(--ink-faint)' }}>
+                                    -{downvotes}/{THRESHOLD_REJECT} rej.
+                                  </span>
+                                </span>
+                              )}
+                              {currentStatus === 'ACCEPTED' && (
+                                <span style={{
+                                  marginLeft: 'auto',
+                                  fontFamily: 'DM Mono, monospace', fontSize: '10px',
+                                  color: netScore <= 0 ? 'var(--red-soft)' : 'var(--ink-faint)',
+                                  opacity: 0.8,
+                                }}>
+                                  {netScore <= 0 ? `${netScore}/${THRESHOLD_REJECT} pour remise en attente` : ''}
+                                </span>
+                              )}
+                            </>
+                          ) : (
+                            <span style={{ fontFamily: 'DM Mono, monospace', fontSize: '12px', color: 'var(--ink-muted)' }}>
+                              Score : {netScore > 0 ? '+' : ''}{netScore}
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Actions admin (PENDING seulement) */}
+                        {currentStatus === 'PENDING' && user && user.role === 'ADMIN' && (
                           rejectingId === p.id ? (
-                            <div style={{ display: 'flex', gap: '6px', width: '100%', marginTop: '4px' }}>
+                            <div style={{ display: 'flex', gap: '6px', marginTop: '4px' }}>
                               <input
                                 type="text"
                                 placeholder="Raison du rejet..."
@@ -1288,19 +1427,11 @@ export default function RightPanel({
                                     setRejectingId(null); setRejectReason(''); onProposalUpdated()
                                   } catch (e) { console.error(e) }
                                 }}
-                                style={{
-                                  padding: '5px 10px', background: 'transparent', color: 'var(--red-soft)',
-                                  border: '1px solid rgba(122,42,42,0.3)', borderRadius: '6px',
-                                  fontFamily: 'DM Mono, monospace', fontSize: '11px', cursor: 'pointer',
-                                }}
+                                style={{ padding: '5px 10px', background: 'transparent', color: 'var(--red-soft)', border: '1px solid rgba(122,42,42,0.3)', borderRadius: '6px', fontFamily: 'DM Mono, monospace', fontSize: '11px', cursor: 'pointer' }}
                               >Rejeter</button>
                               <button
                                 onClick={() => { setRejectingId(null); setRejectReason('') }}
-                                style={{
-                                  padding: '5px 10px', background: 'transparent', color: 'var(--ink-muted)',
-                                  border: '1px solid var(--border)', borderRadius: '6px',
-                                  fontFamily: 'DM Mono, monospace', fontSize: '11px', cursor: 'pointer',
-                                }}
+                                style={{ padding: '5px 10px', background: 'transparent', color: 'var(--ink-muted)', border: '1px solid var(--border)', borderRadius: '6px', fontFamily: 'DM Mono, monospace', fontSize: '11px', cursor: 'pointer' }}
                               >Annuler</button>
                             </div>
                           ) : (
@@ -1309,19 +1440,11 @@ export default function RightPanel({
                                 onClick={async () => {
                                   try { await api.patch(`/api/proposals/${p.id}/accept`); onProposalUpdated() } catch (e) { console.error(e) }
                                 }}
-                                style={{
-                                  padding: '4px 10px', background: 'var(--green-valid)', color: 'white',
-                                  border: 'none', borderRadius: '5px',
-                                  fontFamily: 'DM Mono, monospace', fontSize: '11px', cursor: 'pointer',
-                                }}
+                                style={{ padding: '4px 10px', background: 'var(--green-valid)', color: 'white', border: 'none', borderRadius: '5px', fontFamily: 'DM Mono, monospace', fontSize: '11px', cursor: 'pointer' }}
                               >✓ Accepter</button>
                               <button
                                 onClick={() => setRejectingId(p.id)}
-                                style={{
-                                  padding: '4px 10px', background: 'transparent', color: 'var(--red-soft)',
-                                  border: '1px solid rgba(122,42,42,0.3)', borderRadius: '5px',
-                                  fontFamily: 'DM Mono, monospace', fontSize: '11px', cursor: 'pointer',
-                                }}
+                                style={{ padding: '4px 10px', background: 'transparent', color: 'var(--red-soft)', border: '1px solid rgba(122,42,42,0.3)', borderRadius: '5px', fontFamily: 'DM Mono, monospace', fontSize: '11px', cursor: 'pointer' }}
                               >✕ Rejeter</button>
                             </div>
                           )

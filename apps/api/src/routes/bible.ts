@@ -6,6 +6,23 @@ import { logAction } from '../lib/audit'
 
 const router = Router()
 
+// GET /api/settings — public
+router.get('/settings', async (_req, res: Response) => {
+  try {
+    const settings = await prisma.setting.findMany()
+    const map: Record<string, string> = {}
+    for (const s of settings) map[s.key] = s.value
+    // defaults if not seeded
+    res.json({
+      vote_threshold_accept: Number(map['vote_threshold_accept'] ?? 5),
+      vote_threshold_reject: Number(map['vote_threshold_reject'] ?? -3),
+    })
+  } catch (error) {
+    console.error(error)
+    res.status(500).json({ error: 'Erreur serveur' })
+  }
+})
+
 router.get('/books', async (req: Request, res: Response) => {
   try {
     const books = await prisma.book.findMany({
@@ -721,7 +738,7 @@ router.post('/verses/:id/proposals', authenticateJWT, async (req: AuthRequest, r
 // PATCH /api/proposals/:id/accept
 router.patch('/proposals/:id/accept', authenticateJWT, async (req: AuthRequest, res: Response) => {
   try {
-    if (!['EXPERT', 'ADMIN'].includes(req.user!.role)) {
+    if (!['ADMIN'].includes(req.user!.role)) {
       res.status(403).json({ error: 'Accès refusé' }); return
     }
     const id = req.params.id as string
@@ -731,6 +748,8 @@ router.patch('/proposals/:id/accept', authenticateJWT, async (req: AuthRequest, 
     })
     if (!proposal) { res.status(404).json({ error: 'Proposition non trouvée' }); return }
 
+    // Réinitialiser les votes pour repartir à zéro après changement de statut
+    await prisma.vote.deleteMany({ where: { proposalId: id } })
     // Juste marquer la proposition comme acceptée, sans changer isActive
     const updated = await prisma.proposal.update({
       where: { id },
@@ -761,6 +780,30 @@ router.patch('/proposals/:id/accept', authenticateJWT, async (req: AuthRequest, 
         })
       ))
     }
+    res.json(updated)
+  } catch (error) {
+    console.error(error)
+    res.status(500).json({ error: 'Erreur serveur' })
+  }
+})
+
+// PATCH /api/proposals/:id/reopen — remettre en attente (ADMIN)
+router.patch('/proposals/:id/reopen', authenticateJWT, async (req: AuthRequest, res: Response) => {
+  try {
+    if (!['ADMIN'].includes(req.user!.role)) {
+      res.status(403).json({ error: 'Accès refusé' }); return
+    }
+    const id = req.params.id as string
+    const proposal = await prisma.proposal.findUnique({ where: { id } })
+    if (!proposal) { res.status(404).json({ error: 'Proposition non trouvée' }); return }
+    if (proposal.status !== 'ACCEPTED') { res.status(400).json({ error: 'La proposition n\'est pas acceptée' }); return }
+
+    await prisma.vote.deleteMany({ where: { proposalId: id } })
+    const updated = await prisma.proposal.update({
+      where: { id },
+      data: { status: 'PENDING', reviewedBy: null }
+    })
+    await logAction('PROPOSAL_ACCEPTED', req.user!.id, { proposalId: id, action: 'reopen' }, req.ip)
     res.json(updated)
   } catch (error) {
     console.error(error)
@@ -869,7 +912,7 @@ router.patch('/translations/:id/activate', authenticateJWT, async (req: AuthRequ
 // PATCH /api/proposals/:id/reject
 router.patch('/proposals/:id/reject', authenticateJWT, async (req: AuthRequest, res: Response) => {
   try {
-    if (!['EXPERT', 'ADMIN'].includes(req.user!.role)) {
+    if (!['ADMIN'].includes(req.user!.role)) {
       res.status(403).json({ error: 'Accès refusé' }); return
     }
     const id = req.params.id as string
@@ -920,24 +963,97 @@ router.post('/proposals/:id/vote', authenticateJWT, async (req: AuthRequest, res
     }
     const id = req.params.id as string
     const userId = req.user!.id
+    const { value } = z.object({ value: z.union([z.literal(1), z.literal(-1)]) }).parse(req.body)
+
+    // Fetch thresholds from settings
+    const [acceptSetting, rejectSetting] = await Promise.all([
+      prisma.setting.findUnique({ where: { key: 'vote_threshold_accept' } }),
+      prisma.setting.findUnique({ where: { key: 'vote_threshold_reject' } }),
+    ])
+    const THRESHOLD_ACCEPT = Number(acceptSetting?.value ?? 5)
+    const THRESHOLD_REJECT = Number(rejectSetting?.value ?? -3)
 
     const proposal = await prisma.proposal.findUnique({ where: { id } })
     if (!proposal) { res.status(404).json({ error: 'Proposition non trouvée' }); return }
+    if (proposal.status === 'REJECTED') { res.status(400).json({ error: 'Impossible de voter sur une proposition rejetée' }); return }
 
-    const existingVote = await prisma.vote.findFirst({
-      where: { proposalId: id, userId }
-    })
+    const existingVote = await prisma.vote.findFirst({ where: { proposalId: id, userId } })
 
     if (existingVote) {
-      await prisma.vote.delete({ where: { id: existingVote.id } })
-      res.json({ voted: false })
+      if (existingVote.value === value) {
+        // Même valeur → annuler le vote
+        await prisma.vote.delete({ where: { id: existingVote.id } })
+      } else {
+        // Valeur différente → changer le vote
+        await prisma.vote.update({ where: { id: existingVote.id }, data: { value } })
+      }
     } else {
-      await prisma.vote.create({
-        data: { proposalId: id, userId, value: 1 }
-      })
-      res.json({ voted: true })
+      await prisma.vote.create({ data: { proposalId: id, userId, value } })
     }
+
+    // Recalculer le score
+    const allVotes = await prisma.vote.findMany({ where: { proposalId: id } })
+    const netScore = allVotes.reduce((sum: number, v: { value: number }) => sum + v.value, 0)
+
+    let newStatus: string = proposal.status
+
+    if (proposal.status === 'PENDING') {
+      if (netScore >= THRESHOLD_ACCEPT) {
+        await prisma.proposal.update({ where: { id }, data: { status: 'ACCEPTED' } })
+        newStatus = 'ACCEPTED'
+        if (proposal.createdBy) {
+          await prisma.notification.create({
+            data: {
+              userId: proposal.createdBy,
+              type: 'PROPOSAL_ACCEPTED',
+              message: `Votre proposition a été acceptée automatiquement par la communauté (score : +${netScore})`,
+            }
+          })
+        }
+        await logAction('PROPOSAL_ACCEPTED', userId, { proposalId: id, auto: true, netScore }, req.ip)
+        await prisma.vote.deleteMany({ where: { proposalId: id } })
+      } else if (netScore <= THRESHOLD_REJECT) {
+        await prisma.proposal.update({ where: { id }, data: { status: 'REJECTED', reason: `Rejetée automatiquement par la communauté (score : ${netScore})` } })
+        newStatus = 'REJECTED'
+        if (proposal.createdBy) {
+          await prisma.notification.create({
+            data: {
+              userId: proposal.createdBy,
+              type: 'PROPOSAL_REJECTED',
+              message: `Votre proposition a été rejetée automatiquement par la communauté (score : ${netScore})`,
+            }
+          })
+        }
+        await logAction('PROPOSAL_REJECTED', userId, { proposalId: id, auto: true, netScore }, req.ip)
+        await prisma.vote.deleteMany({ where: { proposalId: id } })
+      }
+    } else if (proposal.status === 'ACCEPTED') {
+      if (netScore <= THRESHOLD_REJECT) {
+        await prisma.proposal.update({ where: { id }, data: { status: 'PENDING' } })
+        newStatus = 'PENDING'
+        if (proposal.createdBy) {
+          await prisma.notification.create({
+            data: {
+              userId: proposal.createdBy,
+              type: 'PROPOSAL_REJECTED',
+              message: `Votre proposition acceptée a été remise en discussion par la communauté (score : ${netScore})`,
+            }
+          })
+        }
+        await prisma.vote.deleteMany({ where: { proposalId: id } })
+      }
+    }
+
+    const statusChanged = newStatus !== proposal.status
+    res.json({
+      netScore: statusChanged ? 0 : netScore,
+      status: newStatus,
+      votes: statusChanged ? [] : allVotes.map((v: { userId: string; value: number }) => ({ userId: v.userId, value: v.value }))
+    })
   } catch (error) {
+    if (error instanceof z.ZodError) {
+      res.status(400).json({ error: 'Valeur de vote invalide' }); return
+    }
     console.error(error)
     res.status(500).json({ error: 'Erreur serveur' })
   }

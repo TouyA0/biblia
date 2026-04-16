@@ -88,7 +88,7 @@ export default function AdminPage() {
   const [stats, setStats] = useState<Stats | null>(null)
   const [users, setUsers] = useState<User[]>([])
   const [loading, setLoading] = useState(true)
-  const [activeTab, setActiveTab] = useState<'stats' | 'users' | 'contributions' | 'logs'>('stats')
+  const [activeTab, setActiveTab] = useState<'stats' | 'users' | 'contributions' | 'logs' | 'settings'>('stats')
   const [search, setSearch] = useState('')
   const [showSuggestions, setShowSuggestions] = useState(false)
   const searchRef = useRef<HTMLDivElement>(null)
@@ -283,6 +283,11 @@ export default function AdminPage() {
     finally { setContribLoading(false) }
   }
 
+  const [settingsData, setSettingsData] = useState<{ vote_threshold_accept: number; vote_threshold_reject: number } | null>(null)
+  const [settingsForm, setSettingsForm] = useState({ vote_threshold_accept: 5, vote_threshold_reject: -3 })
+  const [savingSettings, setSavingSettings] = useState(false)
+  const [settingsSaved, setSettingsSaved] = useState(false)
+
   const [logSearch, setLogSearch] = useState('')
   const [logActionFilter, setLogActionFilter] = useState<string>('ADMIN')
   const [logPage, setLogPage] = useState(1)
@@ -339,6 +344,9 @@ export default function AdminPage() {
       setStats(statsRes.data)
       setUsers(usersRes.data)
       setAdminLogs(logsRes.data)
+      const sRes = await api.get('/api/admin/settings')
+      setSettingsData(sRes.data)
+      setSettingsForm(sRes.data)
     } catch (error) {
       console.error(error)
       router.push('/')
@@ -404,6 +412,7 @@ export default function AdminPage() {
             { key: 'users', label: `Utilisateurs (${users.length})` },
             { key: 'contributions', label: 'Contributions' },
             { key: 'logs', label: 'Logs' },
+            { key: 'settings', label: '⚙ Paramètres' },
           ] as const).map(tab => (
             <div
               key={tab.key}
@@ -1546,6 +1555,75 @@ export default function AdminPage() {
           )}
         </div>
         )}
+        {/* ONGLET PARAMETRES */}
+        {activeTab === 'settings' && settingsForm && (
+          <div style={{ maxWidth: '480px' }}>
+            <h2 style={{ fontFamily: 'Cinzel, serif', fontSize: '18px', color: 'var(--ink)', marginBottom: '20px' }}>
+              Paramètres de vote
+            </h2>
+            <div style={{ background: 'var(--card-bg)', border: '1px solid var(--border)', borderRadius: '10px', padding: '20px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <div>
+                <label style={{ fontFamily: 'DM Mono, monospace', fontSize: '12px', color: 'var(--ink-muted)', display: 'block', marginBottom: '6px' }}>
+                  Seuil d&apos;acceptation automatique (votes pour)
+                </label>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <input
+                    type="number"
+                    min={1} max={50}
+                    value={settingsForm.vote_threshold_accept}
+                    onChange={e => setSettingsForm(prev => ({ ...prev, vote_threshold_accept: Number(e.target.value) }))}
+                    style={{ width: '80px', padding: '6px 10px', border: '1px solid var(--border)', borderRadius: '6px', background: 'var(--parchment)', fontFamily: 'DM Mono, monospace', fontSize: '14px', color: 'var(--ink)', outline: 'none' }}
+                  />
+                  <span style={{ fontFamily: 'DM Mono, monospace', fontSize: '12px', color: 'var(--ink-faint)' }}>
+                    votes positifs pour acceptation automatique
+                  </span>
+                </div>
+              </div>
+              <div>
+                <label style={{ fontFamily: 'DM Mono, monospace', fontSize: '12px', color: 'var(--ink-muted)', display: 'block', marginBottom: '6px' }}>
+                  Seuil de rejet automatique (votes contre, valeur négative)
+                </label>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <input
+                    type="number"
+                    max={-1} min={-50}
+                    value={settingsForm.vote_threshold_reject}
+                    onChange={e => setSettingsForm(prev => ({ ...prev, vote_threshold_reject: Number(e.target.value) }))}
+                    style={{ width: '80px', padding: '6px 10px', border: '1px solid var(--border)', borderRadius: '6px', background: 'var(--parchment)', fontFamily: 'DM Mono, monospace', fontSize: '14px', color: 'var(--ink)', outline: 'none' }}
+                  />
+                  <span style={{ fontFamily: 'DM Mono, monospace', fontSize: '12px', color: 'var(--ink-faint)' }}>
+                    votes négatifs pour rejet automatique
+                  </span>
+                </div>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '4px' }}>
+                <button
+                  onClick={async () => {
+                    setSavingSettings(true)
+                    try {
+                      await api.patch('/api/admin/settings', settingsForm)
+                      setSettingsData(settingsForm)
+                      setSettingsSaved(true)
+                      setTimeout(() => setSettingsSaved(false), 2000)
+                    } catch (e) { console.error(e) }
+                    finally { setSavingSettings(false) }
+                  }}
+                  disabled={savingSettings}
+                  style={{ padding: '8px 20px', background: 'var(--gold)', border: 'none', borderRadius: '6px', cursor: 'pointer', fontFamily: 'DM Mono, monospace', fontSize: '13px', color: 'white', opacity: savingSettings ? 0.7 : 1 }}
+                >
+                  {savingSettings ? 'Enregistrement…' : 'Enregistrer'}
+                </button>
+                {settingsSaved && (
+                  <span style={{ fontFamily: 'DM Mono, monospace', fontSize: '12px', color: 'var(--green-valid)' }}>✓ Sauvegardé</span>
+                )}
+              </div>
+            </div>
+            <p style={{ fontFamily: 'DM Mono, monospace', fontSize: '11px', color: 'var(--ink-faint)', marginTop: '12px' }}>
+              Ces seuils s&apos;appliquent à toutes les propositions en temps réel. Actuellement&nbsp;: acceptation à +{settingsData?.vote_threshold_accept ?? 5}, rejet à {settingsData?.vote_threshold_reject ?? -3}.
+            </p>
+          </div>
+        )}
+
         {/* ONGLET LOGS */}
         {activeTab === 'logs' && (
           <div>

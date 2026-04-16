@@ -52,6 +52,7 @@ model User {
   lastLoginAt      DateTime?
   notifications Notification[]
   commentReactions CommentReaction[]
+  settings Setting[]
 }
 
 model Book {
@@ -230,4 +231,12 @@ model CommentReaction {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([commentId, userId, emoji])
+}
+
+model Setting {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt
+  updatedBy String?
+  user      User?    @relation(fields: [updatedBy], references: [id])
 }
