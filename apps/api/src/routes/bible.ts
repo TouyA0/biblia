@@ -728,12 +728,12 @@ router.get('/verses/:id/comments', async (req: Request, res: Response) => {
       orderBy: { createdAt: 'asc' },
       include: {
         creator: { select: { username: true, role: true } },
-        reactions: { select: { userId: true, emoji: true } },
+        reactions: { select: { userId: true, emoji: true, user: { select: { username: true } } } },
         replies: {
           orderBy: { createdAt: 'asc' },
           include: {
             creator: { select: { username: true, role: true } },
-            reactions: { select: { userId: true, emoji: true } }
+            reactions: { select: { userId: true, emoji: true, user: { select: { username: true } } } }
           }
         }
       }
@@ -853,12 +853,12 @@ router.get('/proposals/:id/comments', async (req: Request, res: Response) => {
       orderBy: { createdAt: 'asc' },
       include: {
         creator: { select: { username: true, role: true } },
-        reactions: { select: { userId: true, emoji: true } },
+        reactions: { select: { userId: true, emoji: true, user: { select: { username: true } } } },
         replies: {
           orderBy: { createdAt: 'asc' },
           include: {
             creator: { select: { username: true, role: true } },
-            reactions: { select: { userId: true, emoji: true } }
+            reactions: { select: { userId: true, emoji: true, user: { select: { username: true } } } }
           }
         }
       }
@@ -890,8 +890,8 @@ router.post('/proposals/:id/comments', authenticateJWT, async (req: AuthRequest,
       },
       include: {
         creator: { select: { username: true, role: true } },
-        reactions: { select: { userId: true, emoji: true } },
-        replies: { include: { creator: { select: { username: true, role: true } }, reactions: { select: { userId: true, emoji: true } } } }
+        reactions: { select: { userId: true, emoji: true, user: { select: { username: true } } } },
+        replies: { include: { creator: { select: { username: true, role: true } }, reactions: { select: { userId: true, emoji: true, user: { select: { username: true } } } } } }
       }
     })
 
@@ -968,7 +968,7 @@ router.post('/comments/:id/react', authenticateJWT, async (req: AuthRequest, res
 
     const reactions = await prisma.commentReaction.findMany({
       where: { commentId },
-      select: { userId: true, emoji: true }
+      select: { userId: true, emoji: true, user: { select: { username: true } } }
     })
 
     res.json({ reactions })

@@ -73,6 +73,7 @@ interface Verse {
 interface CommentReaction {
   userId: string
   emoji: string
+  user?: { username: string } | null
 }
 
 interface Comment {
@@ -599,11 +600,15 @@ export default function RightPanel({
     const reactions = getReactions(comment)
     const counts: Record<string, number> = {}
     const userReacted: Record<string, boolean> = {}
+    const reactors: Record<string, string[]> = {}
     for (const r of reactions) {
       counts[r.emoji] = (counts[r.emoji] || 0) + 1
       if (user && r.userId === user.id) userReacted[r.emoji] = true
+      if (!reactors[r.emoji]) reactors[r.emoji] = []
+      reactors[r.emoji].push('@' + (r.user?.username ?? r.userId.slice(0, 6)))
     }
     const usedEmojis = EMOJIS.filter(e => counts[e])
+    const [hoveredEmoji, setHoveredEmoji] = useState<string | null>(null)
 
     const toggle = async (emoji: string) => {
       if (!user) return
@@ -617,29 +622,46 @@ export default function RightPanel({
     return (
       <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginTop: '6px', flexWrap: 'wrap' }}>
         {usedEmojis.map(emoji => (
-          <button
-            key={emoji}
-            onClick={() => toggle(emoji)}
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '3px',
-              padding: '2px 7px',
-              borderRadius: '10px',
-              border: userReacted[emoji]
-                ? '1px solid rgba(184,132,58,0.5)'
-                : '1px solid var(--border)',
-              background: userReacted[emoji] ? 'var(--gold-pale)' : 'var(--parchment-dark)',
-              cursor: user ? 'pointer' : 'default',
-              fontSize: '12px',
-              fontFamily: 'DM Mono, monospace',
-              color: userReacted[emoji] ? 'var(--gold)' : 'var(--ink-muted)',
-              transition: 'all 0.15s',
-            }}
-          >
-            <span style={{ fontSize: '13px' }}>{emoji}</span>
-            <span style={{ fontSize: '11px' }}>{counts[emoji]}</span>
-          </button>
+          <div key={emoji} style={{ position: 'relative' }}>
+            {hoveredEmoji === emoji && reactors[emoji]?.length > 0 && (
+              <div style={{
+                position: 'absolute', bottom: 'calc(100% + 5px)', left: '50%', transform: 'translateX(-50%)',
+                background: 'var(--ink)', color: 'white', borderRadius: '6px', padding: '4px 8px',
+                fontFamily: 'DM Mono, monospace', fontSize: '10px', whiteSpace: 'nowrap',
+                pointerEvents: 'none', zIndex: 100,
+                boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
+              }}>
+                {reactors[emoji].length > 3
+                  ? reactors[emoji].slice(0, 3).join(', ') + ` +${reactors[emoji].length - 3}`
+                  : reactors[emoji].join(', ')}
+                <div style={{ position: 'absolute', top: '100%', left: '50%', transform: 'translateX(-50%)', borderLeft: '4px solid transparent', borderRight: '4px solid transparent', borderTop: '4px solid var(--ink)' }} />
+              </div>
+            )}
+            <button
+              onClick={() => toggle(emoji)}
+              onMouseEnter={() => setHoveredEmoji(emoji)}
+              onMouseLeave={() => setHoveredEmoji(null)}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '3px',
+                padding: '2px 7px',
+                borderRadius: '10px',
+                border: userReacted[emoji]
+                  ? '1px solid rgba(184,132,58,0.5)'
+                  : '1px solid var(--border)',
+                background: userReacted[emoji] ? 'var(--gold-pale)' : 'var(--parchment-dark)',
+                cursor: user ? 'pointer' : 'default',
+                fontSize: '12px',
+                fontFamily: 'DM Mono, monospace',
+                color: userReacted[emoji] ? 'var(--gold)' : 'var(--ink-muted)',
+                transition: 'all 0.15s',
+              }}
+            >
+              <span style={{ fontSize: '13px' }}>{emoji}</span>
+              <span style={{ fontSize: '11px' }}>{counts[emoji]}</span>
+            </button>
+          </div>
         ))}
         {user && (
           <div style={{ position: 'relative' }}>

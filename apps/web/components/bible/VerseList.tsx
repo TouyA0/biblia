@@ -68,6 +68,7 @@ export default function VerseList({ verses, bookName, chapter, activeVerseId, ac
   const [sharedId, setSharedId] = useState<string | null>(null)
   const [fontSize, setFontSizeState] = useState<FontSize>('S')
   const [showFrench, setShowFrenchState] = useState(true)
+  const [showOriginal, setShowOriginalState] = useState(true)
   const [showMissing, setShowMissingState] = useState(false)
   const scrollRef = useRef<HTMLDivElement>(null)
 
@@ -76,6 +77,8 @@ export default function VerseList({ verses, bookName, chapter, activeVerseId, ac
     if (saved && ['S', 'M', 'L'].includes(saved)) setFontSizeState(saved)
     const fr = localStorage.getItem('verse_show_french')
     if (fr !== null) setShowFrenchState(fr === 'true')
+    const orig = localStorage.getItem('verse_show_original')
+    if (orig !== null) setShowOriginalState(orig === 'true')
     const missing = localStorage.getItem('verse_show_missing')
     if (missing !== null) setShowMissingState(missing === 'true')
   }, [])
@@ -124,6 +127,14 @@ export default function VerseList({ verses, bookName, chapter, activeVerseId, ac
     setShowFrenchState(next)
     localStorage.setItem('verse_show_french', String(next))
   }
+
+  function toggleOriginal() {
+    const next = !showOriginal
+    setShowOriginalState(next)
+    localStorage.setItem('verse_show_original', String(next))
+  }
+
+  const originalLang = verses[0]?.texts?.find(t => t.language === 'HEB' || t.language === 'GRK')?.language?.toLowerCase() ?? 'orig'
 
   function toggleMissing() {
     const next = !showMissing
@@ -209,6 +220,29 @@ export default function VerseList({ verses, bookName, chapter, activeVerseId, ac
                 fr
               </button>
 
+              {/* Toggle texte original */}
+              <button
+                onClick={toggleOriginal}
+                title={showOriginal ? `Masquer le texte ${originalLang === 'heb' ? 'hébreu' : 'grec'}` : `Afficher le texte ${originalLang === 'heb' ? 'hébreu' : 'grec'}`}
+                style={{
+                  height: '26px',
+                  padding: '0 8px',
+                  borderRadius: '4px',
+                  border: `1px solid ${showOriginal ? 'var(--blue-sacred)' : 'var(--border)'}`,
+                  background: showOriginal ? 'var(--blue-light)' : 'transparent',
+                  color: showOriginal ? 'var(--blue-sacred)' : 'var(--ink-faint)',
+                  fontFamily: 'var(--font-mono)',
+                  fontSize: '11px',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  transition: 'all var(--transition-fast)',
+                  whiteSpace: 'nowrap' as const,
+                }}
+              >
+                {originalLang}
+              </button>
+
               {/* Filtre mots sans traduction — contributeurs connectés uniquement */}
               {user && (
                 <>
@@ -247,7 +281,7 @@ export default function VerseList({ verses, bookName, chapter, activeVerseId, ac
             lineHeight: '1.1',
             marginBottom: '8px',
           }}>
-            {verses[0]?.texts?.find(t => t.language === 'HEB' || t.language === 'GRK')?.text?.split(' ').slice(0, 1).join('')}
+            {showOriginal && verses[0]?.texts?.find(t => t.language === 'HEB' || t.language === 'GRK')?.text?.split(' ').slice(0, 1).join('')}
           </div>
         </div>
 
@@ -355,7 +389,7 @@ export default function VerseList({ verses, bookName, chapter, activeVerseId, ac
               </div>
 
               <div>
-                {originalText && (
+                {showOriginal && originalText && (
                   <div style={{
                     fontSize: 'var(--verse-orig-size)',
                     lineHeight: '2.4',
@@ -397,7 +431,7 @@ export default function VerseList({ verses, bookName, chapter, activeVerseId, ac
                     })}
                   </div>
                 )}
-                {hasSela && (
+                {showOriginal && hasSela && (
                   <div style={{
                     textAlign: 'right',
                     color: 'var(--gold)',
