@@ -89,7 +89,7 @@ router.post('/login', async (req: Request, res: Response) => {
     const refreshToken = jwt.sign(
       { id: user.id },
       process.env.REFRESH_TOKEN_SECRET!,
-      { expiresIn: '30d' }
+      { expiresIn: '7d' }
     )
 
     const tokenHash = crypto.createHash('sha256').update(refreshToken).digest('hex')
@@ -98,7 +98,7 @@ router.post('/login', async (req: Request, res: Response) => {
       data: {
         userId: user.id,
         tokenHash,
-        expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
         ip: req.ip,
         userAgent: req.headers['user-agent']
       }
