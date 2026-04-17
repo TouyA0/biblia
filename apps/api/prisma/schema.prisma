@@ -31,6 +31,12 @@ enum ProposalStatus {
   REJECTED
 }
 
+enum WordTranslationStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+}
+
 model User {
   id               String            @id @default(uuid())
   email            String            @unique
@@ -50,10 +56,12 @@ model User {
   isActive         Boolean  @default(true)
   forcePasswordReset Boolean @default(false)
   lastLoginAt      DateTime?
-  notifications    Notification[]
-  commentReactions CommentReaction[]
-  settings         Setting[]
-  proposalEvents   ProposalEvent[]
+  notifications            Notification[]
+  commentReactions         CommentReaction[]
+  settings                 Setting[]
+  proposalEvents           ProposalEvent[]
+  reviewedWordTranslations WordTranslation[]      @relation("WordTranslationReviewer")
+  wordTranslationEvents    WordTranslationEvent[] @relation("WordTranslationEventActor")
 }
 
 model Book {
@@ -124,16 +132,25 @@ model WordToken {
 }
 
 model WordTranslation {
-  id          String    @id @default(uuid())
+  id          String                @id @default(uuid())
   wordTokenId String
   translation String
-  voteCount   Int       @default(0)
-  isValidated Boolean   @default(false)
+  voteCount   Int                   @default(0)
+  isValidated Boolean               @default(false)
+  status      WordTranslationStatus @default(PENDING)
+  reason      String?
+  tags        String[]              @default([])
   createdBy   String?
-  createdAt   DateTime  @default(now())
-  wordToken   WordToken @relation(fields: [wordTokenId], references: [id])
-  creator     User?     @relation(fields: [createdBy], references: [id])
+  reviewedBy  String?
+  reviewedAt  DateTime?
+  createdAt   DateTime              @default(now())
+  wordToken   WordToken             @relation(fields: [wordTokenId], references: [id])
+  creator     User?                 @relation(fields: [createdBy], references: [id])
+  reviewer    User?                 @relation("WordTranslationReviewer", fields: [reviewedBy], references: [id])
   votes       Vote[]
+  comments    Comment[]
+  versions    WordTranslationVersion[]
+  events      WordTranslationEvent[]
 }
 
 model Proposal {
@@ -164,6 +181,28 @@ model ProposalVersion {
   changeReason  String?
   versionNumber Int
   createdAt     DateTime @default(now())
+}
+
+model WordTranslationVersion {
+  id                String          @id @default(cuid())
+  wordTranslationId String
+  wordTranslation   WordTranslation @relation(fields: [wordTranslationId], references: [id], onDelete: Cascade)
+  translation       String
+  changeReason      String?
+  versionNumber     Int
+  createdAt         DateTime        @default(now())
+}
+
+model WordTranslationEvent {
+  id                String          @id @default(cuid())
+  wordTranslationId String
+  wordTranslation   WordTranslation @relation(fields: [wordTranslationId], references: [id], onDelete: Cascade)
+  type              String          // accepted | rejected | reopened
+  actorId           String?
+  actor             User?           @relation("WordTranslationEventActor", fields: [actorId], references: [id], onDelete: SetNull)
+  note              String?
+  score             Int?
+  createdAt         DateTime        @default(now())
 }
 
 model ProposalEvent {
@@ -200,13 +239,15 @@ model Comment {
   createdBy   String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-  verseId     String?
-  wordTokenId String?
-  parentId    String?
-  proposalId  String?
-  proposal    Proposal? @relation(fields: [proposalId], references: [id], onDelete: Cascade)
-  verse       Verse?    @relation(fields: [verseId], references: [id])
-  wordToken   WordToken? @relation(fields: [wordTokenId], references: [id])
+  verseId           String?
+  wordTokenId       String?
+  wordTranslationId String?
+  parentId          String?
+  proposalId        String?
+  proposal        Proposal?        @relation(fields: [proposalId], references: [id], onDelete: Cascade)
+  wordTranslation WordTranslation? @relation(fields: [wordTranslationId], references: [id], onDelete: Cascade)
+  verse           Verse?           @relation(fields: [verseId], references: [id])
+  wordToken       WordToken?       @relation(fields: [wordTokenId], references: [id])
   creator     User?     @relation(fields: [createdBy], references: [id])
   parent      Comment?  @relation("CommentReplies", fields: [parentId], references: [id])
   replies     Comment[] @relation("CommentReplies")

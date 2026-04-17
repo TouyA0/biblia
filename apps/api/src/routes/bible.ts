@@ -169,7 +169,12 @@ router.get('/words/:id/translations', async (req: Request, res: Response) => {
     const translations = await prisma.wordTranslation.findMany({
       where: { wordTokenId: id },
       orderBy: { voteCount: 'desc' },
-      include: { creator: { select: { username: true, role: true } } }
+      include: {
+        creator:  { select: { username: true, role: true } },
+        reviewer: { select: { username: true } },
+        votes:    { select: { userId: true, value: true } },
+        _count:   { select: { comments: true, versions: true } },
+      }
     })
     res.json(translations)
   } catch (error) {
@@ -181,23 +186,25 @@ router.get('/words/:id/translations', async (req: Request, res: Response) => {
 router.post('/words/:id/translations', authenticateJWT, async (req: AuthRequest, res: Response) => {
   try {
     const id = req.params.id as string
-    const { translation } = z.object({
-      translation: z.string().min(1).max(200)
+    const { translation, reason, tags } = z.object({
+      translation: z.string().min(1).max(200),
+      reason: z.string().max(500).optional(),
+      tags: z.array(z.string()).max(5).optional(),
     }).parse(req.body)
     const word = await prisma.wordToken.findUnique({ where: { id } })
     if (!word) { res.status(404).json({ error: 'Mot non trouvé' }); return }
 
     // Vérifier doublon
     const existing = await prisma.wordTranslation.findFirst({
-      where: { wordTokenId: id, translation: { equals: translation, mode: 'insensitive' } }
+      where: { wordTokenId: id, translation: { equals: translation, mode: 'insensitive' }, status: { not: 'REJECTED' } }
     })
     if (existing) {
       res.status(409).json({ error: 'Cette traduction existe déjà pour ce mot' }); return
     }
 
     const newTranslation = await prisma.wordTranslation.create({
-      data: { wordTokenId: id, translation, createdBy: req.user!.id },
-      include: { creator: { select: { username: true, role: true } } }
+      data: { wordTokenId: id, translation, reason: reason ?? null, tags: tags ?? [], createdBy: req.user!.id },
+      include: { creator: { select: { username: true, role: true } }, _count: { select: { comments: true } } }
     })
     await logAction('TRANSLATION_ADDED', req.user!.id, { word: word.word, translation: newTranslation.translation }, req.ip)
     res.status(201).json(newTranslation)
@@ -260,6 +267,61 @@ router.get('/words/:id/occurrences', async (req: Request, res: Response) => {
   }
 })
 
+// Helper : récupérer le lien vers un mot
+async function wordTranslationLink(wordTranslationId: string): Promise<string | null> {
+  const wt = await prisma.wordTranslation.findUnique({
+    where: { id: wordTranslationId },
+    include: { wordToken: { include: { verseText: { include: { verse: { include: { chapter: { include: { book: true } } } } } } } } }
+  })
+  if (!wt) return null
+  const verse = wt.wordToken.verseText.verse
+  return `/${verse.chapter.book.testament === 'AT' ? 'at' : 'nt'}/${verse.chapter.book.slug}/${verse.chapter.number}?word=${wt.wordTokenId}&tab=word#v${verse.number}`
+}
+
+// PATCH /api/word-translations/:id — modifier une traduction de mot
+router.patch('/word-translations/:id', authenticateJWT, async (req: AuthRequest, res: Response) => {
+  try {
+    const id = req.params.id as string
+    const wt = await prisma.wordTranslation.findUnique({ where: { id }, include: { versions: { orderBy: { versionNumber: 'desc' }, take: 1 } } })
+    if (!wt) { res.status(404).json({ error: 'Traduction non trouvée' }); return }
+    const isOwner = wt.createdBy === req.user!.id
+    const isExpertOrAdmin = ['EXPERT', 'ADMIN'].includes(req.user!.role)
+    if (!isOwner && !isExpertOrAdmin) { res.status(403).json({ error: 'Accès refusé' }); return }
+    if (wt.status === 'ACCEPTED' && !isExpertOrAdmin) { res.status(403).json({ error: 'Impossible de modifier une traduction validée' }); return }
+
+    const { translation, reason, tags, changeReason } = z.object({
+      translation: z.string().min(1).max(200).optional(),
+      reason: z.string().max(500).optional(),
+      tags: z.array(z.string()).max(5).optional(),
+      changeReason: z.string().max(300).optional(),
+    }).parse(req.body)
+
+    const textChanged = translation !== undefined && translation.trim() !== wt.translation
+    if (textChanged) {
+      const lastVersion = wt.versions[0]
+      const nextVersionNum = lastVersion ? lastVersion.versionNumber + 1 : 1
+      await prisma.wordTranslationVersion.create({
+        data: { wordTranslationId: id, translation: wt.translation, changeReason: changeReason ?? null, versionNumber: nextVersionNum }
+      })
+    }
+
+    const updated = await prisma.wordTranslation.update({
+      where: { id },
+      data: {
+        ...(translation !== undefined && { translation: translation.trim() }),
+        ...(reason !== undefined && { reason }),
+        ...(tags !== undefined && { tags }),
+      },
+      include: { creator: { select: { username: true, role: true } }, _count: { select: { comments: true } } }
+    })
+    res.json(updated)
+  } catch (error) {
+    console.error(error)
+    res.status(500).json({ error: 'Erreur serveur' })
+  }
+})
+
+// DELETE /api/word-translations/:id
 router.delete('/word-translations/:id', authenticateJWT, async (req: AuthRequest, res: Response) => {
   try {
     const id = req.params.id as string
@@ -268,35 +330,20 @@ router.delete('/word-translations/:id', authenticateJWT, async (req: AuthRequest
 
     const isOwner = translation.createdBy === req.user!.id
     const isExpertOrAdmin = ['EXPERT', 'ADMIN'].includes(req.user!.role)
-
-    if (!isExpertOrAdmin && !(isOwner && !translation.isValidated)) {
+    if (!isExpertOrAdmin && !(isOwner && translation.status === 'PENDING')) {
       res.status(403).json({ error: 'Accès refusé' }); return
     }
-    
+
     await prisma.vote.deleteMany({ where: { wordTranslationId: id } })
     await prisma.wordTranslation.delete({ where: { id } })
     await logAction('TRANSLATION_DELETED', req.user!.id, { translationId: id }, req.ip)
 
-    // Notifier le créateur si c'est un expert qui supprime
     if (isExpertOrAdmin && translation.createdBy && translation.createdBy !== req.user!.id) {
-      const wordToken = await prisma.wordToken.findUnique({
-        where: { id: translation.wordTokenId },
-        include: { verseText: { include: { verse: { include: { chapter: { include: { book: true } } } } } } }
+      const link = await wordTranslationLink(id).catch(() => null)
+      await prisma.notification.create({
+        data: { userId: translation.createdBy, type: 'PROPOSAL_REJECTED', message: `Traduction "${translation.translation}" supprimée`, link: link ?? undefined }
       })
-      if (wordToken) {
-        const verse = wordToken.verseText.verse
-        const link = `/${verse.chapter.book.testament === 'AT' ? 'at' : 'nt'}/${verse.chapter.book.slug}/${verse.chapter.number}?word=${wordToken.id}&tab=word#v${verse.number}`
-        await prisma.notification.create({
-          data: {
-            userId: translation.createdBy,
-            type: 'PROPOSAL_REJECTED',
-            message: `Traduction "${translation.translation}" supprimée`,
-            link,
-          }
-        })
-      }
     }
-
     res.json({ message: 'Traduction supprimée' })
   } catch (error) {
     console.error(error)
@@ -304,80 +351,312 @@ router.delete('/word-translations/:id', authenticateJWT, async (req: AuthRequest
   }
 })
 
+// PATCH /api/word-translations/:id/validate — accepter (EXPERT/ADMIN)
 router.patch('/word-translations/:id/validate', authenticateJWT, async (req: AuthRequest, res: Response) => {
   try {
     if (!['EXPERT', 'ADMIN'].includes(req.user!.role)) {
       res.status(403).json({ error: 'Accès refusé' }); return
     }
     const id = req.params.id as string
-    const translation = await prisma.wordTranslation.update({
+    // Capturer le score avant de supprimer les votes
+    const votes = await prisma.vote.findMany({ where: { wordTranslationId: id }, select: { value: true } })
+    const score = votes.reduce((s, v) => s + v.value, 0)
+    await prisma.vote.deleteMany({ where: { wordTranslationId: id } })
+    const now = new Date()
+    const updated = await prisma.wordTranslation.update({
       where: { id },
-      data: { isValidated: true }
+      data: { isValidated: true, status: 'ACCEPTED', reviewedBy: req.user!.id, reviewedAt: now }
+    })
+    await prisma.wordTranslationEvent.create({
+      data: { wordTranslationId: id, type: 'accepted', actorId: req.user!.id, score, createdAt: now }
     })
     await logAction('TRANSLATION_VALIDATED', req.user!.id, { translationId: id }, req.ip)
 
-    // Notifier le créateur
-    const wordTranslation = await prisma.wordTranslation.findUnique({
-      where: { id },
-      include: {
-        wordToken: {
-          include: {
-            verseText: {
-              include: { verse: { include: { chapter: { include: { book: true } } } } }
-            }
-          }
-        }
-      }
-    })
-    if (wordTranslation?.createdBy && wordTranslation.createdBy !== req.user!.id) {
-      const verse = wordTranslation.wordToken.verseText.verse
-      const link = `/${verse.chapter.book.testament === 'AT' ? 'at' : 'nt'}/${verse.chapter.book.slug}/${verse.chapter.number}?word=${wordTranslation.wordTokenId}&tab=word#v${verse.number}`
+    if (updated.createdBy && updated.createdBy !== req.user!.id) {
+      const link = await wordTranslationLink(id).catch(() => null)
       await prisma.notification.create({
-        data: {
-          userId: wordTranslation.createdBy,
-          type: 'PROPOSAL_ACCEPTED',
-          message: `Traduction "${wordTranslation.translation}" validée`,
-          link,
-        }
+        data: { userId: updated.createdBy, type: 'PROPOSAL_ACCEPTED', message: `Traduction "${updated.translation}" validée`, link: link ?? undefined }
       })
     }
-    res.json(translation)
+    res.json(updated)
   } catch (error) {
     console.error(error)
     res.status(500).json({ error: 'Erreur serveur' })
   }
 })
 
-router.post('/word-translations/:id/vote', authenticateJWT, async (req: AuthRequest, res: Response) => {
+// PATCH /api/word-translations/:id/reject — rejeter (EXPERT/ADMIN)
+router.patch('/word-translations/:id/reject', authenticateJWT, async (req: AuthRequest, res: Response) => {
+  try {
+    if (!['EXPERT', 'ADMIN'].includes(req.user!.role)) {
+      res.status(403).json({ error: 'Accès refusé' }); return
+    }
+    const id = req.params.id as string
+    const { reason } = z.object({ reason: z.string().min(1).max(500) }).parse(req.body)
+    const votes = await prisma.vote.findMany({ where: { wordTranslationId: id }, select: { value: true } })
+    const score = votes.reduce((s, v) => s + v.value, 0)
+    await prisma.vote.deleteMany({ where: { wordTranslationId: id } })
+    const now = new Date()
+    const updated = await prisma.wordTranslation.update({
+      where: { id },
+      data: { status: 'REJECTED', isValidated: false, reason, reviewedBy: req.user!.id, reviewedAt: now }
+    })
+    await prisma.wordTranslationEvent.create({
+      data: { wordTranslationId: id, type: 'rejected', actorId: req.user!.id, note: reason, score, createdAt: now }
+    })
+    await logAction('TRANSLATION_DELETED', req.user!.id, { translationId: id, reason }, req.ip)
+
+    if (updated.createdBy && updated.createdBy !== req.user!.id) {
+      const link = await wordTranslationLink(id).catch(() => null)
+      await prisma.notification.create({
+        data: { userId: updated.createdBy, type: 'PROPOSAL_REJECTED', message: `Traduction "${updated.translation}" rejetée · ${reason}`, link: link ?? undefined }
+      })
+    }
+    res.json(updated)
+  } catch (error) {
+    console.error(error)
+    res.status(500).json({ error: 'Erreur serveur' })
+  }
+})
+
+// PATCH /api/word-translations/:id/reopen — remettre en attente (EXPERT/ADMIN)
+router.patch('/word-translations/:id/reopen', authenticateJWT, async (req: AuthRequest, res: Response) => {
+  try {
+    if (!['EXPERT', 'ADMIN'].includes(req.user!.role)) {
+      res.status(403).json({ error: 'Accès refusé' }); return
+    }
+    const id = req.params.id as string
+    const updated = await prisma.wordTranslation.update({
+      where: { id },
+      data: { status: 'PENDING', isValidated: false, reviewedBy: null, reviewedAt: null }
+    })
+    await prisma.wordTranslationEvent.create({
+      data: { wordTranslationId: id, type: 'reopened', actorId: req.user!.id }
+    })
+    res.json(updated)
+  } catch (error) {
+    console.error(error)
+    res.status(500).json({ error: 'Erreur serveur' })
+  }
+})
+
+// GET /api/word-translations/:id/comments
+router.get('/word-translations/:id/comments', async (req: Request, res: Response) => {
   try {
     const id = req.params.id as string
-    const userId = req.user!.id
+    const comments = await prisma.comment.findMany({
+      where: { wordTranslationId: id, parentId: null },
+      orderBy: { createdAt: 'asc' },
+      include: {
+        creator: { select: { username: true, role: true } },
+        reactions: true,
+        replies: {
+          orderBy: { createdAt: 'asc' },
+          include: { creator: { select: { username: true, role: true } }, reactions: true }
+        }
+      }
+    })
+    res.json(comments)
+  } catch (error) {
+    console.error(error)
+    res.status(500).json({ error: 'Erreur serveur' })
+  }
+})
 
-    const wordTranslation = await prisma.wordTranslation.findUnique({ where: { id } })
-    if (!wordTranslation) { res.status(404).json({ error: 'Traduction non trouvée' }); return }
+// POST /api/word-translations/:id/comments
+router.post('/word-translations/:id/comments', authenticateJWT, async (req: AuthRequest, res: Response) => {
+  try {
+    const id = req.params.id as string
+    const { text } = z.object({ text: z.string().min(1).max(2000) }).parse(req.body)
+    const wt = await prisma.wordTranslation.findUnique({ where: { id } })
+    if (!wt) { res.status(404).json({ error: 'Traduction non trouvée' }); return }
 
-    const existingVote = await prisma.vote.findFirst({
-      where: { wordTranslationId: id, userId }
+    const comment = await prisma.comment.create({
+      data: { wordTranslationId: id, text, createdBy: req.user!.id, targetType: 'word_translation' },
+      include: { creator: { select: { username: true, role: true } }, reactions: true }
+    })
+    await notifyMentions(text, req.user!.id)
+    res.status(201).json(comment)
+  } catch (error) {
+    console.error(error)
+    res.status(500).json({ error: 'Erreur serveur' })
+  }
+})
+
+// GET /api/word-translations/:id/versions
+router.get('/word-translations/:id/versions', async (req: Request, res: Response) => {
+  try {
+    const versions = await prisma.wordTranslationVersion.findMany({
+      where: { wordTranslationId: req.params.id as string },
+      orderBy: { versionNumber: 'asc' },
+      select: { id: true, translation: true, changeReason: true, versionNumber: true, createdAt: true }
+    })
+    res.json(versions)
+  } catch (error) {
+    console.error(error)
+    res.status(500).json({ error: 'Erreur serveur' })
+  }
+})
+
+// GET /api/word-translations/:id/timeline
+router.get('/word-translations/:id/timeline', async (req: Request, res: Response) => {
+  try {
+    const id = req.params.id as string
+    const wt = await prisma.wordTranslation.findUnique({
+      where: { id },
+      include: {
+        creator:  { select: { username: true } },
+        versions: { orderBy: { versionNumber: 'asc' }, select: { createdAt: true, changeReason: true, versionNumber: true } },
+        votes:    { select: { value: true } },
+      }
+    })
+    if (!wt) { res.status(404).json({ error: 'Traduction non trouvée' }); return }
+
+    const statusEvents = await prisma.wordTranslationEvent.findMany({
+      where: { wordTranslationId: id },
+      orderBy: { createdAt: 'asc' },
+      include: { actor: { select: { username: true } } }
+    })
+    const firstComment = await prisma.comment.findFirst({
+      where: { wordTranslationId: id }, orderBy: { createdAt: 'asc' }, select: { createdAt: true }
     })
 
-    if (existingVote) {
-      await prisma.vote.delete({ where: { id: existingVote.id } })
-      await prisma.wordTranslation.update({
-        where: { id },
-        data: { voteCount: { decrement: 1 } }
-      })
-      res.json({ voted: false, voteCount: wordTranslation.voteCount - 1 })
-    } else {
-      await prisma.vote.create({
-        data: { wordTranslationId: id, userId, value: 1 }
-      })
-      await prisma.wordTranslation.update({
-        where: { id },
-        data: { voteCount: { increment: 1 } }
-      })
-      res.json({ voted: true, voteCount: wordTranslation.voteCount + 1 })
+    type Event = { type: string; date: string; [k: string]: unknown }
+    const events: Event[] = []
+
+    events.push({ type: 'created', date: wt.createdAt.toISOString(), actor: wt.creator?.username ?? null })
+    for (const v of wt.versions) {
+      events.push({ type: 'edited', date: v.createdAt.toISOString(), versionNumber: v.versionNumber, changeReason: v.changeReason })
     }
+    if (firstComment) {
+      events.push({ type: 'commented', date: firstComment.createdAt.toISOString() })
+    }
+    for (const ev of statusEvents) {
+      // Pour accept/reject/reopened : afficher d'abord le score des votes qui ont déclenché la transition
+      if (ev.score !== null && ev.score !== undefined && ev.score !== 0) {
+        events.push({ type: 'votes', date: ev.createdAt.toISOString(), score: ev.score })
+      }
+      events.push({ type: ev.type, date: ev.createdAt.toISOString(), actor: ev.actor?.username ?? null, reason: ev.note ?? null })
+    }
+
+    const upvotes   = wt.votes.filter((v: { value: number }) => v.value > 0).length
+    const downvotes = wt.votes.filter((v: { value: number }) => v.value < 0).length
+    events.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+    res.json({ events, upvotes, downvotes })
   } catch (error) {
+    console.error(error)
+    res.status(500).json({ error: 'Erreur serveur' })
+  }
+})
+
+// POST /api/word-translations/:id/vote
+router.post('/word-translations/:id/vote', authenticateJWT, async (req: AuthRequest, res: Response) => {
+  try {
+    if (!['INTERMEDIATE', 'EXPERT', 'ADMIN'].includes(req.user!.role)) {
+      res.status(403).json({ error: 'Vous devez être au moins Intermédiaire pour voter' }); return
+    }
+    const id = req.params.id as string
+    const userId = req.user!.id
+    const { value } = z.object({ value: z.union([z.literal(1), z.literal(-1)]) }).parse(req.body)
+
+    // Fetch thresholds
+    const [acceptSetting, rejectSetting] = await Promise.all([
+      prisma.setting.findUnique({ where: { key: 'vote_threshold_accept' } }),
+      prisma.setting.findUnique({ where: { key: 'vote_threshold_reject' } }),
+    ])
+    const THRESHOLD_ACCEPT = Number(acceptSetting?.value ?? 5)
+    const THRESHOLD_REJECT = Number(rejectSetting?.value ?? -3)
+
+    const wt = await prisma.wordTranslation.findUnique({ where: { id } })
+    if (!wt) { res.status(404).json({ error: 'Traduction non trouvée' }); return }
+    if (wt.status === 'REJECTED') { res.status(400).json({ error: 'Impossible de voter sur une traduction rejetée' }); return }
+
+    const existingVote = await prisma.vote.findFirst({ where: { wordTranslationId: id, userId } })
+
+    if (existingVote) {
+      if (existingVote.value === value) {
+        // Même valeur → annuler le vote
+        await prisma.vote.delete({ where: { id: existingVote.id } })
+      } else {
+        // Valeur différente → changer le vote
+        await prisma.vote.update({ where: { id: existingVote.id }, data: { value } })
+      }
+    } else {
+      await prisma.vote.create({ data: { wordTranslationId: id, userId, value } })
+    }
+
+    // Recalculer le score
+    const allVotes = await prisma.vote.findMany({ where: { wordTranslationId: id } })
+    const netScore = allVotes.reduce((sum: number, v: { value: number }) => sum + v.value, 0)
+    const upvotes   = allVotes.filter((v: { value: number }) => v.value > 0).length
+    const downvotes = allVotes.filter((v: { value: number }) => v.value < 0).length
+
+    let newStatus: string = wt.status
+
+    if (wt.status === 'PENDING') {
+      if (upvotes >= THRESHOLD_ACCEPT) {
+        // Auto-accepter
+        const score = netScore
+        await prisma.vote.deleteMany({ where: { wordTranslationId: id } })
+        await prisma.wordTranslation.update({ where: { id }, data: { status: 'ACCEPTED', isValidated: true, voteCount: 0 } })
+        await prisma.wordTranslationEvent.create({
+          data: { wordTranslationId: id, type: 'accepted', score }
+        })
+        newStatus = 'ACCEPTED'
+        if (wt.createdBy) {
+          const link = await wordTranslationLink(id).catch(() => null)
+          await prisma.notification.create({
+            data: { userId: wt.createdBy, type: 'PROPOSAL_ACCEPTED', message: `Traduction "${wt.translation}" acceptée automatiquement par la communauté (score : +${score})`, link: link ?? undefined }
+          })
+        }
+        await logAction('TRANSLATION_VALIDATED', userId, { translationId: id, auto: true, netScore: score }, req.ip)
+      } else if (downvotes >= Math.abs(THRESHOLD_REJECT)) {
+        // Auto-rejeter
+        const score = netScore
+        await prisma.vote.deleteMany({ where: { wordTranslationId: id } })
+        await prisma.wordTranslation.update({ where: { id }, data: { status: 'REJECTED', isValidated: false, voteCount: 0, reason: `Rejeté automatiquement par la communauté (score : ${score})` } })
+        await prisma.wordTranslationEvent.create({
+          data: { wordTranslationId: id, type: 'rejected', score, note: `Rejeté automatiquement par la communauté (score : ${score})` }
+        })
+        newStatus = 'REJECTED'
+        if (wt.createdBy) {
+          const link = await wordTranslationLink(id).catch(() => null)
+          await prisma.notification.create({
+            data: { userId: wt.createdBy, type: 'PROPOSAL_REJECTED', message: `Traduction "${wt.translation}" rejetée automatiquement par la communauté (score : ${score})`, link: link ?? undefined }
+          })
+        }
+        await logAction('TRANSLATION_DELETED', userId, { translationId: id, auto: true, netScore: score }, req.ip)
+      } else {
+        // Juste mettre à jour voteCount
+        await prisma.wordTranslation.update({ where: { id }, data: { voteCount: netScore } })
+      }
+    } else if (wt.status === 'ACCEPTED') {
+      if (netScore <= THRESHOLD_REJECT) {
+        // Remettre en attente — effacer les votes + créer un event
+        const score = netScore
+        await prisma.vote.deleteMany({ where: { wordTranslationId: id } })
+        await prisma.wordTranslation.update({ where: { id }, data: { status: 'PENDING', isValidated: false, voteCount: 0 } })
+        await prisma.wordTranslationEvent.create({
+          data: { wordTranslationId: id, type: 'reopened', actorId: userId, score, note: `${upvotes} pour, ${downvotes} contre` }
+        })
+        newStatus = 'PENDING'
+      } else {
+        await prisma.wordTranslation.update({ where: { id }, data: { voteCount: netScore } })
+      }
+    }
+
+    const statusChanged = newStatus !== wt.status
+    const finalUserVote = statusChanged ? 0 : (allVotes.find((v: { userId: string; value: number }) => v.userId === userId)?.value ?? 0)
+
+    res.json({
+      netScore: statusChanged ? 0 : netScore,
+      status: newStatus,
+      userVote: finalUserVote,
+    })
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      res.status(400).json({ error: 'Valeur de vote invalide' }); return
+    }
     console.error(error)
     res.status(500).json({ error: 'Erreur serveur' })
   }
@@ -1236,30 +1515,6 @@ router.delete('/proposals/:id', authenticateJWT, async (req: AuthRequest, res: R
       res.status(403).json({ error: 'Accès refusé' }); return
     }
 
-    // Si déjà rejetée/supprimée → supprimer définitivement
-    if (proposal.status === 'REJECTED') {
-      const verseId = proposal.translation.verseId
-      await prisma.vote.deleteMany({ where: { proposalId: id } })
-      await prisma.proposal.delete({ where: { id } })
-      
-      // Supprimer la traduction orpheline si elle existe
-      const orphan = await prisma.translation.findFirst({
-        where: {
-          verseId,
-          textFr: proposal.proposedText,
-          isReference: false,
-          isActive: false,
-        },
-        include: { proposals: true }
-      })
-      if (orphan && orphan.proposals.length === 0) {
-        await prisma.translation.delete({ where: { id: orphan.id } })
-      }
-      await logAction('PROPOSAL_DELETED', req.user!.id, { proposalId: id }, req.ip)
-      res.json({ message: 'Proposition supprimée définitivement' })
-      return
-    }
-
     const verseId = proposal.translation.verseId
 
     // Vérifier si cette proposition est la traduction active
@@ -1268,41 +1523,20 @@ router.delete('/proposals/:id', authenticateJWT, async (req: AuthRequest, res: R
     })
     const isActive = activeTranslation?.textFr === proposal.proposedText
 
+    // Supprimer votes + proposition dans tous les cas
     await prisma.vote.deleteMany({ where: { proposalId: id } })
+    await prisma.proposal.delete({ where: { id } })
 
-    if (isExpertOrAdmin) {
-      // Expert/Admin → passe en REJECTED pour garder la trace
-      await prisma.proposal.update({
-        where: { id },
-        data: {
-          status: 'REJECTED',
-          reason: 'Supprimée par un expert',
-          reviewedBy: req.user!.id
-        }
-      })
-      await logAction('PROPOSAL_REJECTED', req.user!.id, { proposalId: id, reason: 'Supprimée par un expert' }, req.ip)
-      const proposalWithVotes = await prisma.proposal.findUnique({
-        where: { id },
-        include: { votes: true, translation: { include: { verse: { include: { chapter: { include: { book: true } } } } } } }
-      })
-      if (proposalWithVotes) {
-        const verse = proposalWithVotes.translation.verse
-        const link = `/${verse.chapter.book.testament === 'AT' ? 'at' : 'nt'}/${verse.chapter.book.slug}/${verse.chapter.number}?verse=${verse.id}&tab=verse#v${verse.number}`
-        const usersToNotify = new Set<string>()
-        if (proposalWithVotes.createdBy) usersToNotify.add(proposalWithVotes.createdBy)
-        proposalWithVotes.votes.forEach((v: { userId: string }) => usersToNotify.add(v.userId))
-        usersToNotify.delete(req.user!.id)
-        await Promise.all([...usersToNotify].map(userId =>
-          prisma.notification.create({
-            data: { userId, type: 'PROPOSAL_REJECTED', message: `Proposition rejetée`, link }
-          })
-        ))
-      }
-    } else {
-      // Créateur → suppression définitive
-      await prisma.proposal.delete({ where: { id } })
-      await logAction('PROPOSAL_DELETED', req.user!.id, { proposalId: id }, req.ip)
+    // Supprimer la traduction orpheline si elle existe
+    const orphan = await prisma.translation.findFirst({
+      where: { verseId, textFr: proposal.proposedText, isReference: false, isActive: false },
+      include: { proposals: true }
+    })
+    if (orphan && orphan.proposals.length === 0) {
+      await prisma.translation.delete({ where: { id: orphan.id } })
     }
+
+    await logAction('PROPOSAL_DELETED', req.user!.id, { proposalId: id }, req.ip)
 
     // Si c'était la proposition active, remettre la Crampon
     if (isActive) {

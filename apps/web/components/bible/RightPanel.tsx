@@ -18,13 +18,37 @@ interface WordToken {
   morphology: string | null
 }
 
+const WORD_TRANSLATION_TAGS = [
+  { id: 'sens',       label: 'Sens',        color: 'var(--blue-sacred)', bg: 'var(--blue-light)',          border: 'rgba(42,74,122,0.25)' },
+  { id: 'etymologie', label: 'Étymologie',  color: '#7c4dbb',            bg: 'rgba(124,77,187,0.1)',       border: 'rgba(124,77,187,0.25)' },
+  { id: 'grammatical',label: 'Grammatical', color: 'var(--green-valid)', bg: 'var(--green-light)',         border: 'rgba(45,90,58,0.25)' },
+  { id: 'contextuel', label: 'Contextuel',  color: 'var(--gold)',        bg: 'var(--gold-pale)',           border: 'rgba(184,132,58,0.25)' },
+  { id: 'synonyme',   label: 'Synonyme',    color: '#b05a20',            bg: 'rgba(176,90,32,0.1)',        border: 'rgba(176,90,32,0.25)' },
+] as const
+
 interface WordTranslation {
   id: string
   translation: string
   voteCount: number
   isValidated: boolean
+  status: 'PENDING' | 'ACCEPTED' | 'REJECTED'
+  reason: string | null
+  tags: string[]
   createdBy: string | null
-  creator: { username: string; role: string } | null
+  reviewedBy: string | null
+  createdAt: string
+  creator:  { username: string; role: string } | null
+  reviewer: { username: string } | null
+  votes:    { userId: string; value: number }[]
+  _count:   { comments: number; versions: number }
+}
+
+interface WordTranslationVersion {
+  id: string
+  translation: string
+  changeReason: string | null
+  versionNumber: number
+  createdAt: string
 }
 
 interface Translation {
@@ -218,11 +242,40 @@ export default function RightPanel({
   onProposalUpdated,
 }: RightPanelProps) {
   const [newTranslation, setNewTranslation] = useState('')
+  const [newTranslationReason, setNewTranslationReason] = useState('')
+  const [newTranslationTags, setNewTranslationTags] = useState<string[]>([])
   const [submitting, setSubmitting] = useState(false)
   const [showForm, setShowForm] = useState(false)
   const [error, setError] = useState('')
   const { user } = useAuthStore()
-  const [votedIds, setVotedIds] = useState<Set<string>>(new Set())
+  // word translation discussions
+  const [wtDiscussions, setWtDiscussions] = useState<Record<string, Comment[]>>({})
+  const [wtOpenDiscussions, setWtOpenDiscussions] = useState<Set<string>>(new Set())
+  const [wtLoadingDiscussion, setWtLoadingDiscussion] = useState<Set<string>>(new Set())
+  const [wtCommentText, setWtCommentText] = useState<Record<string, string>>({})
+  const [wtSubmittingComment, setWtSubmittingComment] = useState<Set<string>>(new Set())
+  const [wtReplyingTo, setWtReplyingTo] = useState<{ commentId: string; wtId: string; username: string } | null>(null)
+  const [wtInsertMode, setWtInsertMode] = useState<{ wtId: string; mode: 'verse' | 'link' } | null>(null)
+  const wtTextareaRefs = useRef<Record<string, HTMLTextAreaElement | null>>({})
+  // word translation timelines
+  const [wtTimelines, setWtTimelines] = useState<Record<string, { events: TimelineEvent[]; upvotes: number; downvotes: number }>>({})
+  const [wtOpenTimelines, setWtOpenTimelines] = useState<Set<string>>(new Set())
+  const [wtLoadingTimelines, setWtLoadingTimelines] = useState<Set<string>>(new Set())
+  // word translation rejections
+  const [wtRejectingId, setWtRejectingId] = useState<string | null>(null)
+  const [wtRejectReason, setWtRejectReason] = useState('')
+  const [showRejectedWords, setShowRejectedWords] = useState(false)
+  // word translation editing
+  const [wtEditingId, setWtEditingId] = useState<string | null>(null)
+  const [wtEditingText, setWtEditingText] = useState('')
+  const [wtEditingReason, setWtEditingReason] = useState('')
+  const [wtEditingTags, setWtEditingTags] = useState<string[]>([])
+  const [wtActioning, setWtActioning] = useState<Set<string>>(new Set())
+  const [wtOverrides, setWtOverrides] = useState<Record<string, Partial<WordTranslation>>>({})
+  const [wtVoteOverrides, setWtVoteOverrides] = useState<Record<string, { netScore: number; userVote: number; status: string }>>({})
+  // word translation versions
+  const [wtVersions, setWtVersions] = useState<Record<string, WordTranslationVersion[]>>({})
+  const [wtVersionIdx, setWtVersionIdx] = useState<Record<string, number>>({})
   const [confirmModal, setConfirmModal] = useState<{ message: string; onConfirm: () => void } | null>(null)
   const [newComment, setNewComment] = useState('')
   const [submittingComment, setSubmittingComment] = useState(false)
@@ -244,6 +297,7 @@ export default function RightPanel({
   const [showRejected, setShowRejected] = useState(false)
   const [proposalVoteOverrides, setProposalVoteOverrides] = useState<Record<string, { netScore: number; userVote: number; status: string }>>({})
   const [proposalActioning, setProposalActioning] = useState<Set<string>>(new Set())
+  const [deletedProposalIds, setDeletedProposalIds] = useState<Set<string>>(new Set())
   const [replyingToId, setReplyingToId] = useState<string | null>(null)
   const [pickerOpenId, setPickerOpenId] = useState<string | null>(null)
   const [proposalVersions, setProposalVersions] = useState<Record<string, ProposalVersion[]>>({})
@@ -390,6 +444,16 @@ export default function RightPanel({
       const replaced = before.replace(/@([A-Za-z0-9_-]*)$/, `@${username} `)
       setNewComment(replaced + after)
       setTimeout(() => { ta.focus(); ta.setSelectionRange(replaced.length, replaced.length) }, 0)
+    } else if (anchor.startsWith('wt_')) {
+      const wtId = anchor.slice(3)
+      const ta = wtTextareaRefs.current[wtId]
+      const cur = wtCommentText[wtId] || ''
+      if (!ta) return
+      const before = cur.slice(0, ta.selectionStart)
+      const after = cur.slice(ta.selectionStart)
+      const replaced = before.replace(/@([A-Za-z0-9_-]*)$/, `@${username} `)
+      setWtCommentText(prev => ({ ...prev, [wtId]: replaced + after }))
+      setTimeout(() => { ta.focus(); ta.setSelectionRange(replaced.length, replaced.length) }, 0)
     } else {
       const ta = proposalTextareaRefs.current[anchor]
       const cur = proposalCommentText[anchor] || ''
@@ -403,10 +467,13 @@ export default function RightPanel({
     setMentionQuery(null); setMentionAnchor(null); setMentionResults([])
   }
 
-  const validatedTranslations = wordTranslations.filter(t => t.isValidated)
-  const proposedTranslations = wordTranslations.filter(t => !t.isValidated)
+  const getWtEffectiveStatus = (t: WordTranslation) => wtVoteOverrides[t.id]?.status ?? wtOverrides[t.id]?.status ?? t.status
+  const validatedTranslations = wordTranslations.filter(t => getWtEffectiveStatus(t) === 'ACCEPTED')
+  const proposedTranslations  = wordTranslations.filter(t => getWtEffectiveStatus(t) === 'PENDING')
+  const rejectedTranslations  = wordTranslations.filter(t => getWtEffectiveStatus(t) === 'REJECTED')
   const activeProposals = proposals
     .filter(p => {
+      if (deletedProposalIds.has(p.id)) return false
       if (p.status === 'REJECTED') return false
       if (proposalFilter === 'PENDING') return p.status === 'PENDING'
       if (proposalFilter === 'ACCEPTED') return p.status === 'ACCEPTED'
@@ -430,7 +497,7 @@ export default function RightPanel({
       if (a.status !== 'ACCEPTED' && b.status === 'ACCEPTED') return 1
       return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
     })
-  const closedProposals = proposals.filter(p => p.status === 'REJECTED')
+  const closedProposals = proposals.filter(p => !deletedProposalIds.has(p.id) && p.status === 'REJECTED')
 
   useEffect(() => {
     const token = localStorage.getItem('token')
@@ -461,6 +528,17 @@ export default function RightPanel({
     })
   }, [proposals])
 
+  useEffect(() => {
+    if (!wordTranslations) return
+    wordTranslations.forEach(t => {
+      if ((t._count?.versions ?? 0) > 0 && wtVersions[t.id] === undefined) {
+        api.get(`/api/word-translations/${t.id}/versions`).then(res => {
+          setWtVersions(prev => ({ ...prev, [t.id]: res.data }))
+        }).catch(() => {})
+      }
+    })
+  }, [wordTranslations])
+
   const getReactions = (comment: { id: string; reactions?: CommentReaction[] }) => {
     return localReactions[comment.id] ?? comment.reactions ?? []
   }
@@ -478,9 +556,13 @@ export default function RightPanel({
     setError('')
     try {
       await api.post(`/api/words/${activeWord.id}/translations`, {
-        translation: newTranslation.trim()
+        translation: newTranslation.trim(),
+        reason: newTranslationReason.trim() || undefined,
+        tags: newTranslationTags,
       })
       setNewTranslation('')
+      setNewTranslationReason('')
+      setNewTranslationTags([])
       setShowForm(false)
       onTranslationAdded()
     } catch (err: unknown) {
@@ -489,6 +571,26 @@ export default function RightPanel({
     } finally {
       setSubmitting(false)
     }
+  }
+
+  async function loadWtComments(wtId: string) {
+    if (wtDiscussions[wtId] !== undefined) return
+    setWtLoadingDiscussion(prev => new Set([...prev, wtId]))
+    try {
+      const res = await api.get(`/api/word-translations/${wtId}/comments`)
+      setWtDiscussions(prev => ({ ...prev, [wtId]: res.data }))
+    } catch (e) { console.error(e) }
+    finally { setWtLoadingDiscussion(prev => { const n = new Set(prev); n.delete(wtId); return n }) }
+  }
+
+  async function loadWtTimeline(wtId: string) {
+    if (wtTimelines[wtId] !== undefined) return
+    setWtLoadingTimelines(prev => new Set([...prev, wtId]))
+    try {
+      const res = await api.get(`/api/word-translations/${wtId}/timeline`)
+      setWtTimelines(prev => ({ ...prev, [wtId]: res.data }))
+    } catch (e) { console.error(e) }
+    finally { setWtLoadingTimelines(prev => { const n = new Set(prev); n.delete(wtId); return n }) }
   }
 
   const EMOJIS = ['👍', '❤️', '🙏', '💡']
@@ -1149,7 +1251,10 @@ export default function RightPanel({
                             onClick={() => setConfirmModal({
                               message: 'Supprimer définitivement cette proposition ?',
                               onConfirm: async () => {
-                                try { await api.delete(`/api/proposals/${p.id}`); setConfirmModal(null); onProposalUpdated() } catch (e) { console.error(e) }
+                                setDeletedProposalIds(prev => new Set([...prev, p.id]))
+                                setConfirmModal(null)
+                                try { await api.delete(`/api/proposals/${p.id}`); onProposalUpdated() }
+                                catch (e) { console.error(e); setDeletedProposalIds(prev => { const n = new Set(prev); n.delete(p.id); return n }) }
                               }
                             })}
                             style={{
@@ -2353,7 +2458,7 @@ export default function RightPanel({
                     }}
                   >
                     <span>{showRejected ? '▼' : '▶'}</span>
-                    {closedProposals.length} proposition{closedProposals.length > 1 ? 's' : ''} rejetée{closedProposals.length > 1 ? 's' : ''} / supprimée{closedProposals.length > 1 ? 's' : ''}
+                    {closedProposals.length} proposition{closedProposals.length > 1 ? 's' : ''} rejetée{closedProposals.length > 1 ? 's' : ''}
                   </div>
                   {showRejected && closedProposals.map(p => (
                     <div key={p.id} style={{
@@ -2390,13 +2495,10 @@ export default function RightPanel({
                             onClick={() => setConfirmModal({
                               message: 'Supprimer définitivement cette proposition ?',
                               onConfirm: async () => {
-                                try {
-                                  await api.delete(`/api/proposals/${p.id}`)
-                                  setConfirmModal(null)
-                                  onProposalUpdated()
-                                } catch (error) {
-                                  console.error(error)
-                                }
+                                setDeletedProposalIds(prev => new Set([...prev, p.id]))
+                                setConfirmModal(null)
+                                try { await api.delete(`/api/proposals/${p.id}`); onProposalUpdated() }
+                                catch (e) { console.error(e); setDeletedProposalIds(prev => { const n = new Set(prev); n.delete(p.id); return n }) }
                               }
                             })}
                             style={{
@@ -2562,275 +2664,612 @@ export default function RightPanel({
                 Traductions disponibles
               </div>
 
-              {wordTranslations.length === 0 ? (
-                <div style={{
-                  fontFamily: 'Spectral, serif',
-                  fontSize: '14px',
-                  color: 'var(--ink-faint)',
-                  fontStyle: 'italic',
-                  marginBottom: '16px',
-                }}>
-                  Aucune traduction proposée pour ce mot.
-                </div>
-              ) : (
-                <>
-                  {validatedTranslations.length > 0 && (
-                    <>
-                      <div style={{
-                        fontFamily: 'DM Mono, monospace',
-                        fontSize: '11px',
-                        letterSpacing: '0.1em',
-                        textTransform: 'uppercase' as const,
-                        color: 'var(--green-valid)',
-                        marginBottom: '8px',
-                        opacity: 0.7,
-                      }}>
-                        Validées
-                      </div>
-                      {validatedTranslations.map(t => (
-                        <div key={t.id} style={{
-                          border: '1px solid rgba(45,90,58,0.3)',
-                          borderRadius: '8px',
-                          padding: '12px 14px',
-                          marginBottom: '8px',
-                          background: 'var(--green-light)',
-                        }}>
-                          <div style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'space-between',
-                            marginBottom: '6px',
-                          }}>
-                            <div style={{
-                              fontFamily: 'Spectral, serif',
-                              fontSize: '16px',
-                              fontStyle: 'italic',
-                              color: 'var(--ink)',
-                            }}>
-                              {t.translation}
-                            </div>
-                            <span style={{
-                              fontFamily: 'DM Mono, monospace',
-                              fontSize: '11px',
-                              padding: '2px 8px',
-                              borderRadius: '20px',
-                              background: 'var(--green-light)',
-                              color: 'var(--green-valid)',
-                              border: '1px solid rgba(45,90,58,0.2)',
-                              flexShrink: 0,
-                              marginLeft: '8px',
-                            }}>
-                              Validée
-                            </span>
-                          </div>
-                          <div style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '12px',
-                            fontFamily: 'DM Mono, monospace',
-                            fontSize: '12px',
-                            color: 'var(--ink-muted)',
-                          }}>
-                            {t.creator && (
-                              <Link href={`/profile/${t.creator.username}`} style={{ color: getRoleColor(t.creator.role), textDecoration: 'none' }}>
-                                @{t.creator.username}
-                              </Link>
-                            )}
-                            {user && ['EXPERT', 'ADMIN'].includes(user.role) && (
-                              <button
-                                onClick={() => setConfirmModal({
-                                  message: 'Êtes-vous sûr de vouloir supprimer cette traduction validée ?',
-                                  onConfirm: async () => {
-                                    try {
-                                      await api.delete(`/api/word-translations/${t.id}`)
-                                      setConfirmModal(null)
-                                      onTranslationAdded()
-                                    } catch (error) {
-                                      console.error(error)
-                                    }
-                                  }
-                                })}
-                                style={{
-                                  padding: '3px 8px',
-                                  borderRadius: '4px',
-                                  border: '1px solid rgba(122,42,42,0.3)',
-                                  background: 'var(--red-light)',
-                                  cursor: 'pointer',
-                                  fontFamily: 'DM Mono, monospace',
-                                  fontSize: '12px',
-                                  color: 'var(--red-soft)',
-                                }}
-                              >
-                                ✕ Supprimer
-                              </button>
-                            )}
-                          </div>
-                        </div>
-                      ))}
-                    </>
-                  )}
+              {(() => {
+                const wtEventLabel = (e: TimelineEvent) => {
+                  switch (e.type) {
+                    case 'created':   return { icon: '✦', color: 'var(--ink-muted)',    text: `Proposée${e.actor ? ` par @${e.actor}` : ''}` }
+                    case 'edited':    return { icon: '✎', color: 'var(--gold)',          text: `Modifiée (v${(e.versionNumber ?? 0) + 1})${e.changeReason ? ` · ${e.changeReason}` : ''}` }
+                    case 'commented': return { icon: '💬', color: 'var(--blue-sacred)', text: 'Premier commentaire' }
+                    case 'accepted':  return { icon: '✓', color: 'var(--green-valid)',  text: `Validée${e.actor ? ` par @${e.actor}` : ''}` }
+                    case 'rejected':  return { icon: '✕', color: 'var(--red-soft)',     text: `Rejetée${e.actor ? ` par @${e.actor}` : ''}${e.reason ? ` · ${e.reason}` : ''}` }
+                    case 'reopened':  return { icon: '↺', color: 'var(--ink-muted)',    text: `Remise en attente${e.actor ? ` par @${e.actor}` : ''}${e.reason ? ` (${e.reason})` : ''}` }
+                    case 'votes': { const s = e.score ?? 0; return { icon: s > 0 ? '▲' : '▼', color: s > 0 ? 'var(--green-valid)' : 'var(--red-soft)', text: `${s > 0 ? '+' : ''}${s} vote${Math.abs(s) > 1 ? 's' : ''}` } }
+                    default:          return { icon: '·', color: 'var(--ink-faint)',    text: e.type }
+                  }
+                }
 
-                  {proposedTranslations.length > 0 && (
-                    <>
-                      <div style={{
-                        fontFamily: 'DM Mono, monospace',
-                        fontSize: '11px',
-                        letterSpacing: '0.1em',
-                        textTransform: 'uppercase' as const,
-                        color: 'var(--amber-pending)',
-                        marginBottom: '8px',
-                        marginTop: validatedTranslations.length > 0 ? '16px' : '0',
-                        opacity: 0.7,
-                      }}>
-                        Proposées
-                      </div>
-                      {proposedTranslations.map(t => (
-                        <div key={t.id} style={{
-                          border: '1px solid var(--border)',
-                          borderRadius: '8px',
-                          padding: '12px 14px',
-                          marginBottom: '8px',
-                          background: 'var(--card-bg)',
-                        }}>
-                          <div style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'space-between',
-                            marginBottom: '6px',
-                          }}>
-                            <div style={{
-                              fontFamily: 'Spectral, serif',
-                              fontSize: '16px',
-                              fontStyle: 'italic',
-                              color: 'var(--ink)',
-                            }}>
-                              {t.translation}
-                            </div>
-                            <span style={{
-                              fontFamily: 'DM Mono, monospace',
-                              fontSize: '11px',
-                              padding: '2px 8px',
-                              borderRadius: '20px',
-                              background: 'var(--amber-light)',
-                              color: 'var(--amber-pending)',
-                              border: '1px solid rgba(122,90,26,0.2)',
-                              flexShrink: 0,
-                              marginLeft: '8px',
-                            }}>
-                              Proposée
-                            </span>
-                          </div>
-                          <div style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'space-between',
-                            marginTop: '6px',
-                          }}>
-                            <div style={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: '8px',
-                              fontFamily: 'DM Mono, monospace',
-                              fontSize: '12px',
-                              color: 'var(--ink-muted)',
-                            }}>
-                              <span>{t.voteCount} vote{t.voteCount !== 1 ? 's' : ''}</span>
-                              {t.creator && (
-                                <Link href={`/profile/${t.creator.username}`} style={{ color: getRoleColor(t.creator.role), textDecoration: 'none' }}>
-                                  @{t.creator.username}
-                                </Link>
-                              )}
-                            </div>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                              {user && ['INTERMEDIATE', 'EXPERT', 'ADMIN'].includes(user.role) && (
-                                <button
-                                  onClick={async () => {
-                                    try {
-                                      const res = await api.post(`/api/word-translations/${t.id}/vote`)
-                                      if (res.data.voted) {
-                                        setVotedIds(prev => new Set([...prev, t.id]))
-                                      } else {
-                                        setVotedIds(prev => { const s = new Set(prev); s.delete(t.id); return s })
-                                      }
-                                      onTranslationAdded()
-                                    } catch (error) {
-                                      console.error(error)
-                                    }
-                                  }}
-                                  style={{
-                                    padding: '2px 7px',
-                                    borderRadius: '4px',
-                                    border: `1px solid ${votedIds.has(t.id) ? 'var(--gold)' : 'var(--border)'}`,
-                                    background: votedIds.has(t.id) ? 'var(--gold-pale)' : 'transparent',
-                                    cursor: 'pointer',
-                                    fontFamily: 'DM Mono, monospace',
-                                    fontSize: '11px',
-                                    color: votedIds.has(t.id) ? 'var(--gold)' : 'var(--ink-soft)',
-                                  }}
-                                >
-                                  ▲ {votedIds.has(t.id) ? 'Voté' : 'Voter'}
-                                </button>
-                              )}
-                              {user && ['EXPERT', 'ADMIN'].includes(user.role) && (
-                                <button
-                                  onClick={async () => {
-                                    try {
-                                      await api.patch(`/api/word-translations/${t.id}/validate`)
-                                      onTranslationAdded()
-                                    } catch (error) {
-                                      console.error(error)
-                                    }
-                                  }}
-                                  style={{
-                                    padding: '2px 7px',
-                                    borderRadius: '4px',
-                                    border: '1px solid rgba(45,90,58,0.3)',
-                                    background: 'var(--green-light)',
-                                    cursor: 'pointer',
-                                    fontFamily: 'DM Mono, monospace',
-                                    fontSize: '11px',
-                                    color: 'var(--green-valid)',
-                                  }}
-                                >
-                                  ✓
-                                </button>
-                              )}
-                              {user && (['EXPERT', 'ADMIN'].includes(user.role) || t.createdBy === user.id) && (
-                                <button
-                                  onClick={() => setConfirmModal({
-                                    message: 'Êtes-vous sûr de vouloir supprimer cette proposition ?',
-                                    onConfirm: async () => {
-                                      try {
-                                        await api.delete(`/api/word-translations/${t.id}`)
-                                        setConfirmModal(null)
-                                        onTranslationAdded()
-                                      } catch (error) {
-                                        console.error(error)
-                                      }
-                                    }
-                                  })}
-                                  style={{
-                                    padding: '2px 7px',
-                                    borderRadius: '4px',
-                                    border: '1px solid rgba(122,42,42,0.3)',
-                                    background: 'var(--red-light)',
-                                    cursor: 'pointer',
-                                    fontFamily: 'DM Mono, monospace',
-                                    fontSize: '11px',
-                                    color: 'var(--red-soft)',
-                                  }}
-                                >
-                                  ✕
-                                </button>
-                              )}
-                            </div>
-                          </div>
+                const renderWtCard = (t: WordTranslation, sectionStatus: 'ACCEPTED' | 'PENDING' | 'REJECTED') => {
+                  const voteOverride   = wtVoteOverrides[t.id]
+                  const statusOverride = wtOverrides[t.id]
+                  const currentStatus  = voteOverride?.status ?? statusOverride?.status ?? t.status
+                  const isDiscOpen  = wtOpenDiscussions.has(t.id)
+                  const isTlOpen    = wtOpenTimelines.has(t.id)
+                  const comments    = wtDiscussions[t.id] ?? []
+                  const tl          = wtTimelines[t.id]
+                  const isEditing   = wtEditingId === t.id
+                  const isRejecting = wtRejectingId === t.id
+                  const anchorId    = `wt_${t.id}`
+                  const isReplyingTo = wtReplyingTo?.wtId === t.id ? wtReplyingTo : null
+
+                  // Vote computation
+                  const baseVotes    = t.votes || []
+                  const prevUserVote = user ? (baseVotes.find(v => v.userId === user.id)?.value ?? 0) : 0
+                  const userVote     = voteOverride?.userVote ?? prevUserVote
+                  const netScore     = voteOverride?.netScore ?? baseVotes.reduce((s, v) => s + v.value, 0)
+                  let upvotes   = baseVotes.filter(v => v.value > 0).length
+                  let downvotes = baseVotes.filter(v => v.value < 0).length
+                  if (voteOverride) {
+                    if (prevUserVote > 0) upvotes--; else if (prevUserVote < 0) downvotes--
+                    if (voteOverride.userVote > 0) upvotes++; else if (voteOverride.userVote < 0) downvotes++
+                  }
+                  const THRESHOLD_ACCEPT = voteThresholds.accept
+                  const THRESHOLD_REJECT = voteThresholds.reject
+
+                  // Version navigation
+                  const wtV            = wtVersions[t.id] || []
+                  const totalWtV       = wtV.length + 1
+                  const currentWtVIdx  = wtVersionIdx[t.id] ?? (totalWtV - 1)
+                  const viewingOldWtV  = currentWtVIdx < totalWtV - 1
+                  const displayedTrans = viewingOldWtV ? wtV[currentWtVIdx].translation : t.translation
+                  const viewingWtVReason = viewingOldWtV ? wtV[currentWtVIdx].changeReason : null
+
+                  const borderColor = currentStatus === 'ACCEPTED' ? 'rgba(45,90,58,0.35)' : currentStatus === 'REJECTED' ? 'rgba(122,42,42,0.2)' : 'var(--border)'
+                  const bgColor     = currentStatus === 'ACCEPTED' ? 'var(--green-light)' : currentStatus === 'REJECTED' ? 'rgba(122,42,42,0.04)' : 'var(--card-bg)'
+                  const headerBg    = currentStatus === 'ACCEPTED' ? 'rgba(45,90,58,0.06)' : currentStatus === 'REJECTED' ? 'rgba(122,42,42,0.04)' : 'var(--parchment-dark)'
+
+                  const fmtDate = (d: string) => { const date = new Date(d); const diff = Math.floor((Date.now() - date.getTime()) / 1000); if (diff < 86400) return timeAgo(d); return date.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' }) }
+
+                  return (
+                    <div key={t.id} style={{ border: `1px solid ${borderColor}`, borderRadius: '10px', marginBottom: '12px', background: bgColor, overflow: 'hidden' }}>
+
+                      {/* ── En-tête ── */}
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '6px', padding: '9px 14px', background: headerBg, borderBottom: '1px solid var(--border)' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '7px', minWidth: 0 }}>
+                          {t.creator
+                            ? <Link href={`/profile/${t.creator.username}`} style={{ fontFamily: 'DM Mono, monospace', fontSize: '12px', color: getRoleColor(t.creator.role), textDecoration: 'none', whiteSpace: 'nowrap' }}>@{t.creator.username}</Link>
+                            : <span style={{ fontFamily: 'DM Mono, monospace', fontSize: '12px', color: 'var(--ink-muted)' }}>@anonyme</span>
+                          }
+                          <span style={{ fontFamily: 'DM Mono, monospace', fontSize: '11px', color: 'var(--ink-faint)', whiteSpace: 'nowrap' }}>· {timeAgo(t.createdAt)}</span>
                         </div>
-                      ))}
-                    </>
-                  )}
-                </>
-              )}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+                          <span style={{ fontFamily: 'DM Mono, monospace', fontSize: '11px', padding: '2px 9px', borderRadius: '20px', whiteSpace: 'nowrap',
+                            background: currentStatus === 'ACCEPTED' ? 'var(--green-light)' : currentStatus === 'REJECTED' ? 'rgba(122,42,42,0.08)' : 'var(--amber-light)',
+                            color:      currentStatus === 'ACCEPTED' ? 'var(--green-valid)' : currentStatus === 'REJECTED' ? 'var(--red-soft)' : 'var(--amber-pending)',
+                            border:     `1px solid ${currentStatus === 'ACCEPTED' ? 'rgba(45,90,58,0.2)' : currentStatus === 'REJECTED' ? 'rgba(122,42,42,0.2)' : 'rgba(122,90,26,0.2)'}`,
+                          }}>
+                            {currentStatus === 'ACCEPTED' ? '✓ Validée' : currentStatus === 'REJECTED' ? '✕ Rejetée' : 'En attente'}
+                          </span>
+                          {currentStatus === 'ACCEPTED' && t.reviewer && (
+                            <span style={{ fontFamily: 'DM Mono, monospace', fontSize: '11px', color: 'var(--green-valid)', whiteSpace: 'nowrap' }}>par @{t.reviewer.username}</span>
+                          )}
+                          {(currentStatus === 'ACCEPTED' || currentStatus === 'REJECTED') && user && ['EXPERT', 'ADMIN'].includes(user.role) && (
+                            <button title="Remettre en attente de validation"
+                              onClick={async () => {
+                                setWtOverrides(prev => ({ ...prev, [t.id]: { ...prev[t.id], status: 'PENDING' } }))
+                                setWtVoteOverrides(prev => { const n = { ...prev }; delete n[t.id]; return n })
+                                try { await api.patch(`/api/word-translations/${t.id}/reopen`); onTranslationAdded() }
+                                catch (e) { console.error(e); setWtOverrides(prev => { const n = { ...prev }; delete n[t.id]; return n }) }
+                              }}
+                              style={{ padding: '2px 8px', borderRadius: '4px', border: '1px solid rgba(122,90,26,0.3)', background: 'var(--amber-light)', cursor: 'pointer', fontFamily: 'DM Mono, monospace', fontSize: '11px', color: 'var(--amber-pending)', whiteSpace: 'nowrap' }}>
+                              ↩ En attente
+                            </button>
+                          )}
+                          {user && (['EXPERT', 'ADMIN'].includes(user.role) || (t.createdBy === user.id && currentStatus === 'PENDING')) && (
+                            <button title="Supprimer définitivement cette traduction"
+                              onClick={() => setConfirmModal({ message: 'Supprimer définitivement cette traduction ?', onConfirm: async () => { try { await api.delete(`/api/word-translations/${t.id}`); setConfirmModal(null); onTranslationAdded() } catch (e) { console.error(e) } } })}
+                              style={{ padding: '2px 6px', borderRadius: '4px', border: '1px solid rgba(122,42,42,0.2)', background: 'transparent', cursor: 'pointer', fontFamily: 'DM Mono, monospace', fontSize: '12px', color: 'var(--red-soft)' }}>✕</button>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* ── Corps ── */}
+                      <div style={{ padding: '12px 14px 10px' }}>
+                        {isEditing ? (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                            <input type="text" value={wtEditingText} onChange={e => setWtEditingText(e.target.value)}
+                              style={{ width: '100%', padding: '8px 10px', border: '1px solid var(--gold)', borderRadius: '6px', background: 'var(--parchment)', fontFamily: 'Spectral, serif', fontSize: '15px', fontStyle: 'italic', color: 'var(--ink)', outline: 'none', boxSizing: 'border-box' as const }} />
+                            <input type="text" value={wtEditingReason} onChange={e => setWtEditingReason(e.target.value)}
+                              placeholder="Raison du changement (optionnel)"
+                              style={{ width: '100%', padding: '6px 10px', border: '1px solid var(--border)', borderRadius: '6px', background: 'var(--parchment)', fontFamily: 'DM Mono, monospace', fontSize: '12px', color: 'var(--ink)', outline: 'none', boxSizing: 'border-box' as const }} />
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px' }}>
+                              {WORD_TRANSLATION_TAGS.map(tag => {
+                                const active = wtEditingTags.includes(tag.id)
+                                return (
+                                  <button key={tag.id} type="button" onClick={() => setWtEditingTags(prev => prev.includes(tag.id) ? prev.filter(x => x !== tag.id) : [...prev, tag.id])}
+                                    style={{ padding: '2px 9px', borderRadius: '20px', cursor: 'pointer', fontFamily: 'DM Mono, monospace', fontSize: '10px', border: `1px solid ${active ? tag.border : 'var(--border)'}`, background: active ? tag.bg : 'transparent', color: active ? tag.color : 'var(--ink-faint)', transition: 'all 0.15s' }}>
+                                    {tag.label}
+                                  </button>
+                                )
+                              })}
+                            </div>
+                            <div style={{ display: 'flex', gap: '6px' }}>
+                              <button disabled={!wtEditingText.trim()}
+                                onClick={async () => {
+                                  try {
+                                    await api.patch(`/api/word-translations/${t.id}`, { translation: wtEditingText.trim(), reason: wtEditingReason.trim() || undefined, tags: wtEditingTags })
+                                    setWtEditingId(null)
+                                    setWtVersions(prev => { const n = { ...prev }; delete n[t.id]; return n })
+                                    onTranslationAdded()
+                                  } catch (e) { console.error(e) }
+                                }}
+                                style={{ padding: '5px 14px', borderRadius: '5px', cursor: 'pointer', background: 'var(--gold)', border: 'none', color: 'white', fontFamily: 'DM Mono, monospace', fontSize: '12px', opacity: !wtEditingText.trim() ? 0.6 : 1 }}>
+                                ✓ Sauvegarder
+                              </button>
+                              <button onClick={() => setWtEditingId(null)}
+                                style={{ padding: '5px 10px', borderRadius: '5px', cursor: 'pointer', background: 'transparent', border: '1px solid var(--border)', color: 'var(--ink-muted)', fontFamily: 'DM Mono, monospace', fontSize: '12px' }}>
+                                Annuler
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          <>
+                            {/* Version nav + texte */}
+                            <div style={{ position: 'relative', paddingTop: totalWtV > 1 ? '26px' : '0' }}>
+                              {totalWtV > 1 && (
+                                <div style={{ position: 'absolute', top: '4px', right: '4px', display: 'flex', alignItems: 'center', gap: '2px' }}>
+                                  <button disabled={currentWtVIdx === 0} onClick={() => setWtVersionIdx(prev => ({ ...prev, [t.id]: Math.max(0, currentWtVIdx - 1) }))}
+                                    style={{ width: '20px', height: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'transparent', border: '1px solid var(--border)', borderRadius: '3px', cursor: currentWtVIdx === 0 ? 'default' : 'pointer', color: currentWtVIdx === 0 ? 'var(--ink-faint)' : 'var(--ink-muted)', fontSize: '11px', padding: 0, opacity: currentWtVIdx === 0 ? 0.3 : 1 }}>←</button>
+                                  <span title={viewingWtVReason ? `Raison : ${viewingWtVReason}` : undefined}
+                                    style={{ fontFamily: 'DM Mono, monospace', fontSize: '9px', color: 'var(--ink-faint)', padding: '0 4px', cursor: viewingWtVReason ? 'help' : 'default', userSelect: 'none' as const }}>
+                                    v{currentWtVIdx + 1}/{totalWtV}
+                                  </span>
+                                  <button disabled={currentWtVIdx === totalWtV - 1} onClick={() => setWtVersionIdx(prev => ({ ...prev, [t.id]: Math.min(totalWtV - 1, currentWtVIdx + 1) }))}
+                                    style={{ width: '20px', height: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'transparent', border: '1px solid var(--border)', borderRadius: '3px', cursor: currentWtVIdx === totalWtV - 1 ? 'default' : 'pointer', color: currentWtVIdx === totalWtV - 1 ? 'var(--ink-faint)' : 'var(--ink-muted)', fontSize: '11px', padding: 0, opacity: currentWtVIdx === totalWtV - 1 ? 0.3 : 1 }}>→</button>
+                                </div>
+                              )}
+                              <div style={{ fontFamily: 'Spectral, serif', fontSize: '16px', fontStyle: 'italic', lineHeight: '1.7', color: currentStatus === 'REJECTED' ? 'var(--ink-muted)' : 'var(--ink)', textDecoration: currentStatus === 'REJECTED' ? 'line-through' : 'none', opacity: viewingOldWtV ? 0.75 : 1, background: viewingOldWtV ? 'var(--amber-light)' : 'transparent', borderRadius: viewingOldWtV ? '4px' : '0', padding: viewingOldWtV ? '4px 6px' : '0' }}>
+                                {displayedTrans}
+                              </div>
+                            </div>
+
+                            {/* Bouton modifier (icône crayon) */}
+                            {!viewingOldWtV && user && (currentStatus !== 'ACCEPTED' || ['EXPERT', 'ADMIN'].includes(user.role)) && (t.createdBy === user.id || ['EXPERT', 'ADMIN'].includes(user.role)) && (
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '6px' }}>
+                                <button title="Modifier cette traduction"
+                                  onClick={() => { setWtEditingId(t.id); setWtEditingText(t.translation); setWtEditingReason(t.reason ?? ''); setWtEditingTags(t.tags ?? []) }}
+                                  style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '24px', height: '24px', padding: '0', background: 'transparent', border: '1px solid var(--border)', borderRadius: '4px', cursor: 'pointer', color: 'var(--ink-faint)', transition: 'all 0.15s' }}
+                                  onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--ink-muted)'; e.currentTarget.style.color = 'var(--ink-muted)' }}
+                                  onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--ink-faint)' }}>
+                                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>
+                                </button>
+                              </div>
+                            )}
+
+                            {/* Tags */}
+                            {t.tags && t.tags.length > 0 && (
+                              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginTop: '8px' }}>
+                                {t.tags.map(tagId => {
+                                  const tag = WORD_TRANSLATION_TAGS.find(tg => tg.id === tagId)
+                                  if (!tag) return null
+                                  return <span key={tagId} style={{ padding: '1px 8px', borderRadius: '20px', fontFamily: 'DM Mono, monospace', fontSize: '10px', border: `1px solid ${tag.border}`, background: tag.bg, color: tag.color }}>{tag.label}</span>
+                                })}
+                              </div>
+                            )}
+
+                            {/* Reason */}
+                            {!viewingOldWtV && t.reason && currentStatus !== 'REJECTED' && (
+                              <div style={{ marginTop: '8px', padding: '6px 10px', borderRadius: '6px', background: 'var(--parchment-dark)', borderLeft: '2px solid var(--gold)', fontFamily: 'var(--font-serif)', fontSize: '12px', color: 'var(--ink-muted)', fontStyle: 'italic' }}>
+                                « {t.reason} »
+                              </div>
+                            )}
+                            {currentStatus === 'REJECTED' && t.reason && (
+                              <div style={{ marginTop: '6px', fontFamily: 'Spectral, serif', fontSize: '12px', color: 'var(--red-soft)', fontStyle: 'italic' }}>✕ {t.reason}</div>
+                            )}
+
+                            {/* Rejection form */}
+                            {isRejecting && (
+                              <div style={{ marginTop: '10px', padding: '8px', background: 'rgba(122,42,42,0.04)', borderRadius: '6px', border: '1px solid rgba(122,42,42,0.15)' }}>
+                                <input type="text" placeholder="Raison du rejet (obligatoire)" value={wtRejectReason} onChange={e => setWtRejectReason(e.target.value)} autoFocus
+                                  style={{ width: '100%', padding: '5px 8px', border: `1px solid ${wtRejectReason.trim() ? 'rgba(122,42,42,0.35)' : 'var(--border)'}`, borderRadius: '6px', fontFamily: 'Spectral, serif', fontSize: '12px', color: 'var(--ink)', background: 'var(--input-bg)', outline: 'none', marginBottom: '6px', boxSizing: 'border-box' as const }} />
+                                <div style={{ display: 'flex', gap: '6px' }}>
+                                  <button disabled={!wtRejectReason.trim()}
+                                    onClick={async () => {
+                                      const reason = wtRejectReason.trim()
+                                      setWtOverrides(prev => ({ ...prev, [t.id]: { ...prev[t.id], status: 'REJECTED', reason } }))
+                                      setWtRejectingId(null); setWtRejectReason('')
+                                      try { await api.patch(`/api/word-translations/${t.id}/reject`, { reason }); onTranslationAdded() }
+                                      catch (e) { console.error(e); setWtOverrides(prev => { const n = { ...prev }; delete n[t.id]; return n }); setWtRejectingId(t.id); setWtRejectReason(reason) }
+                                    }}
+                                    style={{ padding: '5px 10px', background: wtRejectReason.trim() ? 'var(--red-light)' : 'transparent', color: 'var(--red-soft)', border: '1px solid rgba(122,42,42,0.3)', borderRadius: '6px', fontFamily: 'DM Mono, monospace', fontSize: '11px', cursor: wtRejectReason.trim() ? 'pointer' : 'not-allowed', opacity: wtRejectReason.trim() ? 1 : 0.45, transition: 'all 0.15s' }}>
+                                    Rejeter
+                                  </button>
+                                  <button onClick={() => { setWtRejectingId(null); setWtRejectReason('') }}
+                                    style={{ padding: '5px 10px', background: 'transparent', color: 'var(--ink-muted)', border: '1px solid var(--border)', borderRadius: '6px', fontFamily: 'DM Mono, monospace', fontSize: '11px', cursor: 'pointer' }}>
+                                    Annuler
+                                  </button>
+                                </div>
+                              </div>
+                            )}
+                          </>
+                        )}
+                      </div>
+
+                      {/* ── Discussion ── */}
+                      <div style={{ borderTop: '1px solid var(--border)' }}>
+                        <button
+                          title={isDiscOpen ? 'Masquer la discussion' : 'Voir la discussion'}
+                          onClick={() => {
+                            setWtOpenDiscussions(prev => { const s = new Set(prev); if (s.has(t.id)) { s.delete(t.id) } else { s.add(t.id); loadWtComments(t.id) }; return s })
+                          }}
+                          style={{ display: 'flex', alignItems: 'center', gap: '6px', width: '100%', padding: '8px 14px', background: 'transparent', border: 'none', cursor: 'pointer', fontFamily: 'DM Mono, monospace', fontSize: '11px', color: 'var(--ink-muted)', textAlign: 'left' as const, transition: 'color 0.15s' }}
+                          onMouseEnter={e => (e.currentTarget as HTMLElement).style.color = 'var(--ink)'}
+                          onMouseLeave={e => (e.currentTarget as HTMLElement).style.color = 'var(--ink-muted)'}
+                        >
+                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                          Discussion
+                          {(() => {
+                            const total = wtDiscussions[t.id] !== undefined
+                              ? wtDiscussions[t.id].reduce((sum, c) => sum + 1 + (c.replies?.length || 0), 0)
+                              : (t._count?.comments ?? 0)
+                            return total > 0 ? (
+                              <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', minWidth: '18px', height: '18px', padding: '0 5px', borderRadius: '9px', background: 'var(--blue-light)', color: 'var(--blue-sacred)', fontSize: '10px' }}>{total}</span>
+                            ) : null
+                          })()}
+                          <span style={{ marginLeft: 'auto', fontSize: '10px', opacity: 0.6 }}>{isDiscOpen ? '▲' : '▼'}</span>
+                        </button>
+
+                        {isDiscOpen && (
+                          <div style={{ borderTop: '1px solid var(--border)', background: 'var(--parchment)', padding: '12px 14px' }}>
+                            {wtLoadingDiscussion.has(t.id) ? (
+                              <div style={{ fontFamily: 'DM Mono, monospace', fontSize: '11px', color: 'var(--ink-faint)', textAlign: 'center', padding: '8px 0' }}>Chargement…</div>
+                            ) : comments.length === 0 ? (
+                              <div style={{ fontFamily: 'Spectral, serif', fontSize: '13px', color: 'var(--ink-faint)', fontStyle: 'italic', marginBottom: '10px' }}>
+                                Aucun commentaire — soyez le premier à donner votre avis.
+                              </div>
+                            ) : (
+                              <div style={{ marginBottom: '12px' }}>
+                                {comments.map((c: Comment, ci) => (
+                                  <div key={c.id} style={{ paddingBottom: '10px', marginBottom: '10px', borderBottom: ci < comments.length - 1 ? '1px solid var(--border)' : 'none' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
+                                      <Link href={c.creator ? `/profile/${c.creator.username}` : '#'} style={{ fontFamily: 'DM Mono, monospace', fontSize: '11px', color: c.creator ? getRoleColor(c.creator.role) : 'var(--ink-muted)', textDecoration: 'none' }}>
+                                        @{c.creator?.username || 'anonyme'}
+                                      </Link>
+                                      <span style={{ fontFamily: 'DM Mono, monospace', fontSize: '10px', color: 'var(--ink-faint)' }}>· {timeAgo(c.createdAt)}</span>
+                                      {user && (c.createdBy === user.id || ['EXPERT', 'ADMIN'].includes(user.role)) && (
+                                        <button onClick={async () => {
+                                          try { await api.delete(`/api/comments/${c.id}`); setWtDiscussions(prev => ({ ...prev, [t.id]: (prev[t.id] || []).filter(x => x.id !== c.id) })) }
+                                          catch (err) { console.error(err) }
+                                        }}
+                                          style={{ marginLeft: 'auto', background: 'transparent', border: 'none', cursor: 'pointer', fontFamily: 'DM Mono, monospace', fontSize: '11px', padding: '1px 5px', color: 'var(--red-soft)', opacity: 0.5, borderRadius: '3px', transition: 'opacity 0.15s' }}
+                                          title="Supprimer ce commentaire"
+                                          onMouseEnter={e => (e.currentTarget.style.opacity = '1')} onMouseLeave={e => (e.currentTarget.style.opacity = '0.5')}>✕</button>
+                                      )}
+                                    </div>
+                                    <div style={{ fontFamily: 'Spectral, serif', fontSize: '13px', color: 'var(--ink-soft)', lineHeight: '1.7' }}>
+                                      <CommentText text={c.text} />
+                                    </div>
+                                    <ReactionRow comment={c} />
+                                    {user && (
+                                      <div style={{ marginTop: '4px' }}>
+                                        <button onClick={() => setWtReplyingTo(isReplyingTo?.commentId === c.id ? null : { commentId: c.id, wtId: t.id, username: c.creator?.username || 'anonyme' })}
+                                          style={{ background: 'transparent', border: 'none', cursor: 'pointer', fontFamily: 'DM Mono, monospace', fontSize: '10px', padding: '0', color: isReplyingTo?.commentId === c.id ? 'var(--gold)' : 'var(--ink-faint)' }}>
+                                          ↩ Répondre
+                                        </button>
+                                      </div>
+                                    )}
+                                    {c.replies && c.replies.length > 0 && (
+                                      <div style={{ marginTop: '8px', paddingLeft: '14px', borderLeft: '2px solid var(--border)' }}>
+                                        {c.replies.map(r => (
+                                          <div key={r.id} style={{ marginBottom: '8px' }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '3px' }}>
+                                              <Link href={r.creator ? `/profile/${r.creator.username}` : '#'} style={{ fontFamily: 'DM Mono, monospace', fontSize: '11px', color: r.creator ? getRoleColor(r.creator.role) : 'var(--ink-muted)', textDecoration: 'none' }}>
+                                                @{r.creator?.username || 'anonyme'}
+                                              </Link>
+                                              <span style={{ fontFamily: 'DM Mono, monospace', fontSize: '10px', color: 'var(--ink-faint)' }}>· {timeAgo(r.createdAt)}</span>
+                                              {user && (r.createdBy === user.id || ['EXPERT', 'ADMIN'].includes(user.role)) && (
+                                                <button onClick={async () => {
+                                                  try { await api.delete(`/api/comments/${r.id}`); setWtDiscussions(prev => ({ ...prev, [t.id]: (prev[t.id] || []).map(cm => cm.id === c.id ? { ...cm, replies: (cm.replies || []).filter(x => x.id !== r.id) } : cm) })) }
+                                                  catch (err) { console.error(err) }
+                                                }}
+                                                  style={{ marginLeft: 'auto', background: 'transparent', border: 'none', cursor: 'pointer', fontFamily: 'DM Mono, monospace', fontSize: '11px', padding: '1px 5px', color: 'var(--red-soft)', opacity: 0.5, borderRadius: '3px', transition: 'opacity 0.15s' }}
+                                                  title="Supprimer cette réponse"
+                                                  onMouseEnter={e => (e.currentTarget.style.opacity = '1')} onMouseLeave={e => (e.currentTarget.style.opacity = '0.5')}>✕</button>
+                                              )}
+                                            </div>
+                                            <div style={{ fontFamily: 'Spectral, serif', fontSize: '13px', color: 'var(--ink-soft)', lineHeight: '1.7' }}><CommentText text={r.text} /></div>
+                                            <ReactionRow comment={r} />
+                                          </div>
+                                        ))}
+                                      </div>
+                                    )}
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+
+                            {user && (
+                              <div>
+                                {/* Bannière réponse */}
+                                {isReplyingTo && (
+                                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '5px 10px', marginBottom: '6px', background: 'var(--gold-pale)', borderRadius: '6px', border: '1px solid rgba(184,132,58,0.25)', fontFamily: 'DM Mono, monospace', fontSize: '11px', color: 'var(--gold)' }}>
+                                    <span>↩ Répondre à @{isReplyingTo.username}</span>
+                                    <button onClick={() => setWtReplyingTo(null)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--gold)', fontSize: '13px', lineHeight: 1, padding: '0 2px' }}>×</button>
+                                  </div>
+                                )}
+
+                                {/* Textarea + mentions */}
+                                <div style={{ position: 'relative' }}>
+                                  <MentionDropdown anchor={anchorId} />
+                                  <textarea
+                                    ref={el => { wtTextareaRefs.current[t.id] = el }}
+                                    value={wtCommentText[t.id] || ''}
+                                    onChange={e => {
+                                      setWtCommentText(prev => ({ ...prev, [t.id]: e.target.value }))
+                                      handleMentionInput(e.target.value, e.target.selectionStart, anchorId)
+                                    }}
+                                    onInput={e => { const ta = e.target as HTMLTextAreaElement; ta.style.height = 'auto'; ta.style.height = ta.scrollHeight + 'px' }}
+                                    onKeyDown={e => {
+                                      if (mentionAnchor === anchorId && mentionResults.length > 0) {
+                                        if (e.key === 'ArrowDown') { e.preventDefault(); setMentionIdx(i => Math.min(i + 1, mentionResults.length - 1)); return }
+                                        if (e.key === 'ArrowUp') { e.preventDefault(); setMentionIdx(i => Math.max(i - 1, 0)); return }
+                                        if (e.key === 'Enter' || e.key === 'Tab') { e.preventDefault(); insertMention(mentionResults[mentionIdx]?.username, anchorId); return }
+                                        if (e.key === 'Escape') { setMentionQuery(null); setMentionAnchor(null); setMentionResults([]); return }
+                                      }
+                                    }}
+                                    placeholder={isReplyingTo ? `Répondre à @${isReplyingTo.username}…` : 'Votre avis… (tapez @ pour mentionner)'}
+                                    rows={1}
+                                    style={{ width: '100%', padding: '7px 10px', border: `1px solid ${isReplyingTo ? 'rgba(184,132,58,0.4)' : 'var(--border)'}`, borderRadius: '8px', fontFamily: 'Spectral, serif', fontSize: '13px', color: 'var(--ink)', background: 'var(--input-bg)', outline: 'none', resize: 'none', overflow: 'hidden', transition: 'border-color 0.15s', minHeight: '36px', marginBottom: '6px', boxSizing: 'border-box' as const }}
+                                    onFocus={e => (e.target as HTMLElement).style.borderColor = 'rgba(184,132,58,0.4)'}
+                                    onBlur={e => (e.target as HTMLElement).style.borderColor = isReplyingTo ? 'rgba(184,132,58,0.4)' : 'var(--border)'}
+                                  />
+                                </div>
+
+                                {/* Panneau insertion verset */}
+                                {wtInsertMode?.wtId === t.id && wtInsertMode.mode === 'verse' && (
+                                  <div style={{ padding: '8px 10px', background: 'var(--blue-light)', border: '1px solid rgba(42,74,122,0.2)', borderRadius: '7px', marginBottom: '6px' }}>
+                                    <div style={{ display: 'flex', gap: '5px', flexWrap: 'wrap', alignItems: 'center' }}>
+                                      <div style={{ display: 'flex', gap: '3px' }}>
+                                        {(['AT', 'NT'] as const).map(testament => (
+                                          <button key={testament} onClick={() => { setInsertTestament(testament); setInsertBook(''); setInsertChapter(''); setInsertVerse('') }}
+                                            style={{ padding: '2px 7px', borderRadius: '20px', border: `1px solid ${insertTestament === testament ? 'var(--blue-sacred)' : 'rgba(42,74,122,0.2)'}`, background: insertTestament === testament ? 'var(--blue-sacred)' : 'transparent', fontFamily: 'DM Mono, monospace', fontSize: '10px', color: insertTestament === testament ? 'white' : 'var(--blue-sacred)', cursor: 'pointer' }}>
+                                            {testament}
+                                          </button>
+                                        ))}
+                                      </div>
+                                      <select value={insertBook} onChange={e => { setInsertBook(e.target.value); setInsertChapter(''); setInsertVerse('') }}
+                                        style={{ padding: '2px 5px', border: '1px solid rgba(42,74,122,0.2)', borderRadius: '4px', background: 'var(--card-bg)', fontFamily: 'DM Mono, monospace', fontSize: '10px', color: 'var(--ink)', outline: 'none' }}>
+                                        <option value="">Livre</option>
+                                        {booksByTestament[insertTestament].map(b => <option key={b} value={b}>{b}</option>)}
+                                      </select>
+                                      {insertBook && <input type="number" min={1} placeholder="Ch." value={insertChapter} onChange={e => { setInsertChapter(e.target.value); setInsertVerse('') }} style={{ width: '44px', padding: '2px 5px', border: '1px solid rgba(42,74,122,0.2)', borderRadius: '4px', background: 'var(--card-bg)', fontFamily: 'DM Mono, monospace', fontSize: '10px', color: 'var(--ink)', outline: 'none' }} />}
+                                      {insertChapter && <input type="number" min={1} placeholder="V." value={insertVerse} onChange={e => setInsertVerse(e.target.value)} style={{ width: '44px', padding: '2px 5px', border: '1px solid rgba(42,74,122,0.2)', borderRadius: '4px', background: 'var(--card-bg)', fontFamily: 'DM Mono, monospace', fontSize: '10px', color: 'var(--ink)', outline: 'none' }} />}
+                                      {insertBook && insertChapter && insertVerse && (
+                                        <button onClick={() => {
+                                          const ref = `[${insertBook} ${insertChapter}:${insertVerse}]`
+                                          const ta = wtTextareaRefs.current[t.id]
+                                          const cur = wtCommentText[t.id] || ''
+                                          if (ta) { const s = ta.selectionStart; const newText = cur.slice(0, s) + ref + cur.slice(ta.selectionEnd); setWtCommentText(prev => ({ ...prev, [t.id]: newText })); setTimeout(() => { ta.focus(); ta.setSelectionRange(s + ref.length, s + ref.length) }, 0) }
+                                          else setWtCommentText(prev => ({ ...prev, [t.id]: cur + ref }))
+                                          setWtInsertMode(null); setInsertBook(''); setInsertChapter(''); setInsertVerse('')
+                                        }} style={{ padding: '2px 9px', borderRadius: '4px', border: 'none', background: 'var(--blue-sacred)', color: 'white', fontFamily: 'DM Mono, monospace', fontSize: '10px', cursor: 'pointer' }}>
+                                          ✓ Insérer
+                                        </button>
+                                      )}
+                                    </div>
+                                  </div>
+                                )}
+
+                                {/* Panneau insertion lien */}
+                                {wtInsertMode?.wtId === t.id && wtInsertMode.mode === 'link' && (
+                                  <div style={{ padding: '8px 10px', background: 'var(--gold-pale)', border: '1px solid rgba(184,132,58,0.2)', borderRadius: '7px', marginBottom: '6px' }}>
+                                    <div style={{ display: 'flex', gap: '5px', alignItems: 'center', flexWrap: 'wrap' }}>
+                                      <input type="text" placeholder="Texte affiché" value={insertLinkText} onChange={e => setInsertLinkText(e.target.value)}
+                                        style={{ flex: 1, minWidth: '90px', padding: '2px 6px', border: '1px solid rgba(184,132,58,0.2)', borderRadius: '4px', background: 'var(--card-bg)', fontFamily: 'Spectral, serif', fontSize: '11px', color: 'var(--ink)', outline: 'none' }} />
+                                      <input type="url" placeholder="https://…" value={insertLinkUrl} onChange={e => setInsertLinkUrl(e.target.value)}
+                                        style={{ flex: 2, minWidth: '120px', padding: '2px 6px', border: '1px solid rgba(184,132,58,0.2)', borderRadius: '4px', background: 'var(--card-bg)', fontFamily: 'DM Mono, monospace', fontSize: '10px', color: 'var(--ink)', outline: 'none' }} />
+                                      {insertLinkText && insertLinkUrl && (
+                                        <button onClick={() => {
+                                          const ref = `[${insertLinkText}](${insertLinkUrl})`
+                                          const ta = wtTextareaRefs.current[t.id]
+                                          const cur = wtCommentText[t.id] || ''
+                                          if (ta) { const s = ta.selectionStart; const newText = cur.slice(0, s) + ref + cur.slice(ta.selectionEnd); setWtCommentText(prev => ({ ...prev, [t.id]: newText })); setTimeout(() => { ta.focus(); ta.setSelectionRange(s + ref.length, s + ref.length) }, 0) }
+                                          else setWtCommentText(prev => ({ ...prev, [t.id]: cur + ref }))
+                                          setWtInsertMode(null); setInsertLinkText(''); setInsertLinkUrl('')
+                                        }} style={{ padding: '2px 9px', borderRadius: '4px', border: 'none', background: 'var(--gold)', color: 'white', fontFamily: 'DM Mono, monospace', fontSize: '10px', cursor: 'pointer' }}>
+                                          ✓ Insérer
+                                        </button>
+                                      )}
+                                    </div>
+                                  </div>
+                                )}
+
+                                {/* Barre d'action */}
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                                  <button
+                                    onClick={() => { setWtInsertMode(prev => prev?.wtId === t.id && prev.mode === 'verse' ? null : { wtId: t.id, mode: 'verse' }); setInsertBook(''); setInsertChapter(''); setInsertVerse('') }}
+                                    style={{ padding: '3px 8px', borderRadius: '4px', cursor: 'pointer', border: `1px solid ${wtInsertMode?.wtId === t.id && wtInsertMode.mode === 'verse' ? 'var(--blue-sacred)' : 'var(--border)'}`, background: wtInsertMode?.wtId === t.id && wtInsertMode.mode === 'verse' ? 'var(--blue-light)' : 'transparent', fontFamily: 'DM Mono, monospace', fontSize: '10px', color: wtInsertMode?.wtId === t.id && wtInsertMode.mode === 'verse' ? 'var(--blue-sacred)' : 'var(--ink-muted)' }}
+                                  >📖 Verset</button>
+                                  <button
+                                    onClick={() => { setWtInsertMode(prev => prev?.wtId === t.id && prev.mode === 'link' ? null : { wtId: t.id, mode: 'link' }); setInsertLinkText(''); setInsertLinkUrl('') }}
+                                    style={{ padding: '3px 8px', borderRadius: '4px', cursor: 'pointer', border: `1px solid ${wtInsertMode?.wtId === t.id && wtInsertMode.mode === 'link' ? 'var(--gold)' : 'var(--border)'}`, background: wtInsertMode?.wtId === t.id && wtInsertMode.mode === 'link' ? 'var(--gold-pale)' : 'transparent', fontFamily: 'DM Mono, monospace', fontSize: '10px', color: wtInsertMode?.wtId === t.id && wtInsertMode.mode === 'link' ? 'var(--gold)' : 'var(--ink-muted)' }}
+                                  >🔗 Lien</button>
+                                  <button
+                                    disabled={wtSubmittingComment.has(t.id) || !(wtCommentText[t.id] || '').trim()}
+                                    onClick={async () => {
+                                      const text = (wtCommentText[t.id] || '').trim()
+                                      if (!text) return
+                                      setWtSubmittingComment(prev => new Set([...prev, t.id]))
+                                      try {
+                                        if (isReplyingTo) {
+                                          const res = await api.post(`/api/comments/${isReplyingTo.commentId}/reply`, { text })
+                                          setWtDiscussions(prev => ({ ...prev, [t.id]: (prev[t.id] || []).map(c => c.id === isReplyingTo.commentId ? { ...c, replies: [...(c.replies || []), { ...res.data, reactions: res.data.reactions ?? [] }] } : c) }))
+                                          setWtReplyingTo(null)
+                                        } else {
+                                          const res = await api.post(`/api/word-translations/${t.id}/comments`, { text })
+                                          setWtDiscussions(prev => ({ ...prev, [t.id]: [...(prev[t.id] ?? []), { ...res.data, replies: res.data.replies ?? [] }] }))
+                                        }
+                                        setWtCommentText(prev => ({ ...prev, [t.id]: '' }))
+                                        setWtInsertMode(null)
+                                      } catch (err) { console.error(err) }
+                                      finally { setWtSubmittingComment(prev => { const s = new Set(prev); s.delete(t.id); return s }) }
+                                    }}
+                                    style={{ marginLeft: 'auto', padding: '5px 14px', background: 'var(--gold)', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontFamily: 'DM Mono, monospace', fontSize: '11px', opacity: (!(wtCommentText[t.id] || '').trim() || wtSubmittingComment.has(t.id)) ? 0.5 : 1, transition: 'opacity 0.15s', whiteSpace: 'nowrap' as const }}
+                                  >
+                                    {isReplyingTo ? 'Répondre' : 'Publier'}
+                                  </button>
+                                </div>
+                              </div>
+                            )}
+                            {!user && (
+                              <div style={{ fontFamily: 'Spectral, serif', fontSize: '12px', color: 'var(--ink-faint)', fontStyle: 'italic', textAlign: 'center' }}>
+                                Connectez-vous pour participer à la discussion
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* ── Historique ── */}
+                      <div style={{ borderTop: '1px solid var(--border)' }}>
+                        <button
+                          onClick={() => {
+                            setWtOpenTimelines(prev => { const n = new Set(prev); isTlOpen ? n.delete(t.id) : n.add(t.id); return n })
+                            if (!isTlOpen) loadWtTimeline(t.id)
+                          }}
+                          style={{ display: 'flex', alignItems: 'center', gap: '5px', padding: '5px 14px', width: '100%', background: 'transparent', border: 'none', cursor: 'pointer', fontFamily: 'DM Mono, monospace', fontSize: '10px', color: isTlOpen ? 'var(--ink-muted)' : 'var(--ink-faint)', transition: 'color 0.15s' }}
+                          onMouseEnter={e => (e.currentTarget.style.color = 'var(--ink-muted)')}
+                          onMouseLeave={e => (e.currentTarget.style.color = isTlOpen ? 'var(--ink-muted)' : 'var(--ink-faint)')}
+                        >
+                          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                          Historique
+                          <span style={{ marginLeft: 'auto', fontSize: '9px', opacity: 0.5 }}>{isTlOpen ? '▲' : '▼'}</span>
+                        </button>
+                        {isTlOpen && (
+                          <div style={{ padding: '4px 14px 10px', borderTop: '1px solid var(--border)', background: 'var(--parchment)' }}>
+                            {wtLoadingTimelines.has(t.id) ? (
+                              <div style={{ fontFamily: 'DM Mono, monospace', fontSize: '10px', color: 'var(--ink-faint)', padding: '6px 0' }}>Chargement…</div>
+                            ) : !tl || tl.events.length === 0 ? (
+                              <div style={{ fontFamily: 'DM Mono, monospace', fontSize: '10px', color: 'var(--ink-faint)', padding: '6px 0' }}>Aucun événement.</div>
+                            ) : (
+                              <div style={{ position: 'relative', paddingLeft: '16px' }}>
+                                <div style={{ position: 'absolute', left: '5px', top: '6px', bottom: '6px', width: '1px', background: 'var(--border)' }} />
+                                {tl.events.map((ev, i) => {
+                                  const { icon, color, text } = wtEventLabel(ev)
+                                  return (
+                                    <div key={i} style={{ display: 'flex', gap: '8px', alignItems: 'baseline', marginBottom: '6px', position: 'relative' }}>
+                                      <div style={{ position: 'absolute', left: '-13px', top: '3px', width: '7px', height: '7px', borderRadius: '50%', background: color, border: '1px solid var(--card-bg)', flexShrink: 0 }} />
+                                      <span style={{ fontFamily: 'DM Mono, monospace', fontSize: '10px', color, fontWeight: 500, flexShrink: 0 }}>{icon}</span>
+                                      <span style={{ fontFamily: 'DM Mono, monospace', fontSize: '10px', color: 'var(--ink-soft)', flex: 1 }}>{text}</span>
+                                      <span style={{ fontFamily: 'DM Mono, monospace', fontSize: '9px', color: 'var(--ink-faint)', flexShrink: 0 }}>{fmtDate(ev.date)}</span>
+                                    </div>
+                                  )
+                                })}
+                                {(tl.upvotes > 0 || tl.downvotes > 0) && (
+                                  <div style={{ marginTop: '4px', paddingTop: '6px', borderTop: '1px solid var(--border)', fontFamily: 'DM Mono, monospace', fontSize: '10px', color: 'var(--ink-faint)' }}>
+                                    <span style={{ color: 'var(--green-valid)' }}>+{tl.upvotes}</span>
+                                    <span style={{ margin: '0 4px' }}>·</span>
+                                    <span style={{ color: 'var(--red-soft)' }}>−{tl.downvotes}</span>
+                                    <span style={{ marginLeft: '4px' }}>votes</span>
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* ── Footer : votes + actions admin ── */}
+                      {(currentStatus === 'PENDING' || currentStatus === 'ACCEPTED') && (
+                        <div style={{ padding: '8px 14px', borderTop: '1px solid var(--border)', background: 'var(--parchment-dark)' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0, marginBottom: currentStatus === 'PENDING' && user && ['EXPERT', 'ADMIN'].includes(user.role) && !isRejecting ? '8px' : '0' }}>
+                            {user && ['INTERMEDIATE', 'EXPERT', 'ADMIN'].includes(user.role) ? (
+                              <>
+                                {currentStatus === 'PENDING' && (
+                                  <button
+                                    onClick={async () => {
+                                      try {
+                                        const res = await api.post(`/api/word-translations/${t.id}/vote`, { value: 1 })
+                                        const statusChanged = res.data.status !== currentStatus
+                                        setWtVoteOverrides(prev => ({ ...prev, [t.id]: { netScore: res.data.netScore, userVote: statusChanged ? 0 : (userVote === 1 ? 0 : 1), status: res.data.status } }))
+                                        if (statusChanged) { setWtOverrides(prev => { const n = { ...prev }; delete n[t.id]; return n }); onTranslationAdded() }
+                                      } catch (e) { console.error(e) }
+                                    }}
+                                    style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', padding: '3px 8px', borderRadius: '5px', cursor: 'pointer', fontFamily: 'DM Mono, monospace', fontSize: '12px', whiteSpace: 'nowrap' as const, border: `1px solid ${userVote === 1 ? 'var(--gold)' : 'var(--border)'}`, background: userVote === 1 ? 'var(--gold-pale)' : 'transparent', color: userVote === 1 ? 'var(--gold)' : 'var(--ink-soft)', transition: 'all 0.15s' }}
+                                  >▲ Pour</button>
+                                )}
+                                <button
+                                  onClick={async () => {
+                                    try {
+                                      const res = await api.post(`/api/word-translations/${t.id}/vote`, { value: -1 })
+                                      const statusChanged = res.data.status !== currentStatus
+                                      setWtVoteOverrides(prev => ({ ...prev, [t.id]: { netScore: res.data.netScore, userVote: statusChanged ? 0 : (userVote === -1 ? 0 : -1), status: res.data.status } }))
+                                      if (statusChanged) { setWtOverrides(prev => { const n = { ...prev }; delete n[t.id]; return n }); onTranslationAdded() }
+                                    } catch (e) { console.error(e) }
+                                  }}
+                                  style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', padding: '3px 8px', borderRadius: '5px', cursor: 'pointer', fontFamily: 'DM Mono, monospace', fontSize: '12px', whiteSpace: 'nowrap' as const, border: `1px solid ${userVote === -1 ? 'rgba(122,42,42,0.5)' : 'var(--border)'}`, background: userVote === -1 ? 'var(--red-light)' : 'transparent', color: userVote === -1 ? 'var(--red-soft)' : 'var(--ink-soft)', transition: 'all 0.15s' }}
+                                >▼ Contre</button>
+                                {currentStatus === 'PENDING' ? (
+                                  <span style={{ marginLeft: 'auto', fontFamily: 'DM Mono, monospace', fontSize: '10px', opacity: 0.85, whiteSpace: 'nowrap' as const }}>
+                                    <span style={{ color: upvotes >= THRESHOLD_ACCEPT ? 'var(--green-valid)' : 'var(--ink-faint)' }}>+{upvotes}/{THRESHOLD_ACCEPT} acc.</span>
+                                    <span style={{ color: 'var(--ink-faint)', margin: '0 3px' }}>·</span>
+                                    <span style={{ color: downvotes >= Math.abs(THRESHOLD_REJECT) ? 'var(--red-soft)' : 'var(--ink-faint)' }}>-{downvotes}/{Math.abs(THRESHOLD_REJECT)} rej.</span>
+                                  </span>
+                                ) : currentStatus === 'ACCEPTED' && netScore < 0 ? (
+                                  <span style={{ marginLeft: 'auto', fontFamily: 'DM Mono, monospace', fontSize: '10px', opacity: 0.85, whiteSpace: 'nowrap' as const }}>
+                                    <span style={{ color: netScore <= THRESHOLD_REJECT ? 'var(--amber-pending)' : 'var(--ink-faint)' }}>{netScore}/{THRESHOLD_REJECT} ↩ att.</span>
+                                  </span>
+                                ) : null}
+                              </>
+                            ) : (
+                              <span style={{ fontFamily: 'DM Mono, monospace', fontSize: '12px', color: 'var(--ink-muted)' }}>
+                                Score : {netScore > 0 ? '+' : ''}{netScore}
+                              </span>
+                            )}
+                          </div>
+
+                          {/* Actions EXPERT/ADMIN sur PENDING */}
+                          {currentStatus === 'PENDING' && user && ['EXPERT', 'ADMIN'].includes(user.role) && !isRejecting && (
+                            <div style={{ display: 'flex', gap: '6px' }}>
+                              <button
+                                disabled={wtActioning.has(t.id)}
+                                title="Valider cette traduction"
+                                onClick={async () => {
+                                  setWtOverrides(prev => ({ ...prev, [t.id]: { ...prev[t.id], status: 'ACCEPTED' } }))
+                                  setWtActioning(prev => new Set([...prev, t.id]))
+                                  try { await api.patch(`/api/word-translations/${t.id}/validate`); onTranslationAdded() }
+                                  catch (e) { console.error(e); setWtOverrides(prev => { const n = { ...prev }; delete n[t.id]; return n }) }
+                                  finally { setWtActioning(prev => { const n = new Set(prev); n.delete(t.id); return n }) }
+                                }}
+                                style={{ padding: '4px 10px', background: 'var(--green-valid)', color: 'white', border: 'none', borderRadius: '5px', fontFamily: 'DM Mono, monospace', fontSize: '11px', cursor: wtActioning.has(t.id) ? 'wait' : 'pointer', opacity: wtActioning.has(t.id) ? 0.6 : 1 }}>
+                                ✓ Valider
+                              </button>
+                              <button
+                                title="Rejeter cette traduction"
+                                onClick={() => { setWtRejectingId(t.id); setWtRejectReason('') }}
+                                style={{ padding: '4px 10px', background: 'transparent', color: 'var(--red-soft)', border: '1px solid rgba(122,42,42,0.3)', borderRadius: '5px', fontFamily: 'DM Mono, monospace', fontSize: '11px', cursor: 'pointer' }}>
+                                ✕ Rejeter
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )
+                }
+
+                const allEmpty = validatedTranslations.length === 0 && proposedTranslations.length === 0 && rejectedTranslations.length === 0
+                return (
+                  <>
+                    {allEmpty && (
+                      <div style={{ fontFamily: 'Spectral, serif', fontSize: '14px', color: 'var(--ink-faint)', fontStyle: 'italic', marginBottom: '16px' }}>
+                        Aucune traduction proposée pour ce mot.
+                      </div>
+                    )}
+                    {validatedTranslations.length > 0 && (
+                      <div style={{ marginBottom: '4px' }}>
+                        <div style={{ fontFamily: 'DM Mono, monospace', fontSize: '11px', letterSpacing: '0.1em', textTransform: 'uppercase' as const, color: 'var(--green-valid)', marginBottom: '8px', opacity: 0.7 }}>Validées</div>
+                        {validatedTranslations.map(t => renderWtCard(t, 'ACCEPTED'))}
+                      </div>
+                    )}
+                    {proposedTranslations.length > 0 && (
+                      <div style={{ marginTop: validatedTranslations.length > 0 ? '12px' : 0 }}>
+                        <div style={{ fontFamily: 'DM Mono, monospace', fontSize: '11px', letterSpacing: '0.1em', textTransform: 'uppercase' as const, color: 'var(--amber-pending)', marginBottom: '8px', opacity: 0.7 }}>En attente</div>
+                        {proposedTranslations.map(t => renderWtCard(t, 'PENDING'))}
+                      </div>
+                    )}
+                  </>
+                )
+              })()}
               {!showForm ? (
                 <button
                   onClick={() => setShowForm(true)}
@@ -2885,58 +3324,47 @@ export default function RightPanel({
                     value={newTranslation}
                     onChange={e => setNewTranslation(e.target.value)}
                     placeholder="Votre traduction..."
-                    onKeyDown={e => e.key === 'Enter' && handleSubmitTranslation()}
-                    style={{
-                      width: '100%',
-                      padding: '8px 10px',
-                      border: '1px solid var(--border)',
-                      borderRadius: '6px',
-                      fontFamily: 'Spectral, serif',
-                      fontSize: '14px',
-                      fontStyle: 'italic',
-                      color: 'var(--ink)',
-                      background: 'var(--parchment)',
-                      outline: 'none',
-                      marginBottom: '10px',
-                    }}
+                    onKeyDown={e => e.key === 'Enter' && !e.shiftKey && handleSubmitTranslation()}
+                    style={{ width: '100%', padding: '8px 10px', border: '1px solid var(--border)', borderRadius: '6px', fontFamily: 'Spectral, serif', fontSize: '14px', fontStyle: 'italic', color: 'var(--ink)', background: 'var(--parchment)', outline: 'none', marginBottom: '8px', boxSizing: 'border-box' as const }}
                   />
+                  <textarea
+                    value={newTranslationReason}
+                    onChange={e => setNewTranslationReason(e.target.value)}
+                    placeholder="Justification (optionnel)..."
+                    rows={2}
+                    style={{ width: '100%', padding: '6px 10px', border: '1px solid var(--border)', borderRadius: '6px', fontFamily: 'Spectral, serif', fontSize: '12px', fontStyle: 'italic', color: 'var(--ink)', background: 'var(--parchment)', outline: 'none', resize: 'none', marginBottom: '8px', boxSizing: 'border-box' as const }}
+                  />
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px', marginBottom: '10px' }}>
+                    {WORD_TRANSLATION_TAGS.map(tag => {
+                      const active = newTranslationTags.includes(tag.id)
+                      return (
+                        <button key={tag.id} type="button" onClick={() => setNewTranslationTags(prev => active ? prev.filter(x => x !== tag.id) : [...prev, tag.id])}
+                          style={{ fontSize: '10px', padding: '2px 9px', borderRadius: '20px', border: `1px solid ${active ? tag.border : 'var(--border)'}`, background: active ? tag.bg : 'transparent', color: active ? tag.color : 'var(--ink-faint)', cursor: 'pointer', fontFamily: 'DM Mono, monospace', transition: 'all 0.15s' }}>
+                          {tag.label}
+                        </button>
+                      )
+                    })}
+                  </div>
                   <div style={{ display: 'flex', gap: '8px' }}>
-                    <button
-                      onClick={handleSubmitTranslation}
-                      disabled={submitting || !newTranslation.trim()}
-                      style={{
-                        flex: 1,
-                        padding: '8px',
-                        background: 'var(--gold)',
-                        color: 'white',
-                        border: 'none',
-                        borderRadius: '6px',
-                        fontFamily: 'DM Mono, monospace',
-                        fontSize: '12px',
-                        letterSpacing: '0.08em',
-                        textTransform: 'uppercase' as const,
-                        cursor: submitting ? 'not-allowed' : 'pointer',
-                        opacity: submitting || !newTranslation.trim() ? 0.6 : 1,
-                      }}
-                    >
+                    <button onClick={handleSubmitTranslation} disabled={submitting || !newTranslation.trim()}
+                      style={{ flex: 1, padding: '8px', background: 'var(--gold)', color: 'white', border: 'none', borderRadius: '6px', fontFamily: 'DM Mono, monospace', fontSize: '12px', letterSpacing: '0.08em', textTransform: 'uppercase' as const, cursor: submitting ? 'not-allowed' : 'pointer', opacity: submitting || !newTranslation.trim() ? 0.6 : 1 }}>
                       {submitting ? 'Envoi...' : 'Proposer'}
                     </button>
-                    <button
-                      onClick={() => { setShowForm(false); setNewTranslation(''); setError('') }}
-                      style={{
-                        padding: '8px 14px',
-                        background: 'transparent',
-                        color: 'var(--ink-muted)',
-                        border: '1px solid var(--border)',
-                        borderRadius: '6px',
-                        fontFamily: 'DM Mono, monospace',
-                        fontSize: '12px',
-                        cursor: 'pointer',
-                      }}
-                    >
+                    <button onClick={() => { setShowForm(false); setNewTranslation(''); setNewTranslationReason(''); setNewTranslationTags([]); setError('') }}
+                      style={{ padding: '8px 14px', background: 'transparent', color: 'var(--ink-muted)', border: '1px solid var(--border)', borderRadius: '6px', fontFamily: 'DM Mono, monospace', fontSize: '12px', cursor: 'pointer' }}>
                       Annuler
                     </button>
                   </div>
+                </div>
+              )}
+              {/* Rejetées — après le formulaire */}
+              {rejectedTranslations.length > 0 && (
+                <div style={{ marginTop: '8px' }}>
+                  <button onClick={() => setShowRejectedWords(v => !v)} style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'DM Mono, monospace', fontSize: '11px', color: 'var(--ink-faint)', padding: '4px 0', marginBottom: showRejectedWords ? '8px' : 0 }}>
+                    <span style={{ fontSize: '9px' }}>{showRejectedWords ? '▼' : '▶'}</span>
+                    Rejetées ({rejectedTranslations.length})
+                  </button>
+                  {showRejectedWords && rejectedTranslations.map(t => renderWtCard(t, 'REJECTED'))}
                 </div>
               )}
             {/* Occurrences */}
