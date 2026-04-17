@@ -795,7 +795,7 @@ router.patch('/proposals/:id/accept', authenticateJWT, async (req: AuthRequest, 
     // Juste marquer la proposition comme acceptée, sans changer isActive
     const updated = await prisma.proposal.update({
       where: { id },
-      data: { status: 'ACCEPTED', reviewedBy: req.user!.id }
+      data: { status: 'ACCEPTED', reviewedBy: req.user!.id, reviewedAt: new Date() }
     })
     await logAction('PROPOSAL_ACCEPTED', req.user!.id, { proposalId: id }, req.ip)
 
@@ -843,7 +843,7 @@ router.patch('/proposals/:id/reopen', authenticateJWT, async (req: AuthRequest, 
     await prisma.vote.deleteMany({ where: { proposalId: id } })
     const updated = await prisma.proposal.update({
       where: { id },
-      data: { status: 'PENDING', reviewedBy: null }
+      data: { status: 'PENDING', reviewedBy: null, reviewedAt: null }
     })
     await logAction('PROPOSAL_ACCEPTED', req.user!.id, { proposalId: id, action: 'reopen' }, req.ip)
     res.json(updated)
@@ -964,7 +964,7 @@ router.patch('/proposals/:id/reject', authenticateJWT, async (req: AuthRequest, 
 
     const updated = await prisma.proposal.update({
       where: { id },
-      data: { status: 'REJECTED', reason, reviewedBy: req.user!.id }
+      data: { status: 'REJECTED', reason, reviewedBy: req.user!.id, reviewedAt: new Date() }
     })
     await logAction('PROPOSAL_REJECTED', req.user!.id, { proposalId: id, reason }, req.ip)
 
@@ -1349,6 +1349,86 @@ router.get('/pending', authenticateJWT, async (req: AuthRequest, res: Response) 
     ])
 
     res.json({ proposals, wordTranslations })
+  } catch (error) {
+    console.error(error)
+    res.status(500).json({ error: 'Erreur serveur' })
+  }
+})
+
+// GET /api/proposals/:id/timeline
+router.get('/proposals/:id/timeline', async (req: Request, res: Response) => {
+  try {
+    const id = req.params.id as string
+    const proposal = await prisma.proposal.findUnique({
+      where: { id },
+      include: {
+        creator:  { select: { username: true } },
+        reviewer: { select: { username: true } },
+        versions: { orderBy: { versionNumber: 'asc' }, select: { createdAt: true, changeReason: true, versionNumber: true } },
+        votes:    { select: { value: true, createdAt: true }, orderBy: { createdAt: 'asc' } },
+        _count:   { select: { comments: true } },
+      }
+    })
+    if (!proposal) { res.status(404).json({ error: 'Proposition non trouvée' }); return }
+
+    // Premier et dernier commentaire
+    const firstComment = await prisma.comment.findFirst({
+      where: { proposalId: id }, orderBy: { createdAt: 'asc' }, select: { createdAt: true }
+    })
+    const lastComment  = await prisma.comment.findFirst({
+      where: { proposalId: id }, orderBy: { createdAt: 'desc' }, select: { createdAt: true }
+    })
+
+    // Traduction active ?
+    const translation = await prisma.translation.findUnique({
+      where: { id: proposal.translationId }, select: { isActive: true }
+    })
+
+    type Event = { type: string; date: string; [k: string]: unknown }
+    const events: Event[] = []
+
+    // Création
+    events.push({ type: 'created', date: proposal.createdAt.toISOString(), actor: proposal.creator?.username ?? null })
+
+    // Modifications (versions)
+    for (const v of proposal.versions) {
+      events.push({ type: 'edited', date: v.createdAt.toISOString(), versionNumber: v.versionNumber, changeReason: v.changeReason })
+    }
+
+    // Premier commentaire
+    if (firstComment) {
+      events.push({
+        type: 'commented',
+        date: firstComment.createdAt.toISOString(),
+        count: (proposal as { _count: { comments: number } })._count.comments,
+        ...(lastComment && lastComment.createdAt.getTime() !== firstComment.createdAt.getTime()
+          ? { lastAt: lastComment.createdAt.toISOString() } : {})
+      })
+    }
+
+    // Acceptation / Rejet
+    const reviewedAt = (proposal as unknown as { reviewedAt: Date | null }).reviewedAt
+    if (proposal.status === 'ACCEPTED' || proposal.status === 'REJECTED') {
+      events.push({
+        type: proposal.status === 'ACCEPTED' ? 'accepted' : 'rejected',
+        date: (reviewedAt ?? proposal.createdAt).toISOString(),
+        actor: proposal.reviewer?.username ?? null,
+        reason: proposal.reason ?? null,
+      })
+    }
+
+    // Rendue active
+    if (translation?.isActive && proposal.status === 'ACCEPTED') {
+      events.push({ type: 'activated', date: (reviewedAt ?? proposal.createdAt).toISOString() })
+    }
+
+    // Score actuel des votes
+    const upvotes   = proposal.votes.filter((v: { value: number }) => v.value > 0).length
+    const downvotes = proposal.votes.filter((v: { value: number }) => v.value < 0).length
+
+    events.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+
+    res.json({ events, upvotes, downvotes })
   } catch (error) {
     console.error(error)
     res.status(500).json({ error: 'Erreur serveur' })

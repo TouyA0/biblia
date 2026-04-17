@@ -145,6 +145,7 @@ model Proposal {
   createdBy     String?
   reviewedBy    String?
   createdAt     DateTime       @default(now())
+  reviewedAt    DateTime?
   translation   Translation    @relation(fields: [translationId], references: [id])
   creator       User?          @relation("ProposalCreator", fields: [createdBy], references: [id])
   reviewer      User?          @relation("ProposalReviewer", fields: [reviewedBy], references: [id])

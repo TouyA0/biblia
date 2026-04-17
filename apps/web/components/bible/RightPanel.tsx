@@ -107,6 +107,17 @@ interface Proposal {
   _count?: { comments: number; versions: number }
 }
 
+interface TimelineEvent {
+  type: 'created' | 'edited' | 'commented' | 'accepted' | 'rejected' | 'activated'
+  date: string
+  actor?: string | null
+  changeReason?: string | null
+  versionNumber?: number
+  count?: number
+  lastAt?: string
+  reason?: string | null
+}
+
 interface RightPanelProps {
   activeTab: 'verse' | 'word' | 'comments'
   setActiveTab: (tab: 'verse' | 'word' | 'comments') => void
@@ -241,6 +252,9 @@ export default function RightPanel({
   const toggleFullText = (id: string) => setDiffIds(prev => {
     const s = new Set(prev); s.has(id) ? s.delete(id) : s.add(id); return s
   })
+  const [openTimelines, setOpenTimelines] = useState<Set<string>>(new Set())
+  const [proposalTimelines, setProposalTimelines] = useState<Record<string, { events: TimelineEvent[]; upvotes: number; downvotes: number }>>({})
+  const [loadingTimelines, setLoadingTimelines] = useState<Set<string>>(new Set())
   const [openDiscussions, setOpenDiscussions] = useState<Set<string>>(new Set())
   const [proposalComments, setProposalComments] = useState<Record<string, Comment[]>>({})
   const [loadingDiscussion, setLoadingDiscussion] = useState<Set<string>>(new Set())
@@ -1810,6 +1824,117 @@ export default function RightPanel({
                         </div>
                       )}
                     </div>
+
+                    {/* ── Historique (caché) ── */}
+                    {(() => {
+                      const isOpen = openTimelines.has(p.id)
+                      const tl = proposalTimelines[p.id]
+                      const isLoading = loadingTimelines.has(p.id)
+
+                      const toggle = async () => {
+                        setOpenTimelines(prev => {
+                          const s = new Set(prev)
+                          if (s.has(p.id)) { s.delete(p.id); return s }
+                          s.add(p.id)
+                          return s
+                        })
+                        if (!tl && !isLoading) {
+                          setLoadingTimelines(prev => new Set([...prev, p.id]))
+                          try {
+                            const res = await api.get(`/api/proposals/${p.id}/timeline`)
+                            setProposalTimelines(prev => ({ ...prev, [p.id]: res.data }))
+                          } catch (e) { console.error(e) }
+                          finally { setLoadingTimelines(prev => { const s = new Set(prev); s.delete(p.id); return s }) }
+                        }
+                      }
+
+                      const fmtDate = (d: string) => {
+                        const date = new Date(d)
+                        const diff = Math.floor((Date.now() - date.getTime()) / 1000)
+                        if (diff < 86400) return timeAgo(d)
+                        return date.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' })
+                      }
+
+                      const eventLabel = (e: TimelineEvent) => {
+                        switch (e.type) {
+                          case 'created':   return { icon: '✦', color: 'var(--ink-muted)',    text: `Créée${e.actor ? ` par @${e.actor}` : ''}` }
+                          case 'edited':    return { icon: '✎', color: 'var(--gold)',          text: `Modifiée (v${(e.versionNumber ?? 0) + 1})${e.changeReason ? ` · ${e.changeReason}` : ''}` }
+                          case 'commented': return { icon: '💬', color: 'var(--blue-sacred)',  text: `${e.count} commentaire${(e.count ?? 0) > 1 ? 's' : ''}` }
+                          case 'accepted':  return { icon: '✓',  color: 'var(--green-valid)',  text: `Acceptée${e.actor ? ` par @${e.actor}` : ''}` }
+                          case 'rejected':  return { icon: '✕',  color: 'var(--red-soft)',     text: `Rejetée${e.actor ? ` par @${e.actor}` : ''}${e.reason ? ` · ${e.reason}` : ''}` }
+                          case 'activated': return { icon: '★',  color: 'var(--gold)',          text: 'Rendue traduction active' }
+                          default:          return { icon: '·',  color: 'var(--ink-faint)',    text: e.type }
+                        }
+                      }
+
+                      return (
+                        <div style={{ borderTop: '1px solid var(--border)' }}>
+                          {/* Bouton toggle */}
+                          <button
+                            onClick={toggle}
+                            style={{
+                              display: 'flex', alignItems: 'center', gap: '5px',
+                              padding: '5px 14px', width: '100%',
+                              background: 'transparent', border: 'none', cursor: 'pointer',
+                              fontFamily: 'DM Mono, monospace', fontSize: '10px',
+                              color: isOpen ? 'var(--ink-muted)' : 'var(--ink-faint)',
+                              transition: 'color 0.15s',
+                            }}
+                            onMouseEnter={e => (e.currentTarget.style.color = 'var(--ink-muted)')}
+                            onMouseLeave={e => (e.currentTarget.style.color = isOpen ? 'var(--ink-muted)' : 'var(--ink-faint)')}
+                          >
+                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <circle cx="12" cy="12" r="10"/>
+                              <polyline points="12 6 12 12 16 14"/>
+                            </svg>
+                            Historique
+                            <span style={{ marginLeft: 'auto', fontSize: '9px', opacity: 0.5 }}>{isOpen ? '▲' : '▼'}</span>
+                          </button>
+
+                          {/* Timeline */}
+                          {isOpen && (
+                            <div style={{ padding: '4px 14px 10px', borderTop: '1px solid var(--border)', background: 'var(--parchment)' }}>
+                              {isLoading ? (
+                                <div style={{ fontFamily: 'DM Mono, monospace', fontSize: '10px', color: 'var(--ink-faint)', padding: '6px 0' }}>Chargement…</div>
+                              ) : !tl || tl.events.length === 0 ? (
+                                <div style={{ fontFamily: 'DM Mono, monospace', fontSize: '10px', color: 'var(--ink-faint)', padding: '6px 0' }}>Aucun événement.</div>
+                              ) : (
+                                <div style={{ position: 'relative', paddingLeft: '16px' }}>
+                                  {/* Ligne verticale */}
+                                  <div style={{ position: 'absolute', left: '5px', top: '6px', bottom: '6px', width: '1px', background: 'var(--border)' }} />
+                                  {tl.events.map((ev, i) => {
+                                    const { icon, color, text } = eventLabel(ev)
+                                    return (
+                                      <div key={i} style={{ display: 'flex', gap: '8px', alignItems: 'baseline', marginBottom: '6px', position: 'relative' }}>
+                                        {/* Dot */}
+                                        <div style={{
+                                          position: 'absolute', left: '-13px', top: '3px',
+                                          width: '7px', height: '7px', borderRadius: '50%',
+                                          background: color, border: '1px solid var(--card-bg)',
+                                          flexShrink: 0,
+                                        }} />
+                                        <span style={{ fontFamily: 'DM Mono, monospace', fontSize: '10px', color, fontWeight: 500, flexShrink: 0 }}>{icon}</span>
+                                        <span style={{ fontFamily: 'DM Mono, monospace', fontSize: '10px', color: 'var(--ink-soft)', flex: 1 }}>{text}</span>
+                                        <span style={{ fontFamily: 'DM Mono, monospace', fontSize: '9px', color: 'var(--ink-faint)', flexShrink: 0 }}>{fmtDate(ev.date)}</span>
+                                      </div>
+                                    )
+                                  })}
+                                  {/* Score actuel */}
+                                  {(tl.upvotes > 0 || tl.downvotes > 0) && (
+                                    <div style={{ marginTop: '4px', paddingTop: '6px', borderTop: '1px solid var(--border)', fontFamily: 'DM Mono, monospace', fontSize: '10px', color: 'var(--ink-faint)' }}>
+                                      <span style={{ color: 'var(--green-valid)' }}>+{tl.upvotes}</span>
+                                      <span style={{ margin: '0 4px' }}>·</span>
+                                      <span style={{ color: 'var(--red-soft)' }}>−{tl.downvotes}</span>
+                                      <span style={{ marginLeft: '4px' }}>votes</span>
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      )
+                    })()}
 
                     {/* ── Pied : votes + actions ── */}
                     {(currentStatus === 'PENDING' || currentStatus === 'ACCEPTED') && (

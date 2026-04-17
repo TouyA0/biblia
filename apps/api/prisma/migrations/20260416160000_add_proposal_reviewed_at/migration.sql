@@ -1,0 +1,1 @@
+ALTER TABLE "Proposal" ADD COLUMN "reviewedAt" TIMESTAMP(3);
