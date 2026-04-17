@@ -155,6 +155,8 @@ interface RightPanelProps {
   verseTranslations: VerseTranslation[]
   onTranslationAdded: () => void
   onCommentAdded: () => void
+  onLoadMoreComments?: () => Promise<void>
+  hasMoreComments?: boolean
   onProposalUpdated: () => Promise<void> | void
 }
 
@@ -240,6 +242,8 @@ export default function RightPanel({
   verseTranslations,
   onTranslationAdded,
   onCommentAdded,
+  onLoadMoreComments,
+  hasMoreComments,
   onProposalUpdated,
 }: RightPanelProps) {
   const [newTranslation, setNewTranslation] = useState('')
@@ -251,6 +255,7 @@ export default function RightPanel({
   const { user } = useAuthStore()
   // word translation discussions
   const [wtDiscussions, setWtDiscussions] = useState<Record<string, Comment[]>>({})
+  const [wtDiscussionCursors, setWtDiscussionCursors] = useState<Record<string, string | null>>({})
   const [wtOpenDiscussions, setWtOpenDiscussions] = useState<Set<string>>(new Set())
   const [wtLoadingDiscussion, setWtLoadingDiscussion] = useState<Set<string>>(new Set())
   const [wtCommentText, setWtCommentText] = useState<Record<string, string>>({})
@@ -312,6 +317,7 @@ export default function RightPanel({
   const [loadingTimelines, setLoadingTimelines] = useState<Set<string>>(new Set())
   const [openDiscussions, setOpenDiscussions] = useState<Set<string>>(new Set())
   const [proposalComments, setProposalComments] = useState<Record<string, Comment[]>>({})
+  const [proposalCommentCursors, setProposalCommentCursors] = useState<Record<string, string | null>>({})
   const [loadingDiscussion, setLoadingDiscussion] = useState<Set<string>>(new Set())
   const [proposalCommentText, setProposalCommentText] = useState<Record<string, string>>({})
   const [submittingProposalComment, setSubmittingProposalComment] = useState<Set<string>>(new Set())
@@ -401,16 +407,27 @@ export default function RightPanel({
   }
 
   const loadProposalComments = async (proposalId: string) => {
-    if (proposalComments[proposalId] !== undefined) return // already loaded
+    if (proposalComments[proposalId] !== undefined) return
     setLoadingDiscussion(prev => new Set([...prev, proposalId]))
     try {
       const res = await api.get(`/api/proposals/${proposalId}/comments`)
-      setProposalComments(prev => ({ ...prev, [proposalId]: res.data }))
+      setProposalComments(prev => ({ ...prev, [proposalId]: res.data.comments }))
+      setProposalCommentCursors(prev => ({ ...prev, [proposalId]: res.data.nextCursor }))
     } catch (e) {
       console.error(e)
     } finally {
       setLoadingDiscussion(prev => { const s = new Set(prev); s.delete(proposalId); return s })
     }
+  }
+
+  const loadMoreProposalComments = async (proposalId: string) => {
+    const cursor = proposalCommentCursors[proposalId]
+    if (!cursor) return
+    try {
+      const res = await api.get(`/api/proposals/${proposalId}/comments`, { params: { cursor } })
+      setProposalComments(prev => ({ ...prev, [proposalId]: [...(prev[proposalId] ?? []), ...res.data.comments] }))
+      setProposalCommentCursors(prev => ({ ...prev, [proposalId]: res.data.nextCursor }))
+    } catch (e) { console.error(e) }
   }
 
   // Détecte si le curseur est juste après un @mot en cours
@@ -579,9 +596,20 @@ export default function RightPanel({
     setWtLoadingDiscussion(prev => new Set([...prev, wtId]))
     try {
       const res = await api.get(`/api/word-translations/${wtId}/comments`)
-      setWtDiscussions(prev => ({ ...prev, [wtId]: res.data }))
+      setWtDiscussions(prev => ({ ...prev, [wtId]: res.data.comments }))
+      setWtDiscussionCursors(prev => ({ ...prev, [wtId]: res.data.nextCursor }))
     } catch (e) { console.error(e) }
     finally { setWtLoadingDiscussion(prev => { const n = new Set(prev); n.delete(wtId); return n }) }
+  }
+
+  async function loadMoreWtComments(wtId: string) {
+    const cursor = wtDiscussionCursors[wtId]
+    if (!cursor) return
+    try {
+      const res = await api.get(`/api/word-translations/${wtId}/comments`, { params: { cursor } })
+      setWtDiscussions(prev => ({ ...prev, [wtId]: [...(prev[wtId] ?? []), ...res.data.comments] }))
+      setWtDiscussionCursors(prev => ({ ...prev, [wtId]: res.data.nextCursor }))
+    } catch (e) { console.error(e) }
   }
 
   async function loadWtTimeline(wtId: string) {
@@ -1739,6 +1767,17 @@ export default function RightPanel({
                                   )}
                                 </div>
                               ))}
+                            </div>
+                          )}
+
+                          {proposalCommentCursors[p.id] && (
+                            <div style={{ textAlign: 'center', marginBottom: '8px' }}>
+                              <button
+                                onClick={() => loadMoreProposalComments(p.id)}
+                                style={{ padding: '4px 14px', borderRadius: '20px', border: '1px solid var(--border)', background: 'transparent', cursor: 'pointer', fontFamily: 'DM Mono, monospace', fontSize: '11px', color: 'var(--ink-muted)' }}
+                              >
+                                Charger plus
+                              </button>
                             </div>
                           )}
 
@@ -2999,6 +3038,17 @@ export default function RightPanel({
                               </div>
                             )}
 
+                            {wtDiscussionCursors[t.id] && (
+                              <div style={{ textAlign: 'center', marginBottom: '8px' }}>
+                                <button
+                                  onClick={() => loadMoreWtComments(t.id)}
+                                  style={{ padding: '4px 14px', borderRadius: '20px', border: '1px solid var(--border)', background: 'transparent', cursor: 'pointer', fontFamily: 'DM Mono, monospace', fontSize: '11px', color: 'var(--ink-muted)' }}
+                                >
+                                  Charger plus
+                                </button>
+                              </div>
+                            )}
+
                             {user && (
                               <div>
                                 {/* Bannière réponse */}
@@ -3543,6 +3593,17 @@ export default function RightPanel({
                 </div>
               ))}
               </div>
+
+              {hasMoreComments && onLoadMoreComments && (
+                <div style={{ textAlign: 'center', marginBottom: '16px' }}>
+                  <button
+                    onClick={onLoadMoreComments}
+                    style={{ padding: '6px 16px', borderRadius: '20px', border: '1px solid var(--border)', background: 'transparent', cursor: 'pointer', fontFamily: 'DM Mono, monospace', fontSize: '12px', color: 'var(--ink-muted)' }}
+                  >
+                    Charger plus de commentaires
+                  </button>
+                </div>
+              )}
 
               {/* ── Zone de rédaction ── */}
               {user ? (

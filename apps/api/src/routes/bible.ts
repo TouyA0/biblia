@@ -445,19 +445,27 @@ router.patch('/word-translations/:id/reopen', authenticateJWT, async (req: AuthR
 router.get('/word-translations/:id/comments', async (req: Request, res: Response) => {
   try {
     const id = req.params.id as string
+    const { cursor, limit = '20' } = req.query as { cursor?: string; limit?: string }
+    const take = Math.min(Number(limit), 50)
     const comments = await prisma.comment.findMany({
       where: { wordTranslationId: id, parentId: null },
       orderBy: { createdAt: 'asc' },
+      take,
+      ...(cursor ? { skip: 1, cursor: { id: cursor } } : {}),
       include: {
         creator: { select: { username: true, role: true } },
-        reactions: true,
+        reactions: { select: { userId: true, emoji: true, user: { select: { username: true } } } },
         replies: {
           orderBy: { createdAt: 'asc' },
-          include: { creator: { select: { username: true, role: true } }, reactions: true }
+          include: {
+            creator: { select: { username: true, role: true } },
+            reactions: { select: { userId: true, emoji: true, user: { select: { username: true } } } }
+          }
         }
       }
     })
-    res.json(comments)
+    const nextCursor = comments.length === take ? comments[comments.length - 1].id : null
+    res.json({ comments, nextCursor })
   } catch (error) {
     console.error(error)
     res.status(500).json({ error: 'Erreur serveur' })
@@ -724,9 +732,13 @@ router.get('/verses/:id', async (req: Request, res: Response) => {
 router.get('/verses/:id/comments', async (req: Request, res: Response) => {
   try {
     const id = req.params.id as string
+    const { cursor, limit = '20' } = req.query as { cursor?: string; limit?: string }
+    const take = Math.min(Number(limit), 50)
     const comments = await prisma.comment.findMany({
-      where: { verseId: id, parentId: null }, // seulement les commentaires racines
+      where: { verseId: id, parentId: null },
       orderBy: { createdAt: 'asc' },
+      take,
+      ...(cursor ? { skip: 1, cursor: { id: cursor } } : {}),
       include: {
         creator: { select: { username: true, role: true } },
         reactions: { select: { userId: true, emoji: true, user: { select: { username: true } } } },
@@ -739,7 +751,8 @@ router.get('/verses/:id/comments', async (req: Request, res: Response) => {
         }
       }
     })
-    res.json(comments)
+    const nextCursor = comments.length === take ? comments[comments.length - 1].id : null
+    res.json({ comments, nextCursor })
   } catch (error) {
     console.error(error)
     res.status(500).json({ error: 'Erreur serveur' })
@@ -849,9 +862,13 @@ router.post('/comments/:id/reply', authenticateJWT, async (req: AuthRequest, res
 router.get('/proposals/:id/comments', async (req: Request, res: Response) => {
   try {
     const proposalId = req.params.id as string
+    const { cursor, limit = '20' } = req.query as { cursor?: string; limit?: string }
+    const take = Math.min(Number(limit), 50)
     const comments = await prisma.comment.findMany({
       where: { proposalId, parentId: null },
       orderBy: { createdAt: 'asc' },
+      take,
+      ...(cursor ? { skip: 1, cursor: { id: cursor } } : {}),
       include: {
         creator: { select: { username: true, role: true } },
         reactions: { select: { userId: true, emoji: true, user: { select: { username: true } } } },
@@ -864,7 +881,8 @@ router.get('/proposals/:id/comments', async (req: Request, res: Response) => {
         }
       }
     })
-    res.json(comments)
+    const nextCursor = comments.length === take ? comments[comments.length - 1].id : null
+    res.json({ comments, nextCursor })
   } catch (error) {
     console.error(error)
     res.status(500).json({ error: 'Erreur serveur' })

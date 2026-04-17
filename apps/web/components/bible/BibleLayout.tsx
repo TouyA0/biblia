@@ -126,6 +126,7 @@ export default function BibleLayout({ testament }: BibleLayoutProps) {
   const [fullscreen, setFullscreen] = useState(false)
   const [wordTranslations, setWordTranslations] = useState<WordTranslation[]>([])
   const [comments, setComments] = useState<Comment[]>([])
+  const [verseCommentCursor, setVerseCommentCursor] = useState<string | null>(null)
   const [proposals, setProposals] = useState<Proposal[]>([])
   const [verseTranslations, setVerseTranslations] = useState<VerseTranslation[]>([])
 
@@ -163,7 +164,8 @@ export default function BibleLayout({ testament }: BibleLayoutProps) {
             api.get(`/api/verses/${verse.id}/comments`),
             api.get(`/api/verses/${verse.id}/proposals`),
           ]).then(([commentsRes, proposalsRes]) => {
-            setComments(commentsRes.data)
+            setComments(commentsRes.data.comments)
+            setVerseCommentCursor(commentsRes.data.nextCursor)
             setProposals(proposalsRes.data.proposals)
             setVerseTranslations(proposalsRes.data.translations)
           }).catch(console.error)
@@ -225,7 +227,8 @@ export default function BibleLayout({ testament }: BibleLayoutProps) {
           api.get(`/api/verses/${verse.id}/comments`),
           api.get(`/api/verses/${verse.id}/proposals`),
         ]).then(([commentsRes, proposalsRes]) => {
-          setComments(commentsRes.data)
+          setComments(commentsRes.data.comments)
+          setVerseCommentCursor(commentsRes.data.nextCursor)
           setProposals(proposalsRes.data.proposals)
           setVerseTranslations(proposalsRes.data.translations)
         }).catch(console.error)
@@ -269,11 +272,13 @@ export default function BibleLayout({ testament }: BibleLayoutProps) {
         api.get(`/api/verses/${verse.id}/comments`),
         api.get(`/api/verses/${verse.id}/proposals`),
       ])
-      setComments(commentsRes.data)
+      setComments(commentsRes.data.comments)
+      setVerseCommentCursor(commentsRes.data.nextCursor)
       setProposals(proposalsRes.data.proposals)
       setVerseTranslations(proposalsRes.data.translations)
     } catch {
       setComments([])
+      setVerseCommentCursor(null)
       setProposals([])
     }
   }
@@ -417,9 +422,18 @@ export default function BibleLayout({ testament }: BibleLayoutProps) {
     onCommentAdded: async () => {
       if (activeVerse) {
         const res = await api.get(`/api/verses/${activeVerse.id}/comments`)
-        setComments(res.data)
+        setComments(res.data.comments)
+        setVerseCommentCursor(res.data.nextCursor)
       }
     },
+    onLoadMoreComments: async () => {
+      if (activeVerse && verseCommentCursor) {
+        const res = await api.get(`/api/verses/${activeVerse.id}/comments`, { params: { cursor: verseCommentCursor } })
+        setComments(prev => [...prev, ...res.data.comments])
+        setVerseCommentCursor(res.data.nextCursor)
+      }
+    },
+    hasMoreComments: verseCommentCursor !== null,
     onProposalUpdated: async () => {
       if (activeVerse) {
         const [commentsRes, proposalsRes, chapterRes] = await Promise.all([
@@ -427,7 +441,8 @@ export default function BibleLayout({ testament }: BibleLayoutProps) {
           api.get(`/api/verses/${activeVerse.id}/proposals`),
           api.get(`/api/books/${book}/chapters/${chapter}`),
         ])
-        setComments(commentsRes.data)
+        setComments(commentsRes.data.comments)
+        setVerseCommentCursor(commentsRes.data.nextCursor)
         setProposals(proposalsRes.data.proposals)
         setVerseTranslations(proposalsRes.data.translations)
         setChapterData(chapterRes.data)
