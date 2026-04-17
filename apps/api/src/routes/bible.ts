@@ -6,6 +6,29 @@ import { logAction } from '../lib/audit'
 
 const router = Router()
 
+// Helper : envoyer des notifications aux @mentions dans un texte
+async function notifyMentions(text: string, authorId: string) {
+  const rawMentions = [...text.matchAll(/@([A-Za-z0-9_-]{2,30})/g)].map(m => m[1])
+  if (rawMentions.length === 0) return
+  const unique = [...new Set(rawMentions)]
+  const [mentionedUsers, author] = await Promise.all([
+    prisma.user.findMany({
+      where: { username: { in: unique, mode: 'insensitive' }, isActive: true, NOT: { id: authorId } },
+      select: { id: true }
+    }),
+    prisma.user.findUnique({ where: { id: authorId }, select: { username: true } })
+  ])
+  if (mentionedUsers.length === 0) return
+  await prisma.notification.createMany({
+    data: mentionedUsers.map(u => ({
+      userId: u.id,
+      type: 'MENTION',
+      message: `@${author?.username ?? 'quelqu\'un'} vous a mentionné dans un commentaire`,
+    })),
+    skipDuplicates: true,
+  })
+}
+
 // GET /api/settings — public
 router.get('/settings', async (_req, res: Response) => {
   try {
@@ -464,6 +487,7 @@ router.post('/verses/:id/comments', authenticateJWT, async (req: AuthRequest, re
         creator: { select: { username: true, role: true } }
       }
     })
+    await notifyMentions(text, req.user!.id)
     await logAction('COMMENT_ADDED', req.user!.id, { verseId: id }, req.ip)
     res.status(201).json(comment)
   } catch (error) {
@@ -529,6 +553,7 @@ router.post('/comments/:id/reply', authenticateJWT, async (req: AuthRequest, res
       })
     }
 
+    await notifyMentions(text, req.user!.id)
     res.status(201).json(reply)
   } catch (error) {
     if (error instanceof z.ZodError) {
@@ -603,6 +628,7 @@ router.post('/proposals/:id/comments', authenticateJWT, async (req: AuthRequest,
       })
     }
 
+    await notifyMentions(text, req.user!.id)
     await logAction('COMMENT_ADDED', req.user!.id, { proposalId }, req.ip)
     res.status(201).json(comment)
   } catch (error) {

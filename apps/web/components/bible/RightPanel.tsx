@@ -275,6 +275,13 @@ export default function RightPanel({
   const [proposalInsertMode, setProposalInsertMode] = useState<{ proposalId: string; mode: 'verse' | 'link' } | null>(null)
   const proposalTextareaRefs = useRef<Record<string, HTMLTextAreaElement | null>>({})
 
+  // Mention autocomplete
+  const [mentionQuery, setMentionQuery] = useState<string | null>(null)
+  const [mentionAnchor, setMentionAnchor] = useState<'main' | string | null>(null)
+  const [mentionResults, setMentionResults] = useState<{ id: string; username: string; role: string }[]>([])
+  const [mentionIdx, setMentionIdx] = useState(0)
+  const mentionDebounce = useRef<ReturnType<typeof setTimeout> | null>(null)
+
   const booksByTestament = {
     AT: Object.keys(BOOK_NAME_TO_SLUG).slice(0, 46),
     NT: Object.keys(BOOK_NAME_TO_SLUG).slice(46),
@@ -335,6 +342,51 @@ export default function RightPanel({
     } finally {
       setLoadingDiscussion(prev => { const s = new Set(prev); s.delete(proposalId); return s })
     }
+  }
+
+  // Détecte si le curseur est juste après un @mot en cours
+  const detectMention = (value: string, cursorPos: number): string | null => {
+    const before = value.slice(0, cursorPos)
+    const match = before.match(/@([A-Za-z0-9_-]*)$/)
+    return match ? match[1] : null
+  }
+
+  const handleMentionInput = (value: string, cursorPos: number, anchor: 'main' | string) => {
+    const q = detectMention(value, cursorPos)
+    if (q === null) { setMentionQuery(null); setMentionAnchor(null); setMentionResults([]); return }
+    setMentionQuery(q)
+    setMentionAnchor(anchor)
+    setMentionIdx(0)
+    if (mentionDebounce.current) clearTimeout(mentionDebounce.current)
+    if (q.length < 1) { setMentionResults([]); return }
+    mentionDebounce.current = setTimeout(async () => {
+      try {
+        const res = await api.get(`/api/users/search?q=${encodeURIComponent(q)}`)
+        setMentionResults(res.data.slice(0, 6))
+      } catch { setMentionResults([]) }
+    }, 150)
+  }
+
+  const insertMention = (username: string, anchor: 'main' | string) => {
+    if (anchor === 'main') {
+      const ta = commentRef.current
+      if (!ta) return
+      const before = newComment.slice(0, ta.selectionStart)
+      const after = newComment.slice(ta.selectionStart)
+      const replaced = before.replace(/@([A-Za-z0-9_-]*)$/, `@${username} `)
+      setNewComment(replaced + after)
+      setTimeout(() => { ta.focus(); ta.setSelectionRange(replaced.length, replaced.length) }, 0)
+    } else {
+      const ta = proposalTextareaRefs.current[anchor]
+      const cur = proposalCommentText[anchor] || ''
+      if (!ta) return
+      const before = cur.slice(0, ta.selectionStart)
+      const after = cur.slice(ta.selectionStart)
+      const replaced = before.replace(/@([A-Za-z0-9_-]*)$/, `@${username} `)
+      setProposalCommentText(prev => ({ ...prev, [anchor]: replaced + after }))
+      setTimeout(() => { ta.focus(); ta.setSelectionRange(replaced.length, replaced.length) }, 0)
+    }
+    setMentionQuery(null); setMentionAnchor(null); setMentionResults([])
   }
 
   const validatedTranslations = wordTranslations.filter(t => t.isValidated)
@@ -534,6 +586,39 @@ export default function RightPanel({
             )}
           </div>
         )}
+      </div>
+    )
+  }
+
+  const MentionDropdown = ({ anchor }: { anchor: 'main' | string }) => {
+    if (mentionAnchor !== anchor || mentionResults.length === 0) return null
+    return (
+      <div style={{
+        position: 'absolute', bottom: '100%', left: 0, right: 0, zIndex: 200,
+        background: 'var(--card-bg)', border: '1px solid var(--border)',
+        borderRadius: '8px', boxShadow: 'var(--shadow-md)',
+        overflow: 'hidden', marginBottom: '4px',
+      }}>
+        {mentionResults.map((u, i) => (
+          <button
+            key={u.id}
+            onMouseDown={e => { e.preventDefault(); insertMention(u.username, anchor) }}
+            style={{
+              display: 'flex', alignItems: 'center', gap: '8px',
+              width: '100%', padding: '7px 12px', background: i === mentionIdx ? 'var(--parchment-dark)' : 'transparent',
+              border: 'none', cursor: 'pointer', textAlign: 'left',
+              borderBottom: i < mentionResults.length - 1 ? '1px solid var(--border)' : 'none',
+            }}
+            onMouseEnter={() => setMentionIdx(i)}
+          >
+            <span style={{ fontFamily: 'DM Mono, monospace', fontSize: '12px', color: getRoleColor(u.role), fontWeight: 500 }}>
+              @{u.username}
+            </span>
+            <span style={{ fontFamily: 'DM Mono, monospace', fontSize: '10px', color: 'var(--ink-faint)', textTransform: 'uppercase' }}>
+              {u.role}
+            </span>
+          </button>
+        ))}
       </div>
     )
   }
@@ -1520,33 +1605,47 @@ export default function RightPanel({
                                 </div>
                               )}
 
-                              {/* Textarea */}
-                              <textarea
-                                ref={el => { proposalTextareaRefs.current[p.id] = el }}
-                                value={proposalCommentText[p.id] || ''}
-                                onChange={e => setProposalCommentText(prev => ({ ...prev, [p.id]: e.target.value }))}
-                                onInput={e => {
-                                  const ta = e.target as HTMLTextAreaElement
-                                  ta.style.height = 'auto'
-                                  ta.style.height = ta.scrollHeight + 'px'
-                                }}
-                                placeholder={proposalReplyingTo?.proposalId === p.id
-                                  ? `Répondre à @${proposalReplyingTo.username}…`
-                                  : 'Votre avis…'
-                                }
-                                rows={1}
-                                style={{
-                                  width: '100%', padding: '7px 10px',
-                                  border: `1px solid ${proposalReplyingTo?.proposalId === p.id ? 'rgba(184,132,58,0.4)' : 'var(--border)'}`,
-                                  borderRadius: '8px',
-                                  fontFamily: 'Spectral, serif', fontSize: '13px',
-                                  color: 'var(--ink)', background: 'var(--input-bg)', outline: 'none',
-                                  resize: 'none', overflow: 'hidden', transition: 'border-color 0.15s',
-                                  minHeight: '36px', marginBottom: '6px', boxSizing: 'border-box',
-                                }}
-                                onFocus={e => (e.target as HTMLElement).style.borderColor = 'rgba(184,132,58,0.4)'}
-                                onBlur={e => (e.target as HTMLElement).style.borderColor = proposalReplyingTo?.proposalId === p.id ? 'rgba(184,132,58,0.4)' : 'var(--border)'}
-                              />
+                              {/* Textarea + dropdown mention */}
+                              <div style={{ position: 'relative' }}>
+                                <MentionDropdown anchor={p.id} />
+                                <textarea
+                                  ref={el => { proposalTextareaRefs.current[p.id] = el }}
+                                  value={proposalCommentText[p.id] || ''}
+                                  onChange={e => {
+                                    setProposalCommentText(prev => ({ ...prev, [p.id]: e.target.value }))
+                                    handleMentionInput(e.target.value, e.target.selectionStart, p.id)
+                                  }}
+                                  onInput={e => {
+                                    const ta = e.target as HTMLTextAreaElement
+                                    ta.style.height = 'auto'
+                                    ta.style.height = ta.scrollHeight + 'px'
+                                  }}
+                                  onKeyDown={e => {
+                                    if (mentionAnchor === p.id && mentionResults.length > 0) {
+                                      if (e.key === 'ArrowDown') { e.preventDefault(); setMentionIdx(i => Math.min(i + 1, mentionResults.length - 1)); return }
+                                      if (e.key === 'ArrowUp') { e.preventDefault(); setMentionIdx(i => Math.max(i - 1, 0)); return }
+                                      if (e.key === 'Enter' || e.key === 'Tab') { e.preventDefault(); insertMention(mentionResults[mentionIdx]?.username, p.id); return }
+                                      if (e.key === 'Escape') { setMentionQuery(null); setMentionAnchor(null); setMentionResults([]); return }
+                                    }
+                                  }}
+                                  placeholder={proposalReplyingTo?.proposalId === p.id
+                                    ? `Répondre à @${proposalReplyingTo.username}…`
+                                    : 'Votre avis… (tapez @ pour mentionner)'
+                                  }
+                                  rows={1}
+                                  style={{
+                                    width: '100%', padding: '7px 10px',
+                                    border: `1px solid ${proposalReplyingTo?.proposalId === p.id ? 'rgba(184,132,58,0.4)' : 'var(--border)'}`,
+                                    borderRadius: '8px',
+                                    fontFamily: 'Spectral, serif', fontSize: '13px',
+                                    color: 'var(--ink)', background: 'var(--input-bg)', outline: 'none',
+                                    resize: 'none', overflow: 'hidden', transition: 'border-color 0.15s',
+                                    minHeight: '36px', marginBottom: '6px', boxSizing: 'border-box',
+                                  }}
+                                  onFocus={e => (e.target as HTMLElement).style.borderColor = 'rgba(184,132,58,0.4)'}
+                                  onBlur={e => (e.target as HTMLElement).style.borderColor = proposalReplyingTo?.proposalId === p.id ? 'rgba(184,132,58,0.4)' : 'var(--border)'}
+                                />
+                              </div>
 
                               {/* Panneau insertion verset */}
                               {proposalInsertMode?.proposalId === p.id && proposalInsertMode.mode === 'verse' && (
@@ -2842,20 +2941,32 @@ export default function RightPanel({
                     )
                   })()}
 
-                  {/* Textarea */}
-                  <textarea
-                    ref={commentRef}
-                    value={newComment}
-                    onChange={e => setNewComment(e.target.value)}
-                    onKeyDown={e => {
-                      if (e.key === 'Enter' && (e.metaKey || e.ctrlKey) && newComment.trim()) {
-                        e.preventDefault()
-                        e.currentTarget.form?.requestSubmit?.()
-                      }
-                    }}
-                    placeholder={replyingToId ? 'Écrire une réponse…' : 'Ajouter un commentaire…'}
-                    style={{ width: '100%', padding: '10px 12px', border: `1px solid ${replyingToId ? 'rgba(184,132,58,0.4)' : 'var(--border)'}`, borderRadius: '8px', background: 'var(--card-bg)', fontFamily: 'Spectral, serif', fontSize: '13.5px', color: 'var(--ink)', resize: 'none', minHeight: '80px', overflow: 'hidden', outline: 'none', marginBottom: '8px', transition: 'border-color 0.15s' }}
-                  />
+                  {/* Textarea + dropdown mention */}
+                  <div style={{ position: 'relative' }}>
+                    <MentionDropdown anchor="main" />
+                    <textarea
+                      ref={commentRef}
+                      value={newComment}
+                      onChange={e => {
+                        setNewComment(e.target.value)
+                        handleMentionInput(e.target.value, e.target.selectionStart, 'main')
+                      }}
+                      onKeyDown={e => {
+                        if (mentionAnchor === 'main' && mentionResults.length > 0) {
+                          if (e.key === 'ArrowDown') { e.preventDefault(); setMentionIdx(i => Math.min(i + 1, mentionResults.length - 1)); return }
+                          if (e.key === 'ArrowUp') { e.preventDefault(); setMentionIdx(i => Math.max(i - 1, 0)); return }
+                          if (e.key === 'Enter' || e.key === 'Tab') { e.preventDefault(); insertMention(mentionResults[mentionIdx]?.username, 'main'); return }
+                          if (e.key === 'Escape') { setMentionQuery(null); setMentionAnchor(null); setMentionResults([]); return }
+                        }
+                        if (e.key === 'Enter' && (e.metaKey || e.ctrlKey) && newComment.trim()) {
+                          e.preventDefault()
+                          e.currentTarget.form?.requestSubmit?.()
+                        }
+                      }}
+                      placeholder={replyingToId ? 'Écrire une réponse…' : 'Ajouter un commentaire… (tapez @ pour mentionner)'}
+                      style={{ width: '100%', padding: '10px 12px', border: `1px solid ${replyingToId ? 'rgba(184,132,58,0.4)' : 'var(--border)'}`, borderRadius: '8px', background: 'var(--card-bg)', fontFamily: 'Spectral, serif', fontSize: '13.5px', color: 'var(--ink)', resize: 'none', minHeight: '80px', overflow: 'hidden', outline: 'none', marginBottom: '8px', transition: 'border-color 0.15s' }}
+                    />
+                  </div>
 
                   {/* Panneaux d'insertion */}
                   {insertMode === 'verse' && (

@@ -256,17 +256,20 @@ export default function NotificationBell() {
                               : n.type === 'PROPOSAL_REJECTED' ? 'var(--red-light)'
                               : n.type === 'PROPOSAL_VOTE' ? 'var(--amber-light)'
                               : n.type === 'PROPOSAL_COMMENT' ? 'rgba(42,74,122,0.1)'
+                              : n.type === 'MENTION' ? 'var(--gold-pale)'
                               : 'var(--blue-light)',
                             color: n.type === 'PROPOSAL_ACCEPTED' ? 'var(--green-valid)'
                               : n.type === 'PROPOSAL_REJECTED' ? 'var(--red-soft)'
                               : n.type === 'PROPOSAL_VOTE' ? 'var(--amber-pending)'
                               : n.type === 'PROPOSAL_COMMENT' ? 'rgba(42,74,122,0.9)'
+                              : n.type === 'MENTION' ? 'var(--gold)'
                               : 'var(--blue-sacred)',
                           }}>
                             {n.type === 'PROPOSAL_ACCEPTED' ? '✓ Acceptée'
                               : n.type === 'PROPOSAL_REJECTED' ? '✕ Rejetée'
                               : n.type === 'PROPOSAL_VOTE' ? '▲ Vote'
                               : n.type === 'PROPOSAL_COMMENT' ? '💬 Commentaire'
+                              : n.type === 'MENTION' ? '@ Mention'
                               : '↩ Réponse'}
                           </span>
                           {getRefFromLink(n.link) && (

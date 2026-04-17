@@ -41,7 +41,8 @@ export default function CommentText({ text, disableLinks = false }: CommentTextP
   }, [disableLinks])
 
   const renderText = () => {
-    const combined = /\[([^\]]+)\]\((https?:\/\/[^)]+)\)|\[([A-Za-zÀ-ÿ0-9\s]+\d+:\d+)\]/g
+    // Groupes : 1+2 = lien markdown, 3 = ref verset, 4 = @mention
+    const combined = /\[([^\]]+)\]\((https?:\/\/[^)]+)\)|\[([A-Za-zÀ-ÿ0-9\s]+\d+:\d+)\]|@([A-Za-z0-9_-]{2,30})/g
     const result: React.ReactNode[] = []
     let lastIndex = 0
     let m: RegExpExecArray | null
@@ -115,6 +116,22 @@ export default function CommentText({ text, disableLinks = false }: CommentTextP
                 cursor: 'pointer',
               }
             }, verseRef)
+        )
+      } else if (m[4]) {
+        const username = m[4]
+        result.push(
+          React.createElement(disableLinks ? 'span' : 'a', {
+            key: m.index,
+            ...(disableLinks ? {} : { href: `/profile/${username}` }),
+            style: {
+              color: 'var(--gold)',
+              fontFamily: 'DM Mono, monospace',
+              fontSize: '0.9em',
+              fontWeight: '500',
+              textDecoration: 'none',
+              cursor: disableLinks ? 'default' : 'pointer',
+            }
+          }, `@${username}`)
         )
       }
       lastIndex = m.index + m[0].length
