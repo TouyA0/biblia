@@ -80,6 +80,8 @@ model Chapter {
   number Int
   book   Book    @relation(fields: [bookId], references: [id])
   verses Verse[]
+
+  @@index([bookId])
 }
 
 model Verse {
@@ -91,6 +93,8 @@ model Verse {
   texts        VerseText[]
   translations Translation[]
   comments     Comment[]
+
+  @@index([chapterId])
 }
 
 model VerseText {
@@ -101,6 +105,9 @@ model VerseText {
   source     String
   verse      Verse       @relation(fields: [verseId], references: [id])
   wordTokens WordToken[]
+
+  @@index([verseId])
+  @@index([verseId, language])
 }
 
 model Translation {
@@ -115,6 +122,9 @@ model Translation {
   createdAt   DateTime   @default(now())
   verse       Verse      @relation(fields: [verseId], references: [id])
   proposals   Proposal[]
+
+  @@index([verseId])
+  @@index([verseId, isActive])
 }
 
 model WordToken {
@@ -129,6 +139,9 @@ model WordToken {
   verseText    VerseText         @relation(fields: [verseTextId], references: [id])
   translations WordTranslation[]
   comments     Comment[]
+
+  @@index([verseTextId])
+  @@index([lemma])
 }
 
 model WordTranslation {
@@ -151,6 +164,10 @@ model WordTranslation {
   comments    Comment[]
   versions    WordTranslationVersion[]
   events      WordTranslationEvent[]
+
+  @@index([wordTokenId])
+  @@index([status])
+  @@index([createdBy])
 }
 
 model Proposal {
@@ -171,6 +188,10 @@ model Proposal {
   comments      Comment[]
   versions      ProposalVersion[]
   events        ProposalEvent[]
+
+  @@index([translationId])
+  @@index([status])
+  @@index([createdBy])
 }
 
 model ProposalVersion {
@@ -181,6 +202,8 @@ model ProposalVersion {
   changeReason  String?
   versionNumber Int
   createdAt     DateTime @default(now())
+
+  @@index([proposalId])
 }
 
 model WordTranslationVersion {
@@ -191,6 +214,8 @@ model WordTranslationVersion {
   changeReason      String?
   versionNumber     Int
   createdAt         DateTime        @default(now())
+
+  @@index([wordTranslationId])
 }
 
 model WordTranslationEvent {
@@ -203,6 +228,8 @@ model WordTranslationEvent {
   note              String?
   score             Int?
   createdAt         DateTime        @default(now())
+
+  @@index([wordTranslationId])
 }
 
 model ProposalEvent {
@@ -215,6 +242,8 @@ model ProposalEvent {
   note       String?  // raison du rejet, etc.
   score      Int?     // score net des votes au moment du changement de statut
   createdAt  DateTime @default(now())
+
+  @@index([proposalId])
 }
 
 model Vote {
@@ -230,6 +259,8 @@ model Vote {
 
   @@unique([userId, proposalId])
   @@unique([userId, wordTranslationId])
+  @@index([proposalId])
+  @@index([wordTranslationId])
 }
 
 model Comment {
@@ -252,6 +283,13 @@ model Comment {
   parent      Comment?  @relation("CommentReplies", fields: [parentId], references: [id])
   replies     Comment[] @relation("CommentReplies")
   reactions   CommentReaction[]
+
+  @@index([verseId])
+  @@index([proposalId])
+  @@index([wordTokenId])
+  @@index([wordTranslationId])
+  @@index([parentId])
+  @@index([createdBy])
 }
 
 model AuditLog {
@@ -265,6 +303,10 @@ model AuditLog {
   userAgent  String?
   createdAt  DateTime @default(now())
   user       User?    @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([createdAt])
+  @@index([targetType, targetId])
 }
 
 model Session {
@@ -276,6 +318,9 @@ model Session {
   userAgent String?
   createdAt DateTime @default(now())
   user      User     @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([expiresAt])
 }
 
 model Notification {
@@ -287,6 +332,9 @@ model Notification {
   link      String?
   isRead    Boolean  @default(false)
   createdAt DateTime @default(now())
+
+  @@index([userId, isRead])
+  @@index([createdAt])
 }
 
 model CommentReaction {
