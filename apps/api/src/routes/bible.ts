@@ -3,6 +3,7 @@ import { Router, Request, Response } from 'express'
 import { prisma } from '../lib/prisma'
 import { authenticateJWT, AuthRequest, checkRole } from '../middlewares/auth'
 import { logAction } from '../lib/audit'
+import { voteLimiter } from '../middlewares/rateLimits'
 
 const router = Router()
 
@@ -550,7 +551,7 @@ router.get('/word-translations/:id/timeline', async (req: Request, res: Response
 })
 
 // POST /api/word-translations/:id/vote
-router.post('/word-translations/:id/vote', authenticateJWT, async (req: AuthRequest, res: Response) => {
+router.post('/word-translations/:id/vote', voteLimiter, authenticateJWT, async (req: AuthRequest, res: Response) => {
   try {
     if (!['INTERMEDIATE', 'EXPERT', 'ADMIN'].includes(req.user!.role)) {
       res.status(403).json({ error: 'Vous devez être au moins Intermédiaire pour voter' }); return
@@ -1306,7 +1307,7 @@ router.patch('/proposals/:id/reject', authenticateJWT, async (req: AuthRequest, 
 })
 
 // POST /api/proposals/:id/vote
-router.post('/proposals/:id/vote', authenticateJWT, async (req: AuthRequest, res: Response) => {
+router.post('/proposals/:id/vote', voteLimiter, authenticateJWT, async (req: AuthRequest, res: Response) => {
   try {
     if (!['INTERMEDIATE', 'EXPERT', 'ADMIN'].includes(req.user!.role)) {
       res.status(403).json({ error: 'Vous devez être au moins Intermédiaire pour voter' }); return
