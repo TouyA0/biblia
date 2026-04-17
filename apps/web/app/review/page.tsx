@@ -64,8 +64,13 @@ export default function ReviewPage() {
   const router = useRouter()
   const [tab, setTab] = useState<'proposals' | 'words'>('proposals')
   const [proposals, setProposals] = useState<PendingProposal[]>([])
+  const [proposalCursor, setProposalCursor] = useState<string | null>(null)
+  const [proposalTotal, setProposalTotal] = useState(0)
   const [words, setWords] = useState<PendingWord[]>([])
+  const [wordCursor, setWordCursor] = useState<string | null>(null)
+  const [wordTotal, setWordTotal] = useState(0)
   const [loading, setLoading] = useState(true)
+  const [loadingMore, setLoadingMore] = useState(false)
   const [voteThresholds, setVoteThresholds] = useState({ accept: 5, reject: -3 })
   const [rejectingId, setRejectingId] = useState<string | null>(null)
   const [rejectReason, setRejectReason] = useState('')
@@ -100,8 +105,12 @@ export default function ReviewPage() {
       api.get('/api/review/proposals'),
       api.get('/api/review/words'),
     ]).then(([r1, r2]) => {
-      setProposals(r1.data)
-      setWords(r2.data)
+      setProposals(r1.data.proposals)
+      setProposalCursor(r1.data.nextCursor)
+      setProposalTotal(r1.data.total)
+      setWords(r2.data.words)
+      setWordCursor(r2.data.nextCursor)
+      setWordTotal(r2.data.total)
     }).catch(console.error).finally(() => setLoading(false))
   }, [user])
 
@@ -126,6 +135,26 @@ export default function ReviewPage() {
 
   const setAction = (id: string) => setActioning(prev => new Set([...prev, id]))
   const clearAction = (id: string) => setActioning(prev => { const s = new Set(prev); s.delete(id); return s })
+
+  const loadMoreProposals = async () => {
+    if (!proposalCursor || loadingMore) return
+    setLoadingMore(true)
+    try {
+      const res = await api.get('/api/review/proposals', { params: { cursor: proposalCursor } })
+      setProposals(prev => [...prev, ...res.data.proposals])
+      setProposalCursor(res.data.nextCursor)
+    } catch (e) { console.error(e) } finally { setLoadingMore(false) }
+  }
+
+  const loadMoreWords = async () => {
+    if (!wordCursor || loadingMore) return
+    setLoadingMore(true)
+    try {
+      const res = await api.get('/api/review/words', { params: { cursor: wordCursor } })
+      setWords(prev => [...prev, ...res.data.words])
+      setWordCursor(res.data.nextCursor)
+    } catch (e) { console.error(e) } finally { setLoadingMore(false) }
+  }
 
   // ── Proposal actions ──────────────────────────────────────────────────────
 
@@ -261,14 +290,14 @@ export default function ReviewPage() {
                   minWidth: '20px', height: '18px', padding: '0 5px',
                   borderRadius: '9px',
                   background: t === 'proposals'
-                    ? (proposals.length > 0 ? 'var(--amber-light)' : 'var(--parchment-dark)')
-                    : (words.length > 0 ? 'var(--blue-light)' : 'var(--parchment-dark)'),
+                    ? (proposalTotal > 0 ? 'var(--amber-light)' : 'var(--parchment-dark)')
+                    : (wordTotal > 0 ? 'var(--blue-light)' : 'var(--parchment-dark)'),
                   color: t === 'proposals'
-                    ? (proposals.length > 0 ? 'var(--amber-pending)' : 'var(--ink-faint)')
-                    : (words.length > 0 ? 'var(--blue-sacred)' : 'var(--ink-faint)'),
+                    ? (proposalTotal > 0 ? 'var(--amber-pending)' : 'var(--ink-faint)')
+                    : (wordTotal > 0 ? 'var(--blue-sacred)' : 'var(--ink-faint)'),
                   fontSize: '10px',
                 }}>
-                  {t === 'proposals' ? proposals.length : words.length}
+                  {t === 'proposals' ? proposalTotal : wordTotal}
                 </span>
               )}
             </button>
@@ -514,6 +543,17 @@ export default function ReviewPage() {
                     </div>
                   )
                 })}
+                {proposalCursor && (
+                  <div style={{ textAlign: 'center', padding: '12px 0' }}>
+                    <button
+                      onClick={loadMoreProposals}
+                      disabled={loadingMore}
+                      style={{ padding: '7px 20px', borderRadius: '20px', border: '1px solid var(--border)', background: 'transparent', cursor: loadingMore ? 'default' : 'pointer', fontFamily: 'DM Mono, monospace', fontSize: '12px', color: 'var(--ink-muted)', opacity: loadingMore ? 0.5 : 1 }}
+                    >
+                      {loadingMore ? 'Chargement…' : `Charger plus (${proposalTotal - proposals.length} restantes)`}
+                    </button>
+                  </div>
+                )}
               </div>
             )
           ) : (
@@ -622,6 +662,17 @@ export default function ReviewPage() {
                     </div>
                   )
                 })}
+                {wordCursor && (
+                  <div style={{ textAlign: 'center', padding: '12px 0' }}>
+                    <button
+                      onClick={loadMoreWords}
+                      disabled={loadingMore}
+                      style={{ padding: '7px 20px', borderRadius: '20px', border: '1px solid var(--border)', background: 'transparent', cursor: loadingMore ? 'default' : 'pointer', fontFamily: 'DM Mono, monospace', fontSize: '12px', color: 'var(--ink-muted)', opacity: loadingMore ? 0.5 : 1 }}
+                    >
+                      {loadingMore ? 'Chargement…' : `Charger plus (${wordTotal - words.length} restants)`}
+                    </button>
+                  </div>
+                )}
               </div>
             )
           )

@@ -1711,27 +1711,35 @@ router.get('/proposals/:id/timeline', authenticateJWT, async (req: AuthRequest, 
 // GET /api/review/proposals — propositions PENDING (EXPERT/ADMIN)
 router.get('/review/proposals', authenticateJWT, checkRole(['EXPERT', 'ADMIN']), async (req: AuthRequest, res: Response) => {
   try {
-    const proposals = await prisma.proposal.findMany({
-      where: { status: 'PENDING' },
-      orderBy: { createdAt: 'asc' },
-      include: {
-        creator: { select: { username: true, role: true } },
-        votes: { select: { id: true, userId: true, value: true } },
-        _count: { select: { comments: true } },
-        translation: {
-          include: {
-            verse: {
-              include: {
-                chapter: {
-                  include: { book: { select: { name: true, slug: true, testament: true } } }
+    const { cursor, limit = '20' } = req.query as { cursor?: string; limit?: string }
+    const take = Math.min(Number(limit), 50)
+    const [proposals, total] = await Promise.all([
+      prisma.proposal.findMany({
+        where: { status: 'PENDING' },
+        orderBy: { createdAt: 'asc' },
+        take,
+        ...(cursor ? { skip: 1, cursor: { id: cursor } } : {}),
+        include: {
+          creator: { select: { username: true, role: true } },
+          votes: { select: { id: true, userId: true, value: true } },
+          _count: { select: { comments: true } },
+          translation: {
+            include: {
+              verse: {
+                include: {
+                  chapter: {
+                    include: { book: { select: { name: true, slug: true, testament: true } } }
+                  }
                 }
               }
             }
           }
         }
-      }
-    })
-    res.json(proposals)
+      }),
+      prisma.proposal.count({ where: { status: 'PENDING' } }),
+    ])
+    const nextCursor = proposals.length === take ? proposals[proposals.length - 1].id : null
+    res.json({ proposals, nextCursor, total })
   } catch (error) {
     console.error(error)
     res.status(500).json({ error: 'Erreur serveur' })
@@ -1741,22 +1749,28 @@ router.get('/review/proposals', authenticateJWT, checkRole(['EXPERT', 'ADMIN']),
 // GET /api/review/words — traductions de mots non validées (EXPERT/ADMIN)
 router.get('/review/words', authenticateJWT, checkRole(['EXPERT', 'ADMIN']), async (req: AuthRequest, res: Response) => {
   try {
-    const words = await prisma.wordTranslation.findMany({
-      where: { isValidated: false },
-      orderBy: { createdAt: 'asc' },
-      include: {
-        creator: { select: { username: true, role: true } },
-        wordToken: {
-          select: {
-            id: true,
-            word: true,
-            lemma: true,
-            verseText: {
-              include: {
-                verse: {
-                  include: {
-                    chapter: {
-                      include: { book: { select: { name: true, slug: true, testament: true } } }
+    const { cursor, limit = '20' } = req.query as { cursor?: string; limit?: string }
+    const take = Math.min(Number(limit), 50)
+    const [words, total] = await Promise.all([
+      prisma.wordTranslation.findMany({
+        where: { isValidated: false },
+        orderBy: { createdAt: 'asc' },
+        take,
+        ...(cursor ? { skip: 1, cursor: { id: cursor } } : {}),
+        include: {
+          creator: { select: { username: true, role: true } },
+          wordToken: {
+            select: {
+              id: true,
+              word: true,
+              lemma: true,
+              verseText: {
+                include: {
+                  verse: {
+                    include: {
+                      chapter: {
+                        include: { book: { select: { name: true, slug: true, testament: true } } }
+                      }
                     }
                   }
                 }
@@ -1764,9 +1778,11 @@ router.get('/review/words', authenticateJWT, checkRole(['EXPERT', 'ADMIN']), asy
             }
           }
         }
-      }
-    })
-    res.json(words)
+      }),
+      prisma.wordTranslation.count({ where: { isValidated: false } }),
+    ])
+    const nextCursor = words.length === take ? words[words.length - 1].id : null
+    res.json({ words, nextCursor, total })
   } catch (error) {
     console.error(error)
     res.status(500).json({ error: 'Erreur serveur' })
