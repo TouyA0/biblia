@@ -790,12 +790,20 @@ router.patch('/proposals/:id/accept', authenticateJWT, async (req: AuthRequest, 
     })
     if (!proposal) { res.status(404).json({ error: 'Proposition non trouvée' }); return }
 
+    // Capturer le score avant de supprimer les votes
+    const votesBeforeAccept = await prisma.vote.findMany({ where: { proposalId: id }, select: { value: true } })
+    const scoreBeforeAccept = votesBeforeAccept.reduce((s, v) => s + v.value, 0)
     // Réinitialiser les votes pour repartir à zéro après changement de statut
     await prisma.vote.deleteMany({ where: { proposalId: id } })
     // Juste marquer la proposition comme acceptée, sans changer isActive
+    const now = new Date()
     const updated = await prisma.proposal.update({
       where: { id },
-      data: { status: 'ACCEPTED', reviewedBy: req.user!.id, reviewedAt: new Date() }
+      data: { status: 'ACCEPTED', reviewedBy: req.user!.id, reviewedAt: now }
+    })
+    // Journal immuable (score au moment de l'acceptation)
+    await prisma.proposalEvent.create({
+      data: { proposalId: id, type: 'accepted', actorId: req.user!.id, createdAt: now, score: scoreBeforeAccept }
     })
     await logAction('PROPOSAL_ACCEPTED', req.user!.id, { proposalId: id }, req.ip)
 
@@ -840,12 +848,19 @@ router.patch('/proposals/:id/reopen', authenticateJWT, async (req: AuthRequest, 
     if (!proposal) { res.status(404).json({ error: 'Proposition non trouvée' }); return }
     if (proposal.status !== 'ACCEPTED') { res.status(400).json({ error: 'La proposition n\'est pas acceptée' }); return }
 
+    // Capturer le score avant de supprimer les votes
+    const votesBeforeReopen = await prisma.vote.findMany({ where: { proposalId: id }, select: { value: true } })
+    const scoreBeforeReopen = votesBeforeReopen.reduce((s, v) => s + v.value, 0)
     await prisma.vote.deleteMany({ where: { proposalId: id } })
     const updated = await prisma.proposal.update({
       where: { id },
       data: { status: 'PENDING', reviewedBy: null, reviewedAt: null }
     })
-    await logAction('PROPOSAL_ACCEPTED', req.user!.id, { proposalId: id, action: 'reopen' }, req.ip)
+    // Journal immuable — l'historique d'acceptation est préservé dans ProposalEvent
+    await prisma.proposalEvent.create({
+      data: { proposalId: id, type: 'reopened', actorId: req.user!.id, score: scoreBeforeReopen }
+    })
+    await logAction('PROPOSAL_REOPENED', req.user!.id, { proposalId: id }, req.ip)
     res.json(updated)
   } catch (error) {
     console.error(error)
@@ -903,6 +918,11 @@ router.patch('/proposals/:id/activate', authenticateJWT, async (req: AuthRequest
       where: { id },
       include: { translation: { include: { verse: { include: { chapter: { include: { book: true } } } } } } }
     })
+    // Journal immuable
+    await prisma.proposalEvent.create({
+      data: { proposalId: id, type: 'activated', actorId: req.user!.id }
+    })
+
     if (proposalWithInfo?.createdBy && proposalWithInfo.createdBy !== req.user!.id) {
       const verse = proposalWithInfo.translation.verse
       const link = `/${verse.chapter.book.testament === 'AT' ? 'at' : 'nt'}/${verse.chapter.book.slug}/${verse.chapter.number}?verse=${verse.id}&tab=verse#v${verse.number}`
@@ -962,13 +982,22 @@ router.patch('/proposals/:id/reject', authenticateJWT, async (req: AuthRequest, 
       reason: z.string().min(1).max(500)
     }).parse(req.body)
 
+    // Capturer le score avant de supprimer les votes
+    const votesBeforeReject = await prisma.vote.findMany({ where: { proposalId: id }, select: { value: true } })
+    const scoreBeforeReject = votesBeforeReject.reduce((s, v) => s + v.value, 0)
+    await prisma.vote.deleteMany({ where: { proposalId: id } })
+    const now = new Date()
     const updated = await prisma.proposal.update({
       where: { id },
-      data: { status: 'REJECTED', reason, reviewedBy: req.user!.id, reviewedAt: new Date() }
+      data: { status: 'REJECTED', reason, reviewedBy: req.user!.id, reviewedAt: now }
+    })
+    // Journal immuable
+    await prisma.proposalEvent.create({
+      data: { proposalId: id, type: 'rejected', actorId: req.user!.id, note: reason, createdAt: now, score: scoreBeforeReject }
     })
     await logAction('PROPOSAL_REJECTED', req.user!.id, { proposalId: id, reason }, req.ip)
 
-    // Notifier le créateur et les votants
+    // Notifier le créateur et les votants (votes déjà supprimés, on récupère depuis la DB avec le contexte de notif)
     const proposalWithVotes = await prisma.proposal.findUnique({
       where: { id },
       include: { votes: true, translation: { include: { verse: { include: { chapter: { include: { book: true } } } } } } }
@@ -1363,25 +1392,22 @@ router.get('/proposals/:id/timeline', async (req: Request, res: Response) => {
       where: { id },
       include: {
         creator:  { select: { username: true } },
-        reviewer: { select: { username: true } },
         versions: { orderBy: { versionNumber: 'asc' }, select: { createdAt: true, changeReason: true, versionNumber: true } },
-        votes:    { select: { value: true, createdAt: true }, orderBy: { createdAt: 'asc' } },
-        _count:   { select: { comments: true } },
+        votes:    { select: { value: true }, orderBy: { createdAt: 'asc' } },
       }
     })
     if (!proposal) { res.status(404).json({ error: 'Proposition non trouvée' }); return }
 
-    // Premier et dernier commentaire
-    const firstComment = await prisma.comment.findFirst({
-      where: { proposalId: id }, orderBy: { createdAt: 'asc' }, select: { createdAt: true }
-    })
-    const lastComment  = await prisma.comment.findFirst({
-      where: { proposalId: id }, orderBy: { createdAt: 'desc' }, select: { createdAt: true }
+    // Événements de statut (journal immuable)
+    const statusEvents = await prisma.proposalEvent.findMany({
+      where: { proposalId: id },
+      orderBy: { createdAt: 'asc' },
+      include: { actor: { select: { username: true } } }
     })
 
-    // Traduction active ?
-    const translation = await prisma.translation.findUnique({
-      where: { id: proposal.translationId }, select: { isActive: true }
+    // Premier commentaire
+    const firstComment = await prisma.comment.findFirst({
+      where: { proposalId: id }, orderBy: { createdAt: 'asc' }, select: { createdAt: true }
     })
 
     type Event = { type: string; date: string; [k: string]: unknown }
@@ -1395,31 +1421,23 @@ router.get('/proposals/:id/timeline', async (req: Request, res: Response) => {
       events.push({ type: 'edited', date: v.createdAt.toISOString(), versionNumber: v.versionNumber, changeReason: v.changeReason })
     }
 
-    // Premier commentaire
     if (firstComment) {
-      events.push({
-        type: 'commented',
-        date: firstComment.createdAt.toISOString(),
-        count: (proposal as { _count: { comments: number } })._count.comments,
-        ...(lastComment && lastComment.createdAt.getTime() !== firstComment.createdAt.getTime()
-          ? { lastAt: lastComment.createdAt.toISOString() } : {})
-      })
+      events.push({ type: 'commented', date: firstComment.createdAt.toISOString() })
     }
 
-    // Acceptation / Rejet
-    const reviewedAt = (proposal as unknown as { reviewedAt: Date | null }).reviewedAt
-    if (proposal.status === 'ACCEPTED' || proposal.status === 'REJECTED') {
+    // Événements de statut depuis le journal immuable
+    // Pour chaque changement de statut, on injecte d'abord les votes accumulés (si ≠ 0)
+    for (const ev of statusEvents) {
+      if (ev.score !== null && ev.score !== undefined && ev.score !== 0) {
+        // Même timestamp → apparaît juste avant grâce à l'ordre d'insertion (sort stable)
+        events.push({ type: 'votes', date: ev.createdAt.toISOString(), score: ev.score })
+      }
       events.push({
-        type: proposal.status === 'ACCEPTED' ? 'accepted' : 'rejected',
-        date: (reviewedAt ?? proposal.createdAt).toISOString(),
-        actor: proposal.reviewer?.username ?? null,
-        reason: proposal.reason ?? null,
+        type: ev.type,  // accepted | rejected | reopened | activated
+        date: ev.createdAt.toISOString(),
+        actor: ev.actor?.username ?? null,
+        reason: ev.note ?? null,
       })
-    }
-
-    // Rendue active
-    if (translation?.isActive && proposal.status === 'ACCEPTED') {
-      events.push({ type: 'activated', date: (reviewedAt ?? proposal.createdAt).toISOString() })
     }
 
     // Score actuel des votes

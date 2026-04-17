@@ -108,14 +108,13 @@ interface Proposal {
 }
 
 interface TimelineEvent {
-  type: 'created' | 'edited' | 'commented' | 'accepted' | 'rejected' | 'activated'
+  type: 'created' | 'edited' | 'commented' | 'accepted' | 'rejected' | 'reopened' | 'activated' | 'votes'
   date: string
   actor?: string | null
   changeReason?: string | null
   versionNumber?: number
-  count?: number
-  lastAt?: string
   reason?: string | null
+  score?: number
 }
 
 interface RightPanelProps {
@@ -131,7 +130,7 @@ interface RightPanelProps {
   verseTranslations: VerseTranslation[]
   onTranslationAdded: () => void
   onCommentAdded: () => void
-  onProposalUpdated: () => void
+  onProposalUpdated: () => Promise<void> | void
 }
 
 function OccurrencesList({ occurrences, activeWord }: {
@@ -244,6 +243,7 @@ export default function RightPanel({
   const [savingEdit, setSavingEdit] = useState(false)
   const [showRejected, setShowRejected] = useState(false)
   const [proposalVoteOverrides, setProposalVoteOverrides] = useState<Record<string, { netScore: number; userVote: number; status: string }>>({})
+  const [proposalActioning, setProposalActioning] = useState<Set<string>>(new Set())
   const [replyingToId, setReplyingToId] = useState<string | null>(null)
   const [pickerOpenId, setPickerOpenId] = useState<string | null>(null)
   const [proposalVersions, setProposalVersions] = useState<Record<string, ProposalVersion[]>>({})
@@ -1101,27 +1101,40 @@ export default function RightPanel({
                         </span>
                         {currentStatus === 'ACCEPTED' && user && ['EXPERT', 'ADMIN'].includes(user.role) && !isActiveTrad && (
                           <button
+                            disabled={proposalActioning.has(p.id)}
                             onClick={async () => {
-                              try { await api.patch(`/api/proposals/${p.id}/activate`); onProposalUpdated() } catch (e) { console.error(e) }
+                              setProposalActioning(prev => new Set([...prev, p.id]))
+                              try {
+                                await api.patch(`/api/proposals/${p.id}/activate`)
+                                await onProposalUpdated()
+                              } catch (e) { console.error(e) }
+                              finally { setProposalActioning(prev => { const n = new Set(prev); n.delete(p.id); return n }) }
                             }}
                             style={{
                               padding: '2px 8px', borderRadius: '4px',
                               border: '1px solid rgba(45,90,58,0.3)', background: 'var(--green-light)',
-                              cursor: 'pointer', fontFamily: 'DM Mono, monospace', fontSize: '11px', color: 'var(--green-valid)', whiteSpace: 'nowrap',
+                              cursor: proposalActioning.has(p.id) ? 'wait' : 'pointer',
+                              opacity: proposalActioning.has(p.id) ? 0.6 : 1,
+                              fontFamily: 'DM Mono, monospace', fontSize: '11px', color: 'var(--green-valid)', whiteSpace: 'nowrap',
                             }}
-                          >↑ Rendre active</button>
+                          >{proposalActioning.has(p.id) ? '…' : '↑ Rendre active'}</button>
                         )}
                         {currentStatus === 'ACCEPTED' && user && user.role === 'ADMIN' && !isActiveTrad && (
                           <button
                             onClick={async () => {
+                              // Optimiste immédiat
+                              setProposalVoteOverrides(prev => ({
+                                ...prev,
+                                [p.id]: { netScore: 0, userVote: 0, status: 'PENDING' }
+                              }))
                               try {
                                 await api.patch(`/api/proposals/${p.id}/reopen`)
-                                setProposalVoteOverrides(prev => ({
-                                  ...prev,
-                                  [p.id]: { netScore: 0, userVote: 0, status: 'PENDING' }
-                                }))
                                 onProposalUpdated()
-                              } catch (e) { console.error(e) }
+                              } catch (e) {
+                                console.error(e)
+                                // Revert si erreur
+                                setProposalVoteOverrides(prev => { const n = { ...prev }; delete n[p.id]; return n })
+                              }
                             }}
                             style={{
                               padding: '2px 8px', borderRadius: '4px',
@@ -1859,10 +1872,15 @@ export default function RightPanel({
                         switch (e.type) {
                           case 'created':   return { icon: '✦', color: 'var(--ink-muted)',    text: `Créée${e.actor ? ` par @${e.actor}` : ''}` }
                           case 'edited':    return { icon: '✎', color: 'var(--gold)',          text: `Modifiée (v${(e.versionNumber ?? 0) + 1})${e.changeReason ? ` · ${e.changeReason}` : ''}` }
-                          case 'commented': return { icon: '💬', color: 'var(--blue-sacred)',  text: `${e.count} commentaire${(e.count ?? 0) > 1 ? 's' : ''}` }
+                          case 'commented': return { icon: '💬', color: 'var(--blue-sacred)',  text: 'Premier commentaire' }
                           case 'accepted':  return { icon: '✓',  color: 'var(--green-valid)',  text: `Acceptée${e.actor ? ` par @${e.actor}` : ''}` }
                           case 'rejected':  return { icon: '✕',  color: 'var(--red-soft)',     text: `Rejetée${e.actor ? ` par @${e.actor}` : ''}${e.reason ? ` · ${e.reason}` : ''}` }
-                          case 'activated': return { icon: '★',  color: 'var(--gold)',          text: 'Rendue traduction active' }
+                          case 'activated': return { icon: '★',  color: 'var(--gold)',          text: `Activée comme traduction officielle${e.actor ? ` par @${e.actor}` : ''}` }
+                          case 'reopened':  return { icon: '↺',  color: 'var(--ink-muted)',    text: `Remise en attente${e.actor ? ` par @${e.actor}` : ''}` }
+                          case 'votes': {
+                            const s = e.score ?? 0
+                            return { icon: s > 0 ? '▲' : '▼', color: s > 0 ? 'var(--green-valid)' : 'var(--red-soft)', text: `${s > 0 ? '+' : ''}${s} vote${Math.abs(s) > 1 ? 's' : ''}` }
+                          }
                           default:          return { icon: '·',  color: 'var(--ink-faint)',    text: e.type }
                         }
                       }
@@ -2057,10 +2075,24 @@ export default function RightPanel({
                                 id={`reject-confirm-${p.id}`}
                                 disabled={!rejectReason.trim()}
                                 onClick={async () => {
+                                  const reason = rejectReason.trim()
+                                  // Mise à jour optimiste immédiate
+                                  setProposalVoteOverrides(prev => ({
+                                    ...prev,
+                                    [p.id]: { ...(prev[p.id] ?? { netScore: 0, userVote: 0 }), status: 'REJECTED' }
+                                  }))
+                                  setRejectingId(null)
+                                  setRejectReason('')
                                   try {
-                                    await api.patch(`/api/proposals/${p.id}/reject`, { reason: rejectReason.trim() })
-                                    setRejectingId(null); setRejectReason(''); onProposalUpdated()
-                                  } catch (e) { console.error(e) }
+                                    await api.patch(`/api/proposals/${p.id}/reject`, { reason })
+                                    onProposalUpdated() // refetch silencieux en arrière-plan
+                                  } catch (e) {
+                                    console.error(e)
+                                    // Revert si erreur
+                                    setProposalVoteOverrides(prev => { const n = { ...prev }; delete n[p.id]; return n })
+                                    setRejectingId(p.id)
+                                    setRejectReason(reason)
+                                  }
                                 }}
                                 style={{ padding: '5px 10px', background: rejectReason.trim() ? 'var(--red-light)' : 'transparent', color: 'var(--red-soft)', border: '1px solid rgba(122,42,42,0.3)', borderRadius: '6px', fontFamily: 'DM Mono, monospace', fontSize: '11px', cursor: rejectReason.trim() ? 'pointer' : 'not-allowed', opacity: rejectReason.trim() ? 1 : 0.45, transition: 'all 0.15s' }}
                               >Rejeter</button>
@@ -2073,7 +2105,19 @@ export default function RightPanel({
                             <div style={{ display: 'flex', gap: '6px' }}>
                               <button
                                 onClick={async () => {
-                                  try { await api.patch(`/api/proposals/${p.id}/accept`); onProposalUpdated() } catch (e) { console.error(e) }
+                                  // Mise à jour optimiste immédiate
+                                  setProposalVoteOverrides(prev => ({
+                                    ...prev,
+                                    [p.id]: { ...(prev[p.id] ?? { netScore: 0, userVote: 0 }), status: 'ACCEPTED' }
+                                  }))
+                                  try {
+                                    await api.patch(`/api/proposals/${p.id}/accept`)
+                                    onProposalUpdated() // refetch silencieux en arrière-plan
+                                  } catch (e) {
+                                    console.error(e)
+                                    // Revert si erreur
+                                    setProposalVoteOverrides(prev => { const n = { ...prev }; delete n[p.id]; return n })
+                                  }
                                 }}
                                 style={{ padding: '4px 10px', background: 'var(--green-valid)', color: 'white', border: 'none', borderRadius: '5px', fontFamily: 'DM Mono, monospace', fontSize: '11px', cursor: 'pointer' }}
                               >✓ Accepter</button>

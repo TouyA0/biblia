@@ -50,9 +50,10 @@ model User {
   isActive         Boolean  @default(true)
   forcePasswordReset Boolean @default(false)
   lastLoginAt      DateTime?
-  notifications Notification[]
+  notifications    Notification[]
   commentReactions CommentReaction[]
-  settings Setting[]
+  settings         Setting[]
+  proposalEvents   ProposalEvent[]
 }
 
 model Book {
@@ -150,8 +151,9 @@ model Proposal {
   creator       User?          @relation("ProposalCreator", fields: [createdBy], references: [id])
   reviewer      User?          @relation("ProposalReviewer", fields: [reviewedBy], references: [id])
   votes         Vote[]
-  comments    Comment[]
-  versions    ProposalVersion[]
+  comments      Comment[]
+  versions      ProposalVersion[]
+  events        ProposalEvent[]
 }
 
 model ProposalVersion {
@@ -162,6 +164,18 @@ model ProposalVersion {
   changeReason  String?
   versionNumber Int
   createdAt     DateTime @default(now())
+}
+
+model ProposalEvent {
+  id         String   @id @default(cuid())
+  proposalId String
+  proposal   Proposal @relation(fields: [proposalId], references: [id], onDelete: Cascade)
+  type       String   // accepted | rejected | reopened | activated
+  actorId    String?
+  actor      User?    @relation(fields: [actorId], references: [id], onDelete: SetNull)
+  note       String?  // raison du rejet, etc.
+  score      Int?     // score net des votes au moment du changement de statut
+  createdAt  DateTime @default(now())
 }
 
 model Vote {
