@@ -3339,106 +3339,105 @@ export default function RightPanel({
                         {proposedTranslations.map(t => renderWtCard(t, 'PENDING'))}
                       </div>
                     )}
+                    {!showForm ? (
+                      <button
+                        onClick={() => setShowForm(true)}
+                        style={{
+                          width: '100%',
+                          padding: '10px',
+                          border: '1.5px dashed var(--border-strong)',
+                          borderRadius: '8px',
+                          background: 'transparent',
+                          fontFamily: 'Spectral, serif',
+                          fontSize: '14px',
+                          fontStyle: 'italic',
+                          color: 'var(--ink-muted)',
+                          cursor: 'pointer',
+                          marginTop: '4px',
+                        }}
+                        onMouseEnter={e => {
+                          (e.target as HTMLElement).style.borderColor = 'var(--gold)'
+                          ;(e.target as HTMLElement).style.color = 'var(--gold)'
+                        }}
+                        onMouseLeave={e => {
+                          (e.target as HTMLElement).style.borderColor = 'var(--border-strong)'
+                          ;(e.target as HTMLElement).style.color = 'var(--ink-muted)'
+                        }}
+                      >
+                        + Proposer une traduction
+                      </button>
+                    ) : (
+                      <div style={{
+                        border: '1px solid var(--border)',
+                        borderRadius: '8px',
+                        padding: '12px',
+                        background: 'var(--card-bg)',
+                        marginTop: '4px',
+                      }}>
+                        {error && (
+                          <div style={{
+                            padding: '8px 10px',
+                            background: 'var(--red-light)',
+                            border: '1px solid rgba(122,42,42,0.2)',
+                            borderRadius: '6px',
+                            color: 'var(--red-soft)',
+                            fontFamily: 'Spectral, serif',
+                            fontSize: '12px',
+                            marginBottom: '10px',
+                          }}>
+                            {error}
+                          </div>
+                        )}
+                        <input
+                          type="text"
+                          value={newTranslation}
+                          onChange={e => setNewTranslation(e.target.value)}
+                          placeholder="Votre traduction..."
+                          onKeyDown={e => e.key === 'Enter' && !e.shiftKey && handleSubmitTranslation()}
+                          style={{ width: '100%', padding: '8px 10px', border: '1px solid var(--border)', borderRadius: '6px', fontFamily: 'Spectral, serif', fontSize: '14px', fontStyle: 'italic', color: 'var(--ink)', background: 'var(--parchment)', outline: 'none', marginBottom: '8px', boxSizing: 'border-box' as const }}
+                        />
+                        <textarea
+                          value={newTranslationReason}
+                          onChange={e => setNewTranslationReason(e.target.value)}
+                          placeholder="Justification (optionnel)..."
+                          rows={2}
+                          style={{ width: '100%', padding: '6px 10px', border: '1px solid var(--border)', borderRadius: '6px', fontFamily: 'Spectral, serif', fontSize: '12px', fontStyle: 'italic', color: 'var(--ink)', background: 'var(--parchment)', outline: 'none', resize: 'none', marginBottom: '8px', boxSizing: 'border-box' as const }}
+                        />
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px', marginBottom: '10px' }}>
+                          {WORD_TRANSLATION_TAGS.map(tag => {
+                            const active = newTranslationTags.includes(tag.id)
+                            return (
+                              <button key={tag.id} type="button" onClick={() => setNewTranslationTags(prev => active ? prev.filter(x => x !== tag.id) : [...prev, tag.id])}
+                                style={{ fontSize: '10px', padding: '2px 9px', borderRadius: '20px', border: `1px solid ${active ? tag.border : 'var(--border)'}`, background: active ? tag.bg : 'transparent', color: active ? tag.color : 'var(--ink-faint)', cursor: 'pointer', fontFamily: 'DM Mono, monospace', transition: 'all 0.15s' }}>
+                                {tag.label}
+                              </button>
+                            )
+                          })}
+                        </div>
+                        <div style={{ display: 'flex', gap: '8px' }}>
+                          <button onClick={handleSubmitTranslation} disabled={submitting || !newTranslation.trim()}
+                            style={{ flex: 1, padding: '8px', background: 'var(--gold)', color: 'white', border: 'none', borderRadius: '6px', fontFamily: 'DM Mono, monospace', fontSize: '12px', letterSpacing: '0.08em', textTransform: 'uppercase' as const, cursor: submitting ? 'not-allowed' : 'pointer', opacity: submitting || !newTranslation.trim() ? 0.6 : 1 }}>
+                            {submitting ? 'Envoi...' : 'Proposer'}
+                          </button>
+                          <button onClick={() => { setShowForm(false); setNewTranslation(''); setNewTranslationReason(''); setNewTranslationTags([]); setError('') }}
+                            style={{ padding: '8px 14px', background: 'transparent', color: 'var(--ink-muted)', border: '1px solid var(--border)', borderRadius: '6px', fontFamily: 'DM Mono, monospace', fontSize: '12px', cursor: 'pointer' }}>
+                            Annuler
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                    {rejectedTranslations.length > 0 && (
+                      <div style={{ marginTop: '8px' }}>
+                        <button onClick={() => setShowRejectedWords(v => !v)} style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'DM Mono, monospace', fontSize: '11px', color: 'var(--ink-faint)', padding: '4px 0', marginBottom: showRejectedWords ? '8px' : 0 }}>
+                          <span style={{ fontSize: '9px' }}>{showRejectedWords ? '▼' : '▶'}</span>
+                          Rejetées ({rejectedTranslations.length})
+                        </button>
+                        {showRejectedWords && rejectedTranslations.map(t => renderWtCard(t, 'REJECTED'))}
+                      </div>
+                    )}
                   </>
                 )
               })()}
-              {!showForm ? (
-                <button
-                  onClick={() => setShowForm(true)}
-                  style={{
-                    width: '100%',
-                    padding: '10px',
-                    border: '1.5px dashed var(--border-strong)',
-                    borderRadius: '8px',
-                    background: 'transparent',
-                    fontFamily: 'Spectral, serif',
-                    fontSize: '14px',
-                    fontStyle: 'italic',
-                    color: 'var(--ink-muted)',
-                    cursor: 'pointer',
-                    marginTop: '4px',
-                  }}
-                  onMouseEnter={e => {
-                    (e.target as HTMLElement).style.borderColor = 'var(--gold)'
-                    ;(e.target as HTMLElement).style.color = 'var(--gold)'
-                  }}
-                  onMouseLeave={e => {
-                    (e.target as HTMLElement).style.borderColor = 'var(--border-strong)'
-                    ;(e.target as HTMLElement).style.color = 'var(--ink-muted)'
-                  }}
-                >
-                  + Proposer une traduction
-                </button>
-              ) : (
-                <div style={{
-                  border: '1px solid var(--border)',
-                  borderRadius: '8px',
-                  padding: '12px',
-                  background: 'var(--card-bg)',
-                  marginTop: '4px',
-                }}>
-                  {error && (
-                    <div style={{
-                      padding: '8px 10px',
-                      background: 'var(--red-light)',
-                      border: '1px solid rgba(122,42,42,0.2)',
-                      borderRadius: '6px',
-                      color: 'var(--red-soft)',
-                      fontFamily: 'Spectral, serif',
-                      fontSize: '12px',
-                      marginBottom: '10px',
-                    }}>
-                      {error}
-                    </div>
-                  )}
-                  <input
-                    type="text"
-                    value={newTranslation}
-                    onChange={e => setNewTranslation(e.target.value)}
-                    placeholder="Votre traduction..."
-                    onKeyDown={e => e.key === 'Enter' && !e.shiftKey && handleSubmitTranslation()}
-                    style={{ width: '100%', padding: '8px 10px', border: '1px solid var(--border)', borderRadius: '6px', fontFamily: 'Spectral, serif', fontSize: '14px', fontStyle: 'italic', color: 'var(--ink)', background: 'var(--parchment)', outline: 'none', marginBottom: '8px', boxSizing: 'border-box' as const }}
-                  />
-                  <textarea
-                    value={newTranslationReason}
-                    onChange={e => setNewTranslationReason(e.target.value)}
-                    placeholder="Justification (optionnel)..."
-                    rows={2}
-                    style={{ width: '100%', padding: '6px 10px', border: '1px solid var(--border)', borderRadius: '6px', fontFamily: 'Spectral, serif', fontSize: '12px', fontStyle: 'italic', color: 'var(--ink)', background: 'var(--parchment)', outline: 'none', resize: 'none', marginBottom: '8px', boxSizing: 'border-box' as const }}
-                  />
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px', marginBottom: '10px' }}>
-                    {WORD_TRANSLATION_TAGS.map(tag => {
-                      const active = newTranslationTags.includes(tag.id)
-                      return (
-                        <button key={tag.id} type="button" onClick={() => setNewTranslationTags(prev => active ? prev.filter(x => x !== tag.id) : [...prev, tag.id])}
-                          style={{ fontSize: '10px', padding: '2px 9px', borderRadius: '20px', border: `1px solid ${active ? tag.border : 'var(--border)'}`, background: active ? tag.bg : 'transparent', color: active ? tag.color : 'var(--ink-faint)', cursor: 'pointer', fontFamily: 'DM Mono, monospace', transition: 'all 0.15s' }}>
-                          {tag.label}
-                        </button>
-                      )
-                    })}
-                  </div>
-                  <div style={{ display: 'flex', gap: '8px' }}>
-                    <button onClick={handleSubmitTranslation} disabled={submitting || !newTranslation.trim()}
-                      style={{ flex: 1, padding: '8px', background: 'var(--gold)', color: 'white', border: 'none', borderRadius: '6px', fontFamily: 'DM Mono, monospace', fontSize: '12px', letterSpacing: '0.08em', textTransform: 'uppercase' as const, cursor: submitting ? 'not-allowed' : 'pointer', opacity: submitting || !newTranslation.trim() ? 0.6 : 1 }}>
-                      {submitting ? 'Envoi...' : 'Proposer'}
-                    </button>
-                    <button onClick={() => { setShowForm(false); setNewTranslation(''); setNewTranslationReason(''); setNewTranslationTags([]); setError('') }}
-                      style={{ padding: '8px 14px', background: 'transparent', color: 'var(--ink-muted)', border: '1px solid var(--border)', borderRadius: '6px', fontFamily: 'DM Mono, monospace', fontSize: '12px', cursor: 'pointer' }}>
-                      Annuler
-                    </button>
-                  </div>
-                </div>
-              )}
-              {/* Rejetées — après le formulaire */}
-              {rejectedTranslations.length > 0 && (
-                <div style={{ marginTop: '8px' }}>
-                  <button onClick={() => setShowRejectedWords(v => !v)} style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'DM Mono, monospace', fontSize: '11px', color: 'var(--ink-faint)', padding: '4px 0', marginBottom: showRejectedWords ? '8px' : 0 }}>
-                    <span style={{ fontSize: '9px' }}>{showRejectedWords ? '▼' : '▶'}</span>
-                    Rejetées ({rejectedTranslations.length})
-                  </button>
-                  {showRejectedWords && rejectedTranslations.map(t => renderWtCard(t, 'REJECTED'))}
-                </div>
-              )}
             {/* Occurrences */}
               {activeWord.lemma && (
                 <div style={{ marginTop: '24px', borderTop: '1px solid var(--border)', paddingTop: '20px' }}>
