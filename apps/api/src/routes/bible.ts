@@ -508,7 +508,7 @@ router.get('/word-translations/:id/versions', async (req: Request, res: Response
 })
 
 // GET /api/word-translations/:id/timeline
-router.get('/word-translations/:id/timeline', async (req: Request, res: Response) => {
+router.get('/word-translations/:id/timeline', authenticateJWT, async (req: AuthRequest, res: Response) => {
   try {
     const id = req.params.id as string
     const wt = await prisma.wordTranslation.findUnique({
@@ -1638,7 +1638,7 @@ router.get('/pending', authenticateJWT, async (req: AuthRequest, res: Response) 
 })
 
 // GET /api/proposals/:id/timeline
-router.get('/proposals/:id/timeline', async (req: Request, res: Response) => {
+router.get('/proposals/:id/timeline', authenticateJWT, async (req: AuthRequest, res: Response) => {
   try {
     const id = req.params.id as string
     const proposal = await prisma.proposal.findUnique({
